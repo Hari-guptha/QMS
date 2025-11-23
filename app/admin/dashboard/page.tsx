@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -46,20 +47,23 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-lg">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <nav className="bg-white dark:bg-gray-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-            <button
-              onClick={() => {
-                auth.logout();
-                router.push('/');
-              }}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-            >
-              Logout
-            </button>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Panel</h1>
+            <div className="flex items-center gap-4">
+              <ThemeToggle />
+              <button
+                onClick={() => {
+                  auth.logout();
+                  router.push('/');
+                }}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -68,59 +72,59 @@ export default function AdminDashboard() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Link
             href="/admin/users"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
           >
             <div className="text-4xl mb-2">👥</div>
-            <h2 className="text-xl font-semibold">Users Management</h2>
-            <p className="text-gray-600 text-sm">Manage agents and users</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Users Management</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Manage agents and users</p>
           </Link>
 
           <Link
             href="/admin/categories"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
           >
             <div className="text-4xl mb-2">📁</div>
-            <h2 className="text-xl font-semibold">Categories</h2>
-            <p className="text-gray-600 text-sm">Manage service categories</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Categories</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Manage service categories</p>
           </Link>
 
           <Link
             href="/admin/queues"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
           >
             <div className="text-4xl mb-2">📋</div>
-            <h2 className="text-xl font-semibold">All Queues</h2>
-            <p className="text-gray-600 text-sm">View all queues</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">All Queues</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">View all queues</p>
           </Link>
 
           <Link
             href="/admin/analytics"
-            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
           >
             <div className="text-4xl mb-2">📊</div>
-            <h2 className="text-xl font-semibold">Analytics</h2>
-            <p className="text-gray-600 text-sm">View reports and stats</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Analytics</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">View reports and stats</p>
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4">Quick Stats</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Quick Stats</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <span className="text-gray-600">Avg Wait Time</span>
-              <p className="text-2xl font-bold">
+              <span className="text-gray-600 dark:text-gray-400">Avg Wait Time</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.avgWaitTime || 0} min
               </p>
             </div>
             <div>
-              <span className="text-gray-600">Avg Service Time</span>
-              <p className="text-2xl font-bold">
+              <span className="text-gray-600 dark:text-gray-400">Avg Service Time</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.avgServiceTime || 0} min
               </p>
             </div>
             <div>
-              <span className="text-gray-600">Abandonment Rate</span>
-              <p className="text-2xl font-bold">
+              <span className="text-gray-600 dark:text-gray-400">Abandonment Rate</span>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.abandonmentRate?.toFixed(1) || 0}%
               </p>
             </div>

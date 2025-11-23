@@ -9,39 +9,20 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  @apply bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors;
 }
 
-/* Fix input text color - ensure text is always visible */
+/* Input styles with dark mode support */
 input, textarea, select {
-  color: #000000 !important;
-  background-color: #ffffff !important;
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600;
 }
 
 input::placeholder, textarea::placeholder {
-  color: #6b7280 !important;
-  opacity: 1 !important;
+  @apply text-gray-500 dark:text-gray-400;
 }
 
 input:focus, textarea:focus, select:focus {
-  color: #000000 !important;
-}
-
-/* Ensure all input types have visible text */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="tel"],
-input[type="number"],
-textarea,
-select {
-  color: #000000 !important;
+  @apply ring-blue-500 dark:ring-blue-400 border-blue-500 dark:border-blue-400;
 }
 
 @layer utilities {

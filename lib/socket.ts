@@ -8,6 +8,22 @@ export const getSocket = (): Socket => {
   if (!socket) {
     socket = io(`${SOCKET_URL}/queue`, {
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity,
+    });
+
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket?.id);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
     });
   }
   return socket;

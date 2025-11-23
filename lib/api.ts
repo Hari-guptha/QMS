@@ -73,6 +73,8 @@ export const agentApi = {
     api.patch(`/queue/agent/${ticketId}/complete`),
   markAsNoShow: (ticketId: string) =>
     api.patch(`/queue/agent/${ticketId}/no-show`),
+  reopenTicket: (ticketId: string) =>
+    api.patch(`/queue/agent/${ticketId}/reopen`),
   reorderQueue: (ticketIds: string[]) =>
     api.put('/queue/agent/reorder', { ticketIds }),
   transferTicket: (ticketId: string, newAgentId: string) =>
@@ -101,6 +103,24 @@ export const adminApi = {
   // Queues
   getAllQueues: (categoryId?: string, agentId?: string) =>
     api.get('/queue/admin/all', { params: { categoryId, agentId } }),
+  getAgentQueue: (agentId: string) =>
+    api.get(`/queue/admin/all`, { params: { agentId } }),
+  reorderAgentQueue: (agentId: string, ticketIds: string[]) =>
+    api.put(`/queue/admin/reorder/${agentId}`, { ticketIds }),
+  adminCallNext: (agentId: string) =>
+    api.post(`/queue/admin/call-next/${agentId}`),
+  adminMarkAsCompleted: (ticketId: string) =>
+    api.patch(`/queue/admin/${ticketId}/complete`),
+  adminMarkAsServing: (ticketId: string) =>
+    api.patch(`/queue/admin/${ticketId}/serving`),
+  adminMarkAsNoShow: (ticketId: string) =>
+    api.patch(`/queue/admin/${ticketId}/no-show`),
+  adminReopenTicket: (ticketId: string) =>
+    api.patch(`/queue/admin/${ticketId}/reopen`),
+  adminUpdateTicket: (ticketId: string, data: any) =>
+    api.put(`/queue/admin/${ticketId}`, data),
+  deleteTicket: (ticketId: string) =>
+    api.delete(`/queue/admin/${ticketId}`),
   
   // Analytics
   getDashboard: (startDate?: string, endDate?: string) =>
