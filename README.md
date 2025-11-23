@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QMS Frontend
+
+Next.js frontend for the Queue Management System.
+
+## Features
+
+- **Customer Flow**: Check-in, category selection, token generation, status page
+- **Agent Dashboard**: Queue management, call next, mark as serving/completed
+- **Admin Panel**: Users, categories, queues, analytics management
+- **Real-time Updates**: Socket.io integration for live updates
+- **Responsive Design**: Tailwind CSS for modern UI
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) (or next available port).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env.local`:
 
-## Learn More
+```
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+  customer/          # Customer flow pages
+    check-in/        # Check-in form
+    token/[token]    # Token display page
+  agent/             # Agent pages
+    login/           # Agent login
+    dashboard/       # Agent dashboard
+  admin/             # Admin pages
+    login/           # Admin login
+    dashboard/       # Admin dashboard
+    users/           # Users management
+    categories/      # Categories management
+    queues/          # All queues view
+    analytics/       # Analytics dashboard
+  status/            # Public status page
+lib/
+  api.ts             # API client
+  auth.ts            # Authentication utilities
+  socket.ts          # Socket.io client
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Integration
 
-## Deploy on Vercel
+The frontend integrates with the NestJS backend API:
+- Public endpoints for customer check-in
+- Agent endpoints for queue management
+- Admin endpoints for system management
+- Real-time updates via Socket.io
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Build
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm start
+```
