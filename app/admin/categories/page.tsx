@@ -6,6 +6,21 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FolderOpen, 
+  Plus, 
+  Trash2, 
+  Edit2,
+  X,
+  Save,
+  UserPlus,
+  ArrowLeft,
+  Clock,
+  Users,
+  Loader2
+} from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 
 export default function CategoriesManagement() {
   const router = useRouter();
@@ -118,7 +133,14 @@ export default function CategoriesManagement() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="text-xl text-foreground">Loading...</div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center gap-4"
+          >
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="text-lg text-muted-foreground">Loading categories...</div>
+          </motion.div>
         </div>
       </div>
     );
@@ -128,195 +150,313 @@ export default function CategoriesManagement() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <Link href="/admin/dashboard" className="text-primary hover:text-primary/80">
-            ← Back to Dashboard
-          </Link>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors shadow-xs"
-          >
-            {showForm ? 'Cancel' : 'Create Category'}
-          </button>
-        </div>
-        {showForm && (
-          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 mb-6">
-            <h2 className="text-2xl font-semibold mb-4 text-foreground">Create New Category</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Category Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-                required
-              />
-              <textarea
-                placeholder="Description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-              />
-              <input
-                type="number"
-                placeholder="Estimated Wait Time (minutes)"
-                value={formData.estimatedWaitTime}
-                onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-                min="0"
-              />
-              <button
-                type="submit"
-                className="bg-chart-2 text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity shadow-xs"
-              >
-                Create Category
-              </button>
-            </form>
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
-            <div key={category.id} className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
-              {editingCategory === category.id ? (
-                <form onSubmit={(e) => handleUpdate(e, category.id)} className="space-y-3">
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
-                    required
-                  />
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
-                    rows={2}
-                  />
-                  <input
-                    type="number"
-                    value={formData.estimatedWaitTime}
-                    onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
-                    min="0"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      className="flex-1 bg-chart-2 text-white px-3 py-1 rounded-md text-sm hover:opacity-90 transition-opacity shadow-xs"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingCategory(null);
-                        setFormData({ name: '', description: '', estimatedWaitTime: 0 });
-                      }}
-                      className="flex-1 bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm hover:bg-secondary/80 transition-colors border"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-semibold text-foreground">{category.name}</h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(category)}
-                        className="text-primary hover:text-primary/80 text-sm"
-                        title="Edit"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => handleDelete(category.id)}
-                        className="text-destructive hover:text-destructive/80 text-sm"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground mb-2 text-sm">{category.description}</p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Wait: {category.estimatedWaitTime} min
-                  </p>
-
-                  <div className="border-t pt-3 mt-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="text-sm font-semibold">Assigned Agents</h4>
-                      <button
-                        onClick={() => setAssigningAgent(assigningAgent === category.id ? null : category.id)}
-                        className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md hover:bg-primary/90 transition-colors shadow-xs"
-                      >
-                        {assigningAgent === category.id ? 'Cancel' : '+ Assign'}
-                      </button>
-                    </div>
-
-                    {assigningAgent === category.id && (
-                      <div className="mb-3 p-2 bg-muted border rounded-md">
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleAssignAgent(category.id, e.target.value);
-                              e.target.value = '';
-                            }
-                          }}
-                          className="w-full px-2 py-1 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
-                          defaultValue=""
-                        >
-                          <option value="">Select agent...</option>
-                          {agents
-                            .filter((agent) => {
-                              const assigned = category.agentCategories?.some(
-                                (ac: any) => ac.agentId === agent.id && ac.isActive
-                              );
-                              return !assigned;
-                            })
-                            .map((agent) => (
-                              <option key={agent.id} value={agent.id}>
-                                {agent.firstName} {agent.lastName}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="space-y-1">
-                      {category.agentCategories?.filter((ac: any) => ac.isActive).length > 0 ? (
-                        category.agentCategories
-                          .filter((ac: any) => ac.isActive)
-                          .map((ac: any) => (
-                            <div
-                              key={ac.id}
-                              className="flex justify-between items-center p-2 bg-muted border rounded-md text-sm"
-                            >
-                              <span>
-                                {ac.agent?.firstName} {ac.agent?.lastName}
-                              </span>
-                              <button
-                                onClick={() => handleRemoveAgent(category.id, ac.agentId)}
-                                className="text-destructive hover:text-destructive/80 text-xs"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          ))
-                      ) : (
-                        <p className="text-xs text-muted-foreground">No agents assigned</p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex justify-between items-center mb-8"
+        >
+          <div>
+            <Link 
+              href="/admin/dashboard" 
+              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-chart-2/10 rounded-lg">
+                <FolderOpen className="w-6 h-6 text-chart-2" />
+              </div>
+              <h1 className="text-4xl font-bold text-foreground">Categories Management</h1>
             </div>
-          ))}
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg"
+          >
+            {showForm ? (
+              <>
+                <X className="w-5 h-5" />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Plus className="w-5 h-5" />
+                Create Category
+              </>
+            )}
+          </motion.button>
+        </motion.div>
+
+        {/* Create Form */}
+        <AnimatePresence>
+          {showForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-card text-card-foreground border rounded-2xl shadow-lg p-8 mb-8 overflow-hidden"
+            >
+              <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2">
+                <Plus className="w-6 h-6 text-primary" />
+                Create New Category
+              </h2>
+              <form onSubmit={handleCreate} className="space-y-4">
+                <motion.input
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  type="text"
+                  placeholder="Category Name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                  required
+                />
+                <motion.textarea
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  placeholder="Description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all min-h-[100px]"
+                />
+                <motion.input
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  type="number"
+                  placeholder="Estimated Wait Time (minutes)"
+                  value={formData.estimatedWaitTime}
+                  onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                  min="0"
+                />
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  className="w-full bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create Category
+                </motion.button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Categories Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence>
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -4 }}
+                className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all"
+              >
+                {editingCategory === category.id ? (
+                  <motion.form
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onSubmit={(e) => handleUpdate(e, category.id)}
+                    className="space-y-3"
+                  >
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
+                      required
+                    />
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
+                      rows={2}
+                    />
+                    <input
+                      type="number"
+                      value={formData.estimatedWaitTime}
+                      onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
+                      min="0"
+                    />
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        type="submit"
+                        className="flex-1 bg-chart-2 text-white px-3 py-2 rounded-xl text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-1"
+                      >
+                        <Save className="w-4 h-4" />
+                        Save
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        type="button"
+                        onClick={() => {
+                          setEditingCategory(null);
+                          setFormData({ name: '', description: '', estimatedWaitTime: 0 });
+                        }}
+                        className="flex-1 bg-secondary text-secondary-foreground px-3 py-2 rounded-xl text-sm hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-1"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </motion.button>
+                    </div>
+                  </motion.form>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-chart-2/10 rounded-lg">
+                          <FolderOpen className="w-5 h-5 text-chart-2" />
+                        </div>
+                        <h3 className="text-xl font-bold text-foreground">{category.name}</h3>
+                      </div>
+                      <div className="flex gap-2">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleEdit(category)}
+                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDelete(category.id)}
+                          className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+                    </div>
+                    {category.description && (
+                      <p className="text-muted-foreground mb-4 text-sm">{category.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                      <Clock className="w-4 h-4" />
+                      <span>Est. wait: {category.estimatedWaitTime} min</span>
+                    </div>
+
+                    <div className="border-t border-border pt-4 mt-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Assigned Agents
+                        </h4>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setAssigningAgent(assigningAgent === category.id ? null : category.id)}
+                          className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-1"
+                        >
+                          {assigningAgent === category.id ? (
+                            <>
+                              <X className="w-3 h-3" />
+                              Cancel
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-3 h-3" />
+                              Assign
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
+
+                      <AnimatePresence>
+                        {assigningAgent === category.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mb-3 p-3 bg-muted border rounded-xl"
+                          >
+                            <Select
+                              value=""
+                              onChange={(value) => {
+                                if (value) {
+                                  handleAssignAgent(category.id, value);
+                                }
+                              }}
+                              placeholder="Select agent..."
+                              options={[
+                                { value: '', label: 'Select agent...' },
+                                ...agents
+                                  .filter((agent) => {
+                                    const assigned = category.agentCategories?.some(
+                                      (ac: any) => ac.agentId === agent.id && ac.isActive
+                                    );
+                                    return !assigned;
+                                  })
+                                  .map((agent) => ({
+                                    value: agent.id,
+                                    label: `${agent.firstName} ${agent.lastName}`,
+                                  })),
+                              ]}
+                              className="text-sm"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="space-y-2">
+                        {category.agentCategories?.filter((ac: any) => ac.isActive).length > 0 ? (
+                          category.agentCategories
+                            .filter((ac: any) => ac.isActive)
+                            .map((ac: any, idx: number) => (
+                              <motion.div
+                                key={ac.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="flex justify-between items-center p-3 bg-muted border rounded-xl text-sm"
+                              >
+                                <span className="text-foreground">
+                                  {ac.agent?.firstName} {ac.agent?.lastName}
+                                </span>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => handleRemoveAgent(category.id, ac.agentId)}
+                                  className="text-destructive hover:text-destructive/80 text-xs"
+                                >
+                                  Remove
+                                </motion.button>
+                              </motion.div>
+                            ))
+                        ) : (
+                          <p className="text-xs text-muted-foreground text-center py-2">No agents assigned</p>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </div>
   );
 }
-

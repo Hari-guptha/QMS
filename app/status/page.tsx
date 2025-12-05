@@ -5,6 +5,7 @@ import { publicApi } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { Clock, Users, Ticket, CheckCircle2, Phone, UserCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function StatusPage() {
   const [status, setStatus] = useState<any>({});
@@ -149,6 +150,11 @@ export default function StatusPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Theme Toggle Header */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+      
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b">
         <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">

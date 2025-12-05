@@ -16,6 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function CustomerCheckIn() {
   const router = useRouter();
@@ -76,6 +77,11 @@ export default function CustomerCheckIn() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Theme Toggle Header */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+      
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b">
         <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
@@ -266,7 +272,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerName: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all"
+                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all placeholder:text-muted-foreground/70"
                       placeholder="Enter your full name"
                     />
                   </motion.div>
@@ -286,7 +292,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerPhone: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all"
+                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all placeholder:text-muted-foreground/70"
                       placeholder="+1234567890"
                     />
                   </motion.div>
@@ -306,7 +312,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerEmail: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all"
+                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all placeholder:text-muted-foreground/70"
                       placeholder="your@email.com"
                     />
                   </motion.div>

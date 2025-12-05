@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
   closestCenter,
@@ -23,6 +24,23 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  List,
+  ArrowLeft,
+  User,
+  FolderOpen,
+  GripVertical,
+  CheckCircle2,
+  X,
+  Edit2,
+  Trash2,
+  Phone,
+  UserCheck,
+  RotateCcw,
+  Loader2,
+  Save
+} from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 
 export default function AllQueues() {
   const router = useRouter();
@@ -104,9 +122,14 @@ export default function AllQueues() {
 
     // Optimistically update UI
     const newOrder = arrayMove(pendingTickets, oldIndex, newIndex);
+    // Update positionInQueue for each ticket
+    const updatedOrder = newOrder.map((ticket: any, index: number) => ({
+      ...ticket,
+      positionInQueue: index + 1,
+    }));
     const newQueue = [
       ...queue.filter((t: any) => t.status !== 'pending'),
-      ...newOrder,
+      ...updatedOrder,
     ];
     setQueue(newQueue);
 
@@ -114,8 +137,8 @@ export default function AllQueues() {
     try {
       const ticketIds = newOrder.map((t: any) => t.id);
       await adminApi.reorderAgentQueue(selectedAgentId, ticketIds);
-      // Reload to ensure consistency
-      loadAgentQueue(selectedAgentId);
+      // Don't reload immediately - the optimistic update is already in place
+      // Only reload if we need to sync with server state later
     } catch (error: any) {
       // Revert on error
       loadAgentQueue(selectedAgentId);
@@ -201,159 +224,257 @@ export default function AllQueues() {
   const pendingTickets = queue.filter((t: any) => t.status === 'pending');
   const otherTickets = queue.filter((t: any) => t.status !== 'pending');
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'called':
+        return <Phone className="w-4 h-4" />;
+      case 'serving':
+        return <UserCheck className="w-4 h-4" />;
+      case 'completed':
+        return <CheckCircle2 className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'called':
+        return 'bg-primary/20 text-primary border-primary/30';
+      case 'serving':
+        return 'bg-chart-2/20 text-chart-2 border-chart-2/30';
+      case 'completed':
+        return 'bg-chart-3/20 text-chart-3 border-chart-3/30';
+      default:
+        return 'bg-muted text-muted-foreground border-border';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-6">
-          <Link href="/admin/dashboard" className="text-primary hover:text-primary/80 mb-4 inline-block">
-            ← Back to Dashboard
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <Link 
+            href="/admin/dashboard" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">Queue Management</h1>
-        </div>
-        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-foreground">Select Agent or Category</h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-chart-1/10 rounded-lg">
+              <List className="w-6 h-6 text-chart-1" />
+            </div>
+            <h1 className="text-4xl font-bold text-foreground">Queue Management</h1>
+          </div>
+        </motion.div>
+
+        {/* Filter Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6 mb-6"
+        >
+          <h2 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
+            <FolderOpen className="w-5 h-5" />
+            Select Agent or Category
+          </h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <User className="w-4 h-4" />
                 Filter by Agent
               </label>
-              <select
+              <Select
                 value={selectedAgentId}
-                onChange={(e) => {
-                  setSelectedAgentId(e.target.value);
+                onChange={(value) => {
+                  setSelectedAgentId(value);
                   setSelectedCategoryId('');
                 }}
                 disabled={!!selectedCategoryId}
-                className="w-full px-4 py-2 border border-border rounded-md disabled:bg-muted disabled:cursor-not-allowed bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-              >
-                <option value="">Select an agent...</option>
-                {agents.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.firstName} {agent.lastName}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select an agent..."
+                options={[
+                  { value: '', label: 'Select an agent...' },
+                  ...agents.map((agent) => ({
+                    value: agent.id,
+                    label: `${agent.firstName} ${agent.lastName}`,
+                  })),
+                ]}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <FolderOpen className="w-4 h-4" />
                 Filter by Category
               </label>
-              <select
+              <Select
                 value={selectedCategoryId}
-                onChange={(e) => {
-                  setSelectedCategoryId(e.target.value);
+                onChange={(value) => {
+                  setSelectedCategoryId(value);
                   setSelectedAgentId('');
                 }}
                 disabled={!!selectedAgentId}
-                className="w-full px-4 py-2 border border-border rounded-md disabled:bg-muted disabled:cursor-not-allowed bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-              >
-                <option value="">Select a category...</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select a category..."
+                options={[
+                  { value: '', label: 'Select a category...' },
+                  ...categories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  })),
+                ]}
+              />
             </div>
           </div>
-        </div>
+        </motion.div>
 
+        {/* Agent Queue */}
         {selectedAgentId && (
-          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">
-              Queue for{' '}
-              {agents.find((a) => a.id === selectedAgentId)?.firstName}{' '}
-              {agents.find((a) => a.id === selectedAgentId)?.lastName}
-            </h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                <User className="w-6 h-6 text-primary" />
+                Queue for {agents.find((a) => a.id === selectedAgentId)?.firstName}{' '}
+                {agents.find((a) => a.id === selectedAgentId)?.lastName}
+              </h2>
+              {pendingTickets.length > 0 && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAdminCallNext(selectedAgentId)}
+                  className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg"
+                >
+                  <Phone className="w-5 h-5" />
+                  Call Next
+                </motion.button>
+              )}
+            </div>
 
             {loading ? (
-              <div className="text-center py-8 text-foreground">Loading...</div>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
             ) : queue.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-12 text-muted-foreground">
                 No tickets in queue
               </div>
             ) : (
               <>
+                {/* Active Tickets */}
                 {otherTickets.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="font-semibold mb-2 text-muted-foreground">
-                      Active Tickets (Non-Pending)
+                    <h3 className="font-semibold mb-4 text-foreground flex items-center gap-2">
+                      <UserCheck className="w-5 h-5 text-chart-2" />
+                      Active Tickets ({otherTickets.length})
                     </h3>
-                    <div className="space-y-2">
-                      {otherTickets.map((ticket: any) => (
-                        <div
+                    <div className="space-y-3">
+                      {otherTickets.map((ticket: any, index: number) => (
+                        <motion.div
                           key={ticket.id}
-                          className="p-3 bg-muted border rounded-md flex justify-between items-center"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="p-4 bg-gradient-to-r from-muted to-muted/50 border border-border rounded-xl flex justify-between items-center hover:shadow-md transition-all"
                         >
-                          <div>
-                            <span className="font-mono font-bold text-foreground">
-                              {ticket.tokenNumber}
-                            </span>
-                            <span className="ml-2 text-sm text-muted-foreground">
-                              Status: {ticket.status}
-                            </span>
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              {getStatusIcon(ticket.status)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-bold text-lg text-foreground">
+                                  {ticket.tokenNumber}
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
+                                  {ticket.status}
+                                </span>
+                              </div>
+                              {ticket.customerName && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {ticket.customerName}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             {ticket.status === 'called' && (
-                              <button
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => handleAdminMarkServing(ticket.id)}
-                                className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-xs hover:bg-primary/90 transition-colors shadow-xs"
+                                className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
                               >
+                                <UserCheck className="w-4 h-4" />
                                 Mark Serving
-                              </button>
+                              </motion.button>
                             )}
                             {(ticket.status === 'completed' || ticket.status === 'no_show') && (
-                              <button
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => handleReopenTicket(ticket.id)}
-                                className="bg-chart-4 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
+                                className="bg-chart-4 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                               >
+                                <RotateCcw className="w-4 h-4" />
                                 Reopen
-                              </button>
+                              </motion.button>
                             )}
                             {ticket.status !== 'completed' && ticket.status !== 'no_show' && (
-                              <button
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => handleAdminComplete(ticket.id)}
-                                className="bg-chart-2 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
+                                className="bg-chart-2 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                               >
+                                <CheckCircle2 className="w-4 h-4" />
                                 Complete
-                              </button>
+                              </motion.button>
                             )}
-                            <button
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleEditTicket(ticket)}
-                              className="bg-chart-4 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
+                              className="bg-chart-4 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                             >
+                              <Edit2 className="w-4 h-4" />
                               Edit
-                            </button>
-                            <button
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleDeleteTicket(ticket.id)}
-                              className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-xs hover:bg-destructive/90 transition-colors shadow-xs"
+                              className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
                             >
+                              <Trash2 className="w-4 h-4" />
                               Delete
-                            </button>
+                            </motion.button>
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
                 )}
 
+                {/* Pending Tickets */}
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-foreground">
-                      Pending Tickets ({pendingTickets.length})
-                    </h3>
-                    {pendingTickets.length > 0 && (
-                      <button
-                        onClick={() => handleAdminCallNext(selectedAgentId)}
-                        className="bg-primary text-primary-foreground px-4 py-1 rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
-                      >
-                        Call Next
-                      </button>
-                    )}
-                  </div>
+                  <h3 className="font-bold text-xl mb-4 text-foreground flex items-center gap-2">
+                    <List className="w-5 h-5 text-primary" />
+                    Pending Tickets ({pendingTickets.length})
+                  </h3>
                   {pendingTickets.length === 0 ? (
-                    <p className="text-muted-foreground">No pending tickets</p>
+                    <p className="text-muted-foreground text-center py-8">No pending tickets</p>
                   ) : (
                     <DndContext
                       sensors={sensors}
@@ -364,13 +485,14 @@ export default function AllQueues() {
                         items={pendingTickets.map((t: any) => t.id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        <div className="space-y-2">
-                          {pendingTickets.map((ticket: any) => (
-                            <SortableTicketItem 
-                              key={ticket.id} 
+                        <div className="space-y-3">
+                          {pendingTickets.map((ticket: any, index: number) => (
+                            <SortableTicketItem
+                              key={ticket.id}
                               ticket={ticket}
                               onComplete={handleAdminComplete}
                               onDelete={handleDeleteTicket}
+                              index={index}
                             />
                           ))}
                         </div>
@@ -380,113 +502,166 @@ export default function AllQueues() {
                 </div>
               </>
             )}
-          </div>
+          </motion.div>
         )}
 
+        {/* Category Selection */}
         {selectedCategoryId && !selectedAgentId && (
-          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6"
+          >
+            <h2 className="text-2xl font-bold mb-4 text-foreground flex items-center gap-2">
+              <FolderOpen className="w-6 h-6 text-chart-2" />
               Queues for Category: {categories.find((c) => c.id === selectedCategoryId)?.name}
             </h2>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground mb-6">
               Select an agent from the list above to manage their queue
             </p>
-            <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
               {agents
                 .filter((agent) => {
-                  // Filter agents assigned to this category
                   return agent.agentCategories?.some(
                     (ac: any) => ac.categoryId === selectedCategoryId && ac.isActive
                   );
                 })
-                .map((agent) => (
-                  <button
+                .map((agent, index) => (
+                  <motion.button
                     key={agent.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setSelectedAgentId(agent.id);
                       setSelectedCategoryId('');
                     }}
-                    className="w-full p-4 bg-muted border rounded-lg hover:bg-accent hover:text-accent-foreground text-left transition-colors"
+                    className="p-4 bg-gradient-to-r from-muted to-muted/50 border border-border rounded-xl hover:shadow-md text-left transition-all"
                   >
-                    <div className="font-semibold text-foreground">
-                      {agent.firstName} {agent.lastName}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <User className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground">
+                          {agent.firstName} {agent.lastName}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Click to manage queue
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Click to manage queue
-                    </div>
-                  </button>
+                  </motion.button>
                 ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Edit Ticket Modal */}
-        {editingTicket && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-card text-card-foreground border rounded-xl shadow-lg p-6 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-semibold mb-4 text-foreground">
-                Edit Ticket: {editingTicket.tokenNumber}
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Customer Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.customerName}
-                    onChange={(e) => setEditFormData({ ...editFormData, customerName: e.target.value })}
-                    className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Customer Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={editFormData.customerPhone}
-                    onChange={(e) => setEditFormData({ ...editFormData, customerPhone: e.target.value })}
-                    className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Customer Email
-                  </label>
-                  <input
-                    type="email"
-                    value={editFormData.customerEmail}
-                    onChange={(e) => setEditFormData({ ...editFormData, customerEmail: e.target.value })}
-                    className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
-                  />
-                </div>
-                <div className="flex gap-2 mt-6">
-                  <button
-                    onClick={handleSaveEdit}
-                    className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors shadow-xs"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => setEditingTicket(null)}
-                    className="flex-1 bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors border"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {editingTicket && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={() => setEditingTicket(null)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-card text-card-foreground border rounded-2xl shadow-2xl p-8 max-w-md w-full"
+                >
+                  <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2">
+                    <Edit2 className="w-6 h-6 text-primary" />
+                    Edit Ticket: {editingTicket.tokenNumber}
+                  </h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Customer Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.customerName}
+                        onChange={(e) => setEditFormData({ ...editFormData, customerName: e.target.value })}
+                        className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                        placeholder="Enter customer name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Customer Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={editFormData.customerPhone}
+                        onChange={(e) => setEditFormData({ ...editFormData, customerPhone: e.target.value })}
+                        className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Customer Email
+                      </label>
+                      <input
+                        type="email"
+                        value={editFormData.customerEmail}
+                        onChange={(e) => setEditFormData({ ...editFormData, customerEmail: e.target.value })}
+                        className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                        placeholder="Enter email address"
+                      />
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleSaveEdit}
+                        className="flex-1 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg flex items-center justify-center gap-2"
+                      >
+                        <Save className="w-5 h-5" />
+                        Save
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setEditingTicket(null)}
+                        className="flex-1 bg-secondary text-secondary-foreground px-6 py-3 rounded-xl hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-2"
+                      >
+                        <X className="w-5 h-5" />
+                        Cancel
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
-
 }
 
 // Sortable Ticket Item Component
-function SortableTicketItem({ ticket, onComplete, onDelete }: { ticket: any; onComplete: (id: string) => void; onDelete: (id: string) => void }) {
+function SortableTicketItem({ 
+  ticket, 
+  onComplete, 
+  onDelete,
+  index 
+}: { 
+  ticket: any; 
+  onComplete: (id: string) => void; 
+  onDelete: (id: string) => void;
+  index: number;
+}) {
   const {
     attributes,
     listeners,
@@ -503,45 +678,68 @@ function SortableTicketItem({ ticket, onComplete, onDelete }: { ticket: any; onC
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="p-3 bg-muted border rounded-md flex justify-between items-center hover:bg-accent transition-colors"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
     >
-      <div className="flex items-center gap-2 flex-1 cursor-move" {...attributes} {...listeners}>
-        <span className="text-muted-foreground">⋮⋮</span>
-        <div>
-          <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
-          <span className="ml-2 text-sm text-muted-foreground">
-            #{ticket.positionInQueue}
-          </span>
-          {ticket.category && (
-            <span className="ml-2 text-xs text-muted-foreground">
-              ({ticket.category.name})
-            </span>
-          )}
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 rounded-xl flex justify-between items-center hover:shadow-md transition-all ${
+          isDragging ? 'cursor-grabbing shadow-xl z-50' : 'cursor-grab'
+        }`}
+      >
+        <div 
+          className="flex items-center gap-3 flex-1" 
+          {...attributes} 
+          {...listeners}
+          style={{ touchAction: 'none' }}
+        >
+          <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="font-mono font-bold text-xl text-foreground">{ticket.tokenNumber}</span>
+              <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-xs font-medium">
+                #{ticket.positionInQueue}
+              </span>
+            </div>
+            {ticket.category && (
+              <span className="text-sm text-muted-foreground mt-1 block">
+                {ticket.category.name}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onComplete(ticket.id);
+            }}
+            className="bg-chart-2 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            Complete
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onDelete(ticket.id);
+            }}
+            className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </motion.button>
         </div>
       </div>
-      <div className="flex gap-2 ml-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onComplete(ticket.id);
-          }}
-          className="bg-chart-2 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
-        >
-          Complete
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(ticket.id);
-          }}
-          className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-xs hover:bg-destructive/90 transition-colors shadow-xs"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
+    </motion.div>
   );
 }

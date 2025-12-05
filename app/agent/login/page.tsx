@@ -57,7 +57,8 @@ export default function AgentLogin() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-md focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 bg-input text-foreground"
+              placeholder="Enter your username"
+              className="w-full px-4 py-2 border border-border rounded-md focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 bg-input text-foreground placeholder:text-muted-foreground/70"
               required
             />
           </div>
@@ -70,7 +71,8 @@ export default function AgentLogin() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-md focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 bg-input text-foreground"
+              placeholder="Enter your password"
+              className="w-full px-4 py-2 border border-border rounded-md focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 bg-input text-foreground placeholder:text-muted-foreground/70"
               required
             />
           </div>

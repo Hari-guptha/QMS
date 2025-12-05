@@ -6,6 +6,7 @@ import { agentApi } from '@/lib/api';
 import { auth } from '@/lib/auth';
 import { getSocket } from '@/lib/socket';
 import { Navbar } from '@/components/Navbar';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
   closestCenter,
@@ -23,6 +24,22 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  Ticket,
+  Phone,
+  UserCheck,
+  CheckCircle2,
+  X,
+  RotateCcw,
+  GripVertical,
+  BarChart3,
+  Clock,
+  Users,
+  Wifi,
+  WifiOff,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 
 export default function AgentDashboard() {
   const router = useRouter();
@@ -43,16 +60,11 @@ export default function AgentDashboard() {
       return;
     }
 
-    // Load initial queue
     loadQueue();
 
-    // Setup socket connection
     const socket = getSocket();
-    
-    // Update connection status
     setSocketConnected(socket.connected);
     
-    // Join agent room when connected
     const handleConnect = () => {
       socket.emit('join-agent-room', user.id);
       setSocketConnected(true);
@@ -72,22 +84,18 @@ export default function AgentDashboard() {
 
     socket.on('disconnect', handleDisconnect);
 
-    // Listen for queue updates
     const handleQueueUpdate = (data?: any) => {
       console.log('Queue updated event received:', data);
       loadQueue();
     };
 
-    // Listen for new ticket created
     const handleTicketCreated = (ticket: any) => {
       console.log('New ticket created:', ticket);
-      // Only reload if this ticket is assigned to current agent
       if (ticket.agentId === user.id) {
         loadQueue();
       }
     };
 
-    // Listen for ticket status changes
     const handleTicketStatusChange = (ticket: any) => {
       console.log('Ticket status changed:', ticket);
       if (ticket.agentId === user.id) {
@@ -103,7 +111,6 @@ export default function AgentDashboard() {
     socket.on('ticket:no-show', handleTicketStatusChange);
     socket.on('ticket:transferred', handleTicketStatusChange);
 
-    // Cleanup on unmount
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
@@ -193,22 +200,21 @@ export default function AgentDashboard() {
       return;
     }
 
-    // Optimistically update UI
     const newOrder = arrayMove(currentPendingTickets, oldIndex, newIndex);
+    const updatedOrder = newOrder.map((ticket: any, index: number) => ({
+      ...ticket,
+      positionInQueue: index + 1,
+    }));
     const newQueue = [
       ...queue.filter((t: any) => t.status !== 'pending'),
-      ...newOrder,
+      ...updatedOrder,
     ];
     setQueue(newQueue);
 
-    // Update backend
     try {
       const ticketIds = newOrder.map((t: any) => t.id);
       await agentApi.reorderQueue(ticketIds);
-      // Reload to ensure consistency
-      loadQueue();
     } catch (error: any) {
-      // Revert on error
       loadQueue();
       alert(error.response?.data?.message || 'Failed to reorder queue');
     }
@@ -223,8 +229,18 @@ export default function AgentDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-xl text-foreground">Loading...</div>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center gap-4"
+          >
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="text-lg text-muted-foreground">Loading dashboard...</div>
+          </motion.div>
+        </div>
       </div>
     );
   }
@@ -236,158 +252,295 @@ export default function AgentDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="max-w-6xl mx-auto p-4">
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-3xl font-bold text-foreground">Agent Dashboard</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-destructive'}`}></div>
-            <span className="text-sm text-muted-foreground">
-              {socketConnected ? 'Connected' : 'Disconnected'}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-foreground">My Queue</h2>
-
-            {currentTicket && (
-              <div className="mb-6 p-4 bg-chart-2/20 border-2 border-chart-2 rounded-lg">
-                <h3 className="font-bold text-lg mb-2 text-foreground">Currently Serving</h3>
-                <p className="text-2xl font-mono font-bold text-foreground">
-                  {currentTicket.tokenNumber}
-                </p>
-                {currentTicket.customerName && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Customer: {currentTicket.customerName}
-                  </p>
-                )}
-                <div className="mt-4 space-x-2">
-                  <button
-                    onClick={() => handleComplete(currentTicket.id)}
-                    className="bg-chart-2 text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity shadow-xs"
-                  >
-                    Complete
-                  </button>
-                  <button
-                    onClick={() => handleNoShow(currentTicket.id)}
-                    className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 transition-colors shadow-xs"
-                  >
-                    No Show
-                  </button>
-                </div>
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Ticket className="w-6 h-6 text-primary" />
               </div>
-            )}
-
-            {calledTickets.length > 0 && (
-              <div className="mb-4">
-                <h3 className="font-semibold mb-2 text-foreground">Called</h3>
-                {calledTickets.map((ticket: any) => (
-                  <div
-                    key={ticket.id}
-                    className="p-3 bg-primary/10 border border-primary/20 rounded-md mb-2 flex justify-between items-center"
-                  >
-                    <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
-                    <button
-                      onClick={() => handleMarkServing(ticket.id)}
-                      className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
-                    >
-                      Mark Serving
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div>
-              <h3 className="font-semibold mb-2 text-foreground">Pending ({pendingTickets.length})</h3>
-              {pendingTickets.length === 0 ? (
-                <p className="text-muted-foreground">No pending tickets</p>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext
-                    items={pendingTickets.map((t: any) => t.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="space-y-2">
-                      {pendingTickets.map((ticket: any) => (
-                        <SortableTicketItem key={ticket.id} ticket={ticket} />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              )}
+              <h1 className="text-4xl font-bold text-foreground">Agent Dashboard</h1>
             </div>
-
-            <button
-              onClick={handleCallNext}
-              disabled={pendingTickets.length === 0}
-              className="mt-4 w-full bg-primary text-primary-foreground py-3 rounded-md font-semibold hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-xs"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                socketConnected 
+                  ? 'bg-chart-2/10 border-chart-2/30 text-chart-2' 
+                  : 'bg-destructive/10 border-destructive/30 text-destructive'
+              }`}
             >
-              Call Next
-            </button>
+              {socketConnected ? (
+                <Wifi className="w-4 h-4" />
+              ) : (
+                <WifiOff className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">
+                {socketConnected ? 'Connected' : 'Disconnected'}
+              </span>
+            </motion.div>
+          </div>
+        </motion.div>
 
-            {completedTickets.length > 0 && (
-              <div className="mt-6">
-                <h3 className="font-semibold mb-2 text-foreground">
-                  Completed/No-Show ({completedTickets.length})
-                </h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {completedTickets.map((ticket: any) => (
-                    <div
-                      key={ticket.id}
-                      className="p-3 bg-muted border rounded-md flex justify-between items-center"
-                    >
-                      <div>
-                        <span className="font-mono font-bold text-foreground">
-                          {ticket.tokenNumber}
-                        </span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {ticket.status}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleReopen(ticket.id)}
-                        className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-xs hover:bg-primary/90 transition-colors shadow-xs"
-                      >
-                        Reopen
-                      </button>
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Main Queue Section */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Currently Serving */}
+            <AnimatePresence>
+              {currentTicket && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="bg-gradient-to-br from-chart-2/20 to-chart-2/5 border-2 border-chart-2/30 rounded-2xl shadow-lg p-6"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-chart-2/20 rounded-xl">
+                      <UserCheck className="w-6 h-6 text-chart-2" />
                     </div>
-                  ))}
+                    <h2 className="text-2xl font-bold text-foreground">Currently Serving</h2>
+                  </div>
+                  <div className="mb-4">
+                    <p className="text-4xl font-mono font-bold text-foreground mb-2">
+                      {currentTicket.tokenNumber}
+                    </p>
+                    {currentTicket.customerName && (
+                      <p className="text-muted-foreground flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        {currentTicket.customerName}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleComplete(currentTicket.id)}
+                      className="flex-1 bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 className="w-5 h-5" />
+                      Complete
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleNoShow(currentTicket.id)}
+                      className="flex-1 bg-destructive text-destructive-foreground px-6 py-3 rounded-xl hover:bg-destructive/90 transition-colors shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <X className="w-5 h-5" />
+                      No Show
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Queue Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Ticket className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">My Queue</h2>
                 </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCallNext}
+                  disabled={pendingTickets.length === 0}
+                  className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-lg"
+                >
+                  <Phone className="w-5 h-5" />
+                  Call Next
+                </motion.button>
               </div>
-            )}
+
+              {/* Called Tickets */}
+              {calledTickets.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-primary" />
+                    Called ({calledTickets.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {calledTickets.map((ticket: any, index: number) => (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl flex justify-between items-center"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/20 rounded-lg">
+                            <Phone className="w-4 h-4 text-primary" />
+                          </div>
+                          <span className="font-mono font-bold text-xl text-foreground">
+                            {ticket.tokenNumber}
+                          </span>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleMarkServing(ticket.id)}
+                          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
+                        >
+                          <UserCheck className="w-4 h-4" />
+                          Mark Serving
+                        </motion.button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Tickets */}
+              <div>
+                <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-chart-4" />
+                  Pending ({pendingTickets.length})
+                </h3>
+                {pendingTickets.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No pending tickets</p>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={pendingTickets.map((t: any) => t.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {pendingTickets.map((ticket: any, index: number) => (
+                          <SortableTicketItem key={ticket.id} ticket={ticket} index={index} />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
+
+              {/* Completed Tickets */}
+              {completedTickets.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-chart-3" />
+                    Completed/No-Show ({completedTickets.length})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {completedTickets.map((ticket: any, index: number) => (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="p-3 bg-muted border rounded-xl flex justify-between items-center hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono font-bold text-foreground">
+                            {ticket.tokenNumber}
+                          </span>
+                          <span className="px-2 py-1 bg-muted-foreground/20 text-muted-foreground rounded-full text-xs">
+                            {ticket.status}
+                          </span>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleReopen(ticket.id)}
+                          className="bg-primary text-primary-foreground px-3 py-1 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-1"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Reopen
+                        </motion.button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
           </div>
 
-          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-foreground">Queue Statistics</h2>
-            <div className="space-y-4">
-              <div>
-                <span className="text-muted-foreground">Total in Queue:</span>
-                <span className="ml-2 font-bold text-xl text-foreground">{queue.length}</span>
+          {/* Statistics Sidebar */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6 h-fit"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-chart-4/10 rounded-lg">
+                <BarChart3 className="w-6 h-6 text-chart-4" />
               </div>
-              <div>
-                <span className="text-muted-foreground">Pending:</span>
-                <span className="ml-2 font-bold text-xl text-foreground">{pendingTickets.length}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Called:</span>
-                <span className="ml-2 font-bold text-xl text-foreground">{calledTickets.length}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Serving:</span>
-                <span className="ml-2 font-bold text-xl text-foreground">
-                  {currentTicket ? 1 : 0}
-                </span>
-              </div>
+              <h2 className="text-2xl font-bold text-foreground">Statistics</h2>
             </div>
-          </div>
+            <div className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Total in Queue</span>
+                  <span className="text-3xl font-bold text-foreground">{queue.length}</span>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="p-4 bg-gradient-to-br from-chart-4/10 to-chart-4/5 border border-chart-4/20 rounded-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Pending</span>
+                  <span className="text-3xl font-bold text-foreground">{pendingTickets.length}</span>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Called</span>
+                  <span className="text-3xl font-bold text-foreground">{calledTickets.length}</span>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="p-4 bg-gradient-to-br from-chart-2/10 to-chart-2/5 border border-chart-2/20 rounded-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Serving</span>
+                  <span className="text-3xl font-bold text-foreground">
+                    {currentTicket ? 1 : 0}
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>
@@ -395,7 +548,7 @@ export default function AgentDashboard() {
 }
 
 // Sortable Ticket Item Component
-function SortableTicketItem({ ticket }: { ticket: any }) {
+function SortableTicketItem({ ticket, index }: { ticket: any; index: number }) {
   const {
     attributes,
     listeners,
@@ -412,23 +565,42 @@ function SortableTicketItem({ ticket }: { ticket: any }) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="p-3 bg-muted border rounded-md flex justify-between items-center cursor-move hover:bg-accent transition-colors"
-      {...attributes}
-      {...listeners}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground">⋮⋮</span>
-        <div>
-          <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
-          <span className="ml-2 text-sm text-muted-foreground">
-            #{ticket.positionInQueue}
-          </span>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 rounded-xl flex justify-between items-center hover:shadow-md transition-all ${
+          isDragging ? 'cursor-grabbing shadow-xl z-50' : 'cursor-grab'
+        }`}
+      >
+        <div 
+          className="flex items-center gap-3 flex-1" 
+          {...attributes} 
+          {...listeners}
+          style={{ touchAction: 'none' }}
+        >
+          <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="font-mono font-bold text-xl text-foreground">
+                {ticket.tokenNumber}
+              </span>
+              <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-xs font-medium">
+                #{ticket.positionInQueue}
+              </span>
+            </div>
+            {ticket.category && (
+              <span className="text-sm text-muted-foreground mt-1 block">
+                {ticket.category.name}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
-

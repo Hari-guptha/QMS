@@ -9,6 +9,7 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const { setTheme: setStoreTheme } = useThemeStore();
   const [mounted, setMounted] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -28,52 +29,97 @@ export function ThemeToggle() {
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
     setStoreTheme(newTheme);
+    setShowMenu(false);
+  };
+
+  const getCurrentThemeIcon = () => {
+    if (theme === 'light') return <Sun className="w-5 h-5" />;
+    if (theme === 'dark') return <Moon className="w-5 h-5" />;
+    return <Monitor className="w-5 h-5" />;
+  };
+
+  const getCurrentThemeLabel = () => {
+    if (theme === 'light') return 'Light';
+    if (theme === 'dark') return 'Dark';
+    return 'System';
   };
 
   return (
     <div className="relative inline-block">
-      <div className="flex items-center gap-1 p-1 rounded-lg bg-secondary border border-border">
-        <button
-          onClick={() => handleThemeChange('light')}
-          className={`p-2 rounded-md transition-all ${
-            theme === 'light'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'hover:bg-accent hover:text-accent-foreground'
-          }`}
-          aria-label="Light mode"
-          title="Light mode"
-        >
-          <Sun className={`w-4 h-4 transition-transform ${
-            theme === 'light' ? 'scale-100 rotate-0' : 'scale-0 -rotate-90'
-          }`} />
-        </button>
-        <button
-          onClick={() => handleThemeChange('dark')}
-          className={`p-2 rounded-md transition-all ${
-            theme === 'dark'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'hover:bg-accent hover:text-accent-foreground'
-          }`}
-          aria-label="Dark mode"
-          title="Dark mode"
-        >
-          <Moon className={`w-4 h-4 transition-transform ${
-            theme === 'dark' ? 'scale-100 rotate-0' : 'scale-0 rotate-90'
-          }`} />
-        </button>
-        <button
-          onClick={() => handleThemeChange('system')}
-          className={`p-2 rounded-md transition-all ${
-            theme === 'system'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'hover:bg-accent hover:text-accent-foreground'
-          }`}
-          aria-label="System mode"
-          title="Follow system preference"
-        >
-          <Monitor className="w-4 h-4" />
-        </button>
-      </div>
+      {/* Main Toggle Button - Shows only active theme */}
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="p-2 rounded-lg bg-secondary border border-border hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+        aria-label="Toggle theme"
+        title={`Current theme: ${getCurrentThemeLabel()}`}
+      >
+        {getCurrentThemeIcon()}
+        <span className="text-sm font-medium hidden sm:inline">{getCurrentThemeLabel()}</span>
+      </button>
+
+      {/* Dropdown Menu - Shows all options when clicked */}
+      {showMenu && (
+        <>
+          {/* Backdrop to close menu on outside click */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowMenu(false)}
+          />
+          
+          {/* Menu */}
+          <div className="absolute right-0 mt-2 w-48 bg-card border rounded-xl shadow-lg overflow-hidden z-50">
+            <div className="p-1">
+              <button
+                onClick={() => handleThemeChange('light')}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-colors ${
+                  theme === 'light'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                }`}
+                aria-label="Light mode"
+              >
+                <Sun className="w-4 h-4" />
+                <span>Light</span>
+                {theme === 'light' && (
+                  <span className="ml-auto text-xs">✓</span>
+                )}
+              </button>
+              
+              <button
+                onClick={() => handleThemeChange('dark')}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-colors ${
+                  theme === 'dark'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                }`}
+                aria-label="Dark mode"
+              >
+                <Moon className="w-4 h-4" />
+                <span>Dark</span>
+                {theme === 'dark' && (
+                  <span className="ml-auto text-xs">✓</span>
+                )}
+              </button>
+              
+              <button
+                onClick={() => handleThemeChange('system')}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm transition-colors ${
+                  theme === 'system'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                }`}
+                aria-label="System mode"
+              >
+                <Monitor className="w-4 h-4" />
+                <span>System</span>
+                {theme === 'system' && (
+                  <span className="ml-auto text-xs">✓</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
