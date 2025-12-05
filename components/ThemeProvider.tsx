@@ -1,23 +1,32 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useThemeStore } from '@/lib/theme-store';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { initTheme, theme } = useThemeStore();
-
+function ThemeInitializer({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Initialize theme on mount
-    initTheme();
-  }, [initTheme]);
-
-  useEffect(() => {
-    // Apply theme class to document root when theme changes
-    const root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme);
-  }, [theme]);
+    // Initialize theme and primary color on mount
+    if (typeof window !== 'undefined') {
+      const { useThemeStore } = require('@/lib/theme-store');
+      const store = useThemeStore.getState();
+      store.initTheme();
+      store.initPrimaryColor();
+      store.setMounted(true);
+    }
+  }, []);
 
   return <>{children}</>;
 }
 
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <ThemeInitializer>{children}</ThemeInitializer>
+    </NextThemesProvider>
+  );
+}

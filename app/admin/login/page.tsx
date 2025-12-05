@@ -33,44 +33,44 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full relative">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-8 max-w-md w-full relative">
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
+        <h1 className="text-3xl font-bold text-foreground mb-6 text-center">
           Admin Login
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded">
+            <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Username
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-2 border border-border rounded-md focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 bg-input text-foreground"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Password
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-2 border border-border rounded-md focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 bg-input text-foreground"
               required
             />
           </div>
@@ -78,14 +78,14 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-primary text-primary-foreground py-3 rounded-md font-semibold hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-xs"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <a href="/" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+          <a href="/" className="text-primary hover:text-primary/80">
             ← Back to Home
           </a>
         </div>
@@ -93,4 +93,3 @@ export default function AdminLogin() {
     </div>
   );
 }
-

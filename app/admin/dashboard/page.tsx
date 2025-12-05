@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Navbar } from '@/components/Navbar';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -40,91 +40,72 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl text-foreground">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <nav className="bg-white dark:bg-gray-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Panel</h1>
-            <div className="flex items-center gap-4">
-              <ThemeToggle />
-              <button
-                onClick={() => {
-                  auth.logout();
-                  router.push('/');
-                }}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-background">
+      <Navbar />
       <div className="max-w-7xl mx-auto p-6">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Link
             href="/admin/users"
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
           >
             <div className="text-4xl mb-2">👥</div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Users Management</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Manage agents and users</p>
+            <h2 className="text-xl font-semibold text-foreground">Users Management</h2>
+            <p className="text-muted-foreground text-sm">Manage agents and users</p>
           </Link>
 
           <Link
             href="/admin/categories"
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
           >
             <div className="text-4xl mb-2">📁</div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Categories</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Manage service categories</p>
+            <h2 className="text-xl font-semibold text-foreground">Categories</h2>
+            <p className="text-muted-foreground text-sm">Manage service categories</p>
           </Link>
 
           <Link
             href="/admin/queues"
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
           >
             <div className="text-4xl mb-2">📋</div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">All Queues</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">View all queues</p>
+            <h2 className="text-xl font-semibold text-foreground">All Queues</h2>
+            <p className="text-muted-foreground text-sm">View all queues</p>
           </Link>
 
           <Link
             href="/admin/analytics"
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
           >
             <div className="text-4xl mb-2">📊</div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Analytics</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">View reports and stats</p>
+            <h2 className="text-xl font-semibold text-foreground">Analytics</h2>
+            <p className="text-muted-foreground text-sm">View reports and stats</p>
           </Link>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Quick Stats</h2>
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
+          <h2 className="text-2xl font-semibold mb-4 text-foreground">Quick Stats</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Avg Wait Time</span>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <span className="text-muted-foreground">Avg Wait Time</span>
+              <p className="text-2xl font-bold text-foreground">
                 {stats.avgWaitTime || 0} min
               </p>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Avg Service Time</span>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <span className="text-muted-foreground">Avg Service Time</span>
+              <p className="text-2xl font-bold text-foreground">
                 {stats.avgServiceTime || 0} min
               </p>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Abandonment Rate</span>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <span className="text-muted-foreground">Abandonment Rate</span>
+              <p className="text-2xl font-bold text-foreground">
                 {stats.abandonmentRate?.toFixed(1) || 0}%
               </p>
             </div>
@@ -134,4 +115,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-

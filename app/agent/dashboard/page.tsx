@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { agentApi } from '@/lib/api';
 import { auth } from '@/lib/auth';
 import { getSocket } from '@/lib/socket';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Navbar } from '@/components/Navbar';
 import {
   DndContext,
   closestCenter,
@@ -223,8 +223,8 @@ export default function AgentDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl text-foreground">Loading...</div>
       </div>
     );
   }
@@ -234,57 +234,46 @@ export default function AgentDashboard() {
   const completedTickets = queue.filter((t: any) => t.status === 'completed' || t.status === 'no_show');
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Agent Dashboard</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {socketConnected ? 'Connected' : 'Disconnected'}
-              </span>
-            </div>
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-3xl font-bold text-foreground">Agent Dashboard</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <button
-              onClick={() => {
-                auth.logout();
-                router.push('/');
-              }}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-            >
-              Logout
-            </button>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-destructive'}`}></div>
+            <span className="text-sm text-muted-foreground">
+              {socketConnected ? 'Connected' : 'Disconnected'}
+            </span>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">My Queue</h2>
+          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-foreground">My Queue</h2>
 
             {currentTicket && (
-              <div className="mb-6 p-4 bg-green-100 dark:bg-green-900 rounded-lg border-2 border-green-500 dark:border-green-600">
-                <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-gray-100">Currently Serving</h3>
-                <p className="text-2xl font-mono font-bold text-gray-900 dark:text-gray-100">
+              <div className="mb-6 p-4 bg-chart-2/20 border-2 border-chart-2 rounded-lg">
+                <h3 className="font-bold text-lg mb-2 text-foreground">Currently Serving</h3>
+                <p className="text-2xl font-mono font-bold text-foreground">
                   {currentTicket.tokenNumber}
                 </p>
                 {currentTicket.customerName && (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                  <p className="text-sm text-muted-foreground mt-2">
                     Customer: {currentTicket.customerName}
                   </p>
                 )}
                 <div className="mt-4 space-x-2">
                   <button
                     onClick={() => handleComplete(currentTicket.id)}
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    className="bg-chart-2 text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity shadow-xs"
                   >
                     Complete
                   </button>
                   <button
                     onClick={() => handleNoShow(currentTicket.id)}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                    className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 transition-colors shadow-xs"
                   >
                     No Show
                   </button>
@@ -294,16 +283,16 @@ export default function AgentDashboard() {
 
             {calledTickets.length > 0 && (
               <div className="mb-4">
-                <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Called</h3>
+                <h3 className="font-semibold mb-2 text-foreground">Called</h3>
                 {calledTickets.map((ticket: any) => (
                   <div
                     key={ticket.id}
-                    className="p-3 bg-blue-100 dark:bg-blue-900 rounded mb-2 flex justify-between items-center"
+                    className="p-3 bg-primary/10 border border-primary/20 rounded-md mb-2 flex justify-between items-center"
                   >
-                    <span className="font-mono font-bold text-gray-900 dark:text-gray-100">{ticket.tokenNumber}</span>
+                    <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
                     <button
                       onClick={() => handleMarkServing(ticket.id)}
-                      className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                      className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
                     >
                       Mark Serving
                     </button>
@@ -313,9 +302,9 @@ export default function AgentDashboard() {
             )}
 
             <div>
-              <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Pending ({pendingTickets.length})</h3>
+              <h3 className="font-semibold mb-2 text-foreground">Pending ({pendingTickets.length})</h3>
               {pendingTickets.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400">No pending tickets</p>
+                <p className="text-muted-foreground">No pending tickets</p>
               ) : (
                 <DndContext
                   sensors={sensors}
@@ -339,33 +328,33 @@ export default function AgentDashboard() {
             <button
               onClick={handleCallNext}
               disabled={pendingTickets.length === 0}
-              className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="mt-4 w-full bg-primary text-primary-foreground py-3 rounded-md font-semibold hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-xs"
             >
               Call Next
             </button>
 
             {completedTickets.length > 0 && (
               <div className="mt-6">
-                <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
+                <h3 className="font-semibold mb-2 text-foreground">
                   Completed/No-Show ({completedTickets.length})
                 </h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {completedTickets.map((ticket: any) => (
                     <div
                       key={ticket.id}
-                      className="p-3 bg-gray-100 dark:bg-gray-700 rounded flex justify-between items-center"
+                      className="p-3 bg-muted border rounded-md flex justify-between items-center"
                     >
                       <div>
-                        <span className="font-mono font-bold text-gray-900 dark:text-gray-100">
+                        <span className="font-mono font-bold text-foreground">
                           {ticket.tokenNumber}
                         </span>
-                        <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
+                        <span className="ml-2 text-xs text-muted-foreground">
                           {ticket.status}
                         </span>
                       </div>
                       <button
                         onClick={() => handleReopen(ticket.id)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                        className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-xs hover:bg-primary/90 transition-colors shadow-xs"
                       >
                         Reopen
                       </button>
@@ -376,24 +365,24 @@ export default function AgentDashboard() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Queue Statistics</h2>
+          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-foreground">Queue Statistics</h2>
             <div className="space-y-4">
               <div>
-                <span className="text-gray-600 dark:text-gray-400">Total in Queue:</span>
-                <span className="ml-2 font-bold text-xl text-gray-900 dark:text-gray-100">{queue.length}</span>
+                <span className="text-muted-foreground">Total in Queue:</span>
+                <span className="ml-2 font-bold text-xl text-foreground">{queue.length}</span>
               </div>
               <div>
-                <span className="text-gray-600 dark:text-gray-400">Pending:</span>
-                <span className="ml-2 font-bold text-xl text-gray-900 dark:text-gray-100">{pendingTickets.length}</span>
+                <span className="text-muted-foreground">Pending:</span>
+                <span className="ml-2 font-bold text-xl text-foreground">{pendingTickets.length}</span>
               </div>
               <div>
-                <span className="text-gray-600 dark:text-gray-400">Called:</span>
-                <span className="ml-2 font-bold text-xl text-gray-900 dark:text-gray-100">{calledTickets.length}</span>
+                <span className="text-muted-foreground">Called:</span>
+                <span className="ml-2 font-bold text-xl text-foreground">{calledTickets.length}</span>
               </div>
               <div>
-                <span className="text-gray-600 dark:text-gray-400">Serving:</span>
-                <span className="ml-2 font-bold text-xl text-gray-900 dark:text-gray-100">
+                <span className="text-muted-foreground">Serving:</span>
+                <span className="ml-2 font-bold text-xl text-foreground">
                   {currentTicket ? 1 : 0}
                 </span>
               </div>
@@ -426,15 +415,15 @@ function SortableTicketItem({ ticket }: { ticket: any }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="p-3 bg-gray-100 rounded flex justify-between items-center cursor-move hover:bg-gray-200"
+      className="p-3 bg-muted border rounded-md flex justify-between items-center cursor-move hover:bg-accent transition-colors"
       {...attributes}
       {...listeners}
     >
       <div className="flex items-center gap-2">
-        <span className="text-gray-400">⋮⋮</span>
+        <span className="text-muted-foreground">⋮⋮</span>
         <div>
-          <span className="font-mono font-bold">{ticket.tokenNumber}</span>
-          <span className="ml-2 text-sm text-gray-600">
+          <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
+          <span className="ml-2 text-sm text-muted-foreground">
             #{ticket.positionInQueue}
           </span>
         </div>

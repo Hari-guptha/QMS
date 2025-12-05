@@ -51,6 +51,10 @@ export const authApi = {
     api.post('/auth/login', { email, password }),
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }),
+  updatePassword: (currentPassword: string, newPassword: string) =>
+    api.post('/auth/update-password', { currentPassword, newPassword }),
+  updateProfile: (data: { firstName?: string; lastName?: string; email?: string }) =>
+    api.put('/auth/profile', data),
 };
 
 // Public API

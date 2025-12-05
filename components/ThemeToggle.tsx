@@ -1,55 +1,79 @@
 'use client';
 
+import { useTheme } from 'next-themes';
 import { useThemeStore } from '@/lib/theme-store';
-import { useEffect } from 'react';
+import { Sun, Moon, Monitor } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useThemeStore();
+  const { theme, setTheme } = useTheme();
+  const { setTheme: setStoreTheme } = useThemeStore();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Apply theme on mount
-    const root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme);
-  }, [theme]);
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <button
+        className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors"
+        aria-label="Toggle theme"
+      >
+        <Sun className="w-5 h-5" />
+      </button>
+    );
+  }
+
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme);
+    setStoreTheme(newTheme);
+  };
 
   return (
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-      aria-label="Toggle theme"
-      title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-    >
-      {theme === 'light' ? (
-        <svg
-          className="w-5 h-5 text-gray-800 dark:text-gray-200"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+    <div className="relative inline-block">
+      <div className="flex items-center gap-1 p-1 rounded-lg bg-secondary border border-border">
+        <button
+          onClick={() => handleThemeChange('light')}
+          className={`p-2 rounded-md transition-all ${
+            theme === 'light'
+              ? 'bg-primary text-primary-foreground shadow-xs'
+              : 'hover:bg-accent hover:text-accent-foreground'
+          }`}
+          aria-label="Light mode"
+          title="Light mode"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-          />
-        </svg>
-      ) : (
-        <svg
-          className="w-5 h-5 text-gray-800 dark:text-gray-200"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+          <Sun className={`w-4 h-4 transition-transform ${
+            theme === 'light' ? 'scale-100 rotate-0' : 'scale-0 -rotate-90'
+          }`} />
+        </button>
+        <button
+          onClick={() => handleThemeChange('dark')}
+          className={`p-2 rounded-md transition-all ${
+            theme === 'dark'
+              ? 'bg-primary text-primary-foreground shadow-xs'
+              : 'hover:bg-accent hover:text-accent-foreground'
+          }`}
+          aria-label="Dark mode"
+          title="Dark mode"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-          />
-        </svg>
-      )}
-    </button>
+          <Moon className={`w-4 h-4 transition-transform ${
+            theme === 'dark' ? 'scale-100 rotate-0' : 'scale-0 rotate-90'
+          }`} />
+        </button>
+        <button
+          onClick={() => handleThemeChange('system')}
+          className={`p-2 rounded-md transition-all ${
+            theme === 'system'
+              ? 'bg-primary text-primary-foreground shadow-xs'
+              : 'hover:bg-accent hover:text-accent-foreground'
+          }`}
+          aria-label="System mode"
+          title="Follow system preference"
+        >
+          <Monitor className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   );
 }
-

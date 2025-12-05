@@ -1,32 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@200;300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@layer base {
+  :root {
+    /* Base radius */
+    --radius: 0.625rem;
+    
+    /* Primary Color - Default: Blue (can be customized) */
+    --primary: #3b82f6;
+    --primary-foreground: oklch(0.985 0 0);
+    --primary-light: #60a5fa;
+    --primary-dark: #2563eb;
+    
+    /* Light Mode Colors */
+    --background: oklch(97.614% 0.00011 271.152);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.145 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    
+    /* Sidebar Colors - Light Mode */
+    --sidebar: oklch(100% 0.00011 271.152);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(97.015% 0.00011 271.152);
+    --sidebar-border: oklch(0.922 0 0);
+    
+    /* Chart Colors - Light Mode */
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    
+    /* Navbar Height */
+    --navbar-height: 96px;
+    
+    /* Logo Colors */
+    --logo-light: #ea0000;
+    --logo-dark: #ffffff;
+  }
+
+  .dark {
+    /* Dark Mode Colors */
+    --background: oklch(17.764% 0.00002 271.152);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.985 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    
+    /* Sidebar Colors - Dark Mode */
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(24.354% 0.00003 271.152);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    
+    /* Chart Colors - Dark Mode */
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+  }
 }
 
-body {
-  @apply bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors;
-}
-
-/* Input styles with dark mode support */
-input, textarea, select {
-  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600;
-}
-
-input::placeholder, textarea::placeholder {
-  @apply text-gray-500 dark:text-gray-400;
-}
-
-input:focus, textarea:focus, select:focus {
-  @apply ring-blue-500 dark:ring-blue-400 border-blue-500 dark:border-blue-400;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Roboto', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Input styles with dark mode support */
+  input, textarea, select {
+    @apply bg-white dark:bg-input text-foreground border-border;
+  }
+  
+  input::placeholder, textarea::placeholder {
+    @apply text-muted-foreground;
+  }
+  
+  input:focus, textarea:focus, select:focus {
+    @apply ring-[3px] border-ring;
+    --tw-ring-opacity: 0.5;
+    --tw-ring-color: var(--ring);
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Radius utilities */
+  .radius-sm {
+    border-radius: calc(var(--radius) - 4px);
+  }
+  
+  .radius-md {
+    border-radius: calc(var(--radius) - 2px);
+  }
+  
+  .radius-lg {
+    border-radius: var(--radius);
+  }
+  
+  .radius-xl {
+    border-radius: calc(var(--radius) + 4px);
+  }
+  
+  /* Shadow utilities */
+  .shadow-xs {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
 }

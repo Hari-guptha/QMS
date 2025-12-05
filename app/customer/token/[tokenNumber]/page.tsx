@@ -38,59 +38,59 @@ export default function TokenPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl text-foreground">Loading...</div>
       </div>
     );
   }
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-xl text-red-600">Ticket not found</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl text-destructive">Ticket not found</div>
       </div>
     );
   }
 
   const statusColors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    called: 'bg-blue-100 text-blue-800',
-    serving: 'bg-green-100 text-green-800',
-    completed: 'bg-gray-100 text-gray-800',
+    pending: 'bg-chart-4/20 text-chart-4 border border-chart-4/30',
+    called: 'bg-primary/20 text-primary border border-primary/30',
+    serving: 'bg-chart-2/20 text-chart-2 border border-chart-2/30',
+    completed: 'bg-muted text-muted-foreground border border-border',
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-8 max-w-md w-full text-center">
         <div className="text-6xl mb-4">🎫</div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <h1 className="text-4xl font-bold text-foreground mb-2">
           {ticket.tokenNumber}
         </h1>
-        <p className="text-gray-600 mb-6">Your Token Number</p>
+        <p className="text-muted-foreground mb-6">Your Token Number</p>
 
         <div className="space-y-4 mb-6">
           <div>
-            <span className="text-sm text-gray-500">Category</span>
-            <p className="font-semibold">{ticket.category?.name}</p>
+            <span className="text-sm text-muted-foreground">Category</span>
+            <p className="font-semibold text-foreground">{ticket.category?.name}</p>
           </div>
           <div>
-            <span className="text-sm text-gray-500">Status</span>
+            <span className="text-sm text-muted-foreground">Status</span>
             <p
               className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                statusColors[ticket.status] || 'bg-gray-100'
+                statusColors[ticket.status] || 'bg-muted text-muted-foreground border border-border'
               }`}
             >
               {ticket.status.toUpperCase()}
             </p>
           </div>
           <div>
-            <span className="text-sm text-gray-500">Position in Queue</span>
-            <p className="font-semibold text-2xl">{ticket.positionInQueue}</p>
+            <span className="text-sm text-muted-foreground">Position in Queue</span>
+            <p className="font-semibold text-2xl text-foreground">{ticket.positionInQueue}</p>
           </div>
           {ticket.agent && (
             <div>
-              <span className="text-sm text-gray-500">Assigned Agent</span>
-              <p className="font-semibold">
+              <span className="text-sm text-muted-foreground">Assigned Agent</span>
+              <p className="font-semibold text-foreground">
                 {ticket.agent.firstName} {ticket.agent.lastName}
               </p>
             </div>
@@ -100,13 +100,13 @@ export default function TokenPage() {
         <div className="space-y-2">
           <button
             onClick={() => router.push('/status')}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
+            className="w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold hover:bg-primary/90 transition-colors shadow-xs"
           >
             View Status Page
           </button>
           <button
             onClick={() => router.push('/customer/check-in')}
-            className="w-full bg-gray-200 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-300"
+            className="w-full bg-secondary text-secondary-foreground py-2 rounded-md font-semibold hover:bg-secondary/80 transition-colors border"
           >
             Check In Again
           </button>
@@ -115,4 +115,3 @@ export default function TokenPage() {
     </div>
   );
 }
-

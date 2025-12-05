@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Navbar } from '@/components/Navbar';
 import {
   DndContext,
   closestCenter,
@@ -202,27 +202,20 @@ export default function AllQueues() {
   const otherTickets = queue.filter((t: any) => t.status !== 'pending');
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <nav className="bg-white dark:bg-gray-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center py-4">
-            <Link href="/admin/dashboard" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
-              ← Back to Dashboard
-            </Link>
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Queue Management</h1>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-background">
+      <Navbar />
       <div className="max-w-7xl mx-auto p-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Select Agent or Category</h2>
+        <div className="mb-6">
+          <Link href="/admin/dashboard" className="text-primary hover:text-primary/80 mb-4 inline-block">
+            ← Back to Dashboard
+          </Link>
+          <h1 className="text-2xl font-bold text-foreground">Queue Management</h1>
+        </div>
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-foreground">Select Agent or Category</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Filter by Agent
               </label>
               <select
@@ -232,7 +225,7 @@ export default function AllQueues() {
                   setSelectedCategoryId('');
                 }}
                 disabled={!!selectedCategoryId}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-4 py-2 border border-border rounded-md disabled:bg-muted disabled:cursor-not-allowed bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
               >
                 <option value="">Select an agent...</option>
                 {agents.map((agent) => (
@@ -243,7 +236,7 @@ export default function AllQueues() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Filter by Category
               </label>
               <select
@@ -253,7 +246,7 @@ export default function AllQueues() {
                   setSelectedAgentId('');
                 }}
                 disabled={!!selectedAgentId}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-4 py-2 border border-border rounded-md disabled:bg-muted disabled:cursor-not-allowed bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
               >
                 <option value="">Select a category...</option>
                 {categories.map((category) => (
@@ -267,37 +260,37 @@ export default function AllQueues() {
         </div>
 
         {selectedAgentId && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">
               Queue for{' '}
               {agents.find((a) => a.id === selectedAgentId)?.firstName}{' '}
               {agents.find((a) => a.id === selectedAgentId)?.lastName}
             </h2>
 
             {loading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8 text-foreground">Loading...</div>
             ) : queue.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 No tickets in queue
               </div>
             ) : (
               <>
                 {otherTickets.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="font-semibold mb-2 text-gray-600 dark:text-gray-400">
+                    <h3 className="font-semibold mb-2 text-muted-foreground">
                       Active Tickets (Non-Pending)
                     </h3>
                     <div className="space-y-2">
                       {otherTickets.map((ticket: any) => (
                         <div
                           key={ticket.id}
-                          className="p-3 bg-gray-100 dark:bg-gray-700 rounded flex justify-between items-center"
+                          className="p-3 bg-muted border rounded-md flex justify-between items-center"
                         >
                           <div>
-                            <span className="font-mono font-bold text-gray-900 dark:text-gray-100">
+                            <span className="font-mono font-bold text-foreground">
                               {ticket.tokenNumber}
                             </span>
-                            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="ml-2 text-sm text-muted-foreground">
                               Status: {ticket.status}
                             </span>
                           </div>
@@ -305,7 +298,7 @@ export default function AllQueues() {
                             {ticket.status === 'called' && (
                               <button
                                 onClick={() => handleAdminMarkServing(ticket.id)}
-                                className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                                className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-xs hover:bg-primary/90 transition-colors shadow-xs"
                               >
                                 Mark Serving
                               </button>
@@ -313,7 +306,7 @@ export default function AllQueues() {
                             {(ticket.status === 'completed' || ticket.status === 'no_show') && (
                               <button
                                 onClick={() => handleReopenTicket(ticket.id)}
-                                className="bg-purple-600 text-white px-3 py-1 rounded text-xs hover:bg-purple-700"
+                                className="bg-chart-4 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
                               >
                                 Reopen
                               </button>
@@ -321,20 +314,20 @@ export default function AllQueues() {
                             {ticket.status !== 'completed' && ticket.status !== 'no_show' && (
                               <button
                                 onClick={() => handleAdminComplete(ticket.id)}
-                                className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                                className="bg-chart-2 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
                               >
                                 Complete
                               </button>
                             )}
                             <button
                               onClick={() => handleEditTicket(ticket)}
-                              className="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700"
+                              className="bg-chart-4 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteTicket(ticket.id)}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
+                              className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-xs hover:bg-destructive/90 transition-colors shadow-xs"
                             >
                               Delete
                             </button>
@@ -347,20 +340,20 @@ export default function AllQueues() {
 
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="font-semibold text-foreground">
                       Pending Tickets ({pendingTickets.length})
                     </h3>
                     {pendingTickets.length > 0 && (
                       <button
                         onClick={() => handleAdminCallNext(selectedAgentId)}
-                        className="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700"
+                        className="bg-primary text-primary-foreground px-4 py-1 rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
                       >
                         Call Next
                       </button>
                     )}
                   </div>
                   {pendingTickets.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400">No pending tickets</p>
+                    <p className="text-muted-foreground">No pending tickets</p>
                   ) : (
                     <DndContext
                       sensors={sensors}
@@ -391,11 +384,11 @@ export default function AllQueues() {
         )}
 
         {selectedCategoryId && !selectedAgentId && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">
               Queues for Category: {categories.find((c) => c.id === selectedCategoryId)?.name}
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               Select an agent from the list above to manage their queue
             </p>
             <div className="space-y-4">
@@ -413,12 +406,12 @@ export default function AllQueues() {
                       setSelectedAgentId(agent.id);
                       setSelectedCategoryId('');
                     }}
-                    className="w-full p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-left transition-colors"
+                    className="w-full p-4 bg-muted border rounded-lg hover:bg-accent hover:text-accent-foreground text-left transition-colors"
                   >
-                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                    <div className="font-semibold text-foreground">
                       {agent.firstName} {agent.lastName}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       Click to manage queue
                     </div>
                   </button>
@@ -429,55 +422,55 @@ export default function AllQueues() {
 
         {/* Edit Ticket Modal */}
         {editingTicket && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-card text-card-foreground border rounded-xl shadow-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-2xl font-semibold mb-4 text-foreground">
                 Edit Ticket: {editingTicket.tokenNumber}
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Customer Name
                   </label>
                   <input
                     type="text"
                     value={editFormData.customerName}
                     onChange={(e) => setEditFormData({ ...editFormData, customerName: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Customer Phone
                   </label>
                   <input
                     type="tel"
                     value={editFormData.customerPhone}
                     onChange={(e) => setEditFormData({ ...editFormData, customerPhone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Customer Email
                   </label>
                   <input
                     type="email"
                     value={editFormData.customerEmail}
                     onChange={(e) => setEditFormData({ ...editFormData, customerEmail: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
                   />
                 </div>
                 <div className="flex gap-2 mt-6">
                   <button
                     onClick={handleSaveEdit}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors shadow-xs"
                   >
                     Save
                   </button>
                   <button
                     onClick={() => setEditingTicket(null)}
-                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500"
+                    className="flex-1 bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors border"
                   >
                     Cancel
                   </button>
@@ -513,17 +506,17 @@ function SortableTicketItem({ ticket, onComplete, onDelete }: { ticket: any; onC
     <div
       ref={setNodeRef}
       style={style}
-      className="p-3 bg-gray-100 rounded flex justify-between items-center hover:bg-gray-200"
+      className="p-3 bg-muted border rounded-md flex justify-between items-center hover:bg-accent transition-colors"
     >
       <div className="flex items-center gap-2 flex-1 cursor-move" {...attributes} {...listeners}>
-        <span className="text-gray-400">⋮⋮</span>
+        <span className="text-muted-foreground">⋮⋮</span>
         <div>
-          <span className="font-mono font-bold">{ticket.tokenNumber}</span>
-          <span className="ml-2 text-sm text-gray-600">
+          <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
+          <span className="ml-2 text-sm text-muted-foreground">
             #{ticket.positionInQueue}
           </span>
           {ticket.category && (
-            <span className="ml-2 text-xs text-gray-500">
+            <span className="ml-2 text-xs text-muted-foreground">
               ({ticket.category.name})
             </span>
           )}
@@ -535,7 +528,7 @@ function SortableTicketItem({ ticket, onComplete, onDelete }: { ticket: any; onC
             e.stopPropagation();
             onComplete(ticket.id);
           }}
-          className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+          className="bg-chart-2 text-white px-3 py-1 rounded-md text-xs hover:opacity-90 transition-opacity shadow-xs"
         >
           Complete
         </button>
@@ -544,7 +537,7 @@ function SortableTicketItem({ ticket, onComplete, onDelete }: { ticket: any; onC
             e.stopPropagation();
             onDelete(ticket.id);
           }}
-          className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
+          className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-xs hover:bg-destructive/90 transition-colors shadow-xs"
         >
           Delete
         </button>
