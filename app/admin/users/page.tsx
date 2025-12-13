@@ -23,9 +23,11 @@ import {
   Edit
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function UsersManagement() {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -101,7 +103,8 @@ export default function UsersManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    const confirmed = await confirm('Are you sure you want to delete this user?');
+    if (!confirmed) return;
     try {
       await adminApi.deleteUser(id);
       loadUsers();

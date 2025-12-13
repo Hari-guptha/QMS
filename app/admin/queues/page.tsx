@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
@@ -38,16 +38,20 @@ import {
   UserCheck,
   RotateCcw,
   Loader2,
-  Save
+  Save,
+  Search
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function AllQueues() {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [agents, setAgents] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTicket, setEditingTicket] = useState<any | null>(null);
@@ -156,7 +160,8 @@ export default function AllQueues() {
   };
 
   const handleAdminComplete = async (ticketId: string) => {
-    if (!confirm('Mark this ticket as completed?')) return;
+    const confirmed = await confirm('Mark this ticket as completed?');
+    if (!confirmed) return;
     try {
       await adminApi.adminMarkAsCompleted(ticketId);
       loadAgentQueue(selectedAgentId);
@@ -175,7 +180,8 @@ export default function AllQueues() {
   };
 
   const handleDeleteTicket = async (ticketId: string) => {
-    if (!confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) return;
+    const confirmed = await confirm('Are you sure you want to delete this ticket? This action cannot be undone.');
+    if (!confirmed) return;
     try {
       await adminApi.deleteTicket(ticketId);
       loadAgentQueue(selectedAgentId);
@@ -185,7 +191,8 @@ export default function AllQueues() {
   };
 
   const handleReopenTicket = async (ticketId: string) => {
-    if (!confirm('Reopen this ticket? It will be added back to the queue.')) return;
+    const confirmed = await confirm('Reopen this ticket? It will be added back to the queue.');
+    if (!confirmed) return;
     try {
       await adminApi.adminReopenTicket(ticketId);
       loadAgentQueue(selectedAgentId);
@@ -223,6 +230,24 @@ export default function AllQueues() {
 
   const pendingTickets = queue.filter((t: any) => t.status === 'pending');
   const otherTickets = queue.filter((t: any) => t.status !== 'pending');
+
+  // Filter agents based on search query
+  const filteredAgents = useMemo(() => {
+    if (!agentSearchQuery.trim()) {
+      return agents;
+    }
+    const query = agentSearchQuery.toLowerCase().trim();
+    return agents.filter((agent) => {
+      const fullName = `${agent.firstName || ''} ${agent.lastName || ''}`.toLowerCase();
+      return (
+        fullName.includes(query) ||
+        agent.firstName?.toLowerCase().includes(query) ||
+        agent.lastName?.toLowerCase().includes(query) ||
+        agent.email?.toLowerCase().includes(query) ||
+        agent.employeeId?.toLowerCase().includes(query)
+      );
+    });
+  }, [agents, agentSearchQuery]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -293,22 +318,84 @@ export default function AllQueues() {
                 <User className="w-4 h-4" />
                 Filter by Agent
               </label>
-              <Select
-                value={selectedAgentId}
-                onChange={(value) => {
-                  setSelectedAgentId(value);
-                  setSelectedCategoryId('');
-                }}
-                disabled={!!selectedCategoryId}
-                placeholder="Select an agent..."
-                options={[
-                  { value: '', label: 'Select an agent...' },
-                  ...agents.map((agent) => ({
-                    value: agent.id,
-                    label: `${agent.firstName} ${agent.lastName}`,
-                  })),
-                ]}
-              />
+              {/* Search Input for Agents - Only show when agent dropdown is enabled */}
+              {!selectedCategoryId && (
+                <div className="mb-3 relative">
+                  <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1">
+                    <span className="pl-2 pr-1 text-xl text-primary/80">
+                      <Search className="w-5 h-5" />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search agents..."
+                      value={agentSearchQuery}
+                      onChange={(e) => setAgentSearchQuery(e.target.value)}
+                      className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
+                    />
+                  </div>
+                  {/* Show filtered agents list when searching */}
+                  {agentSearchQuery.trim() && filteredAgents.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-lg max-h-60 overflow-auto"
+                    >
+                      <div className="p-1">
+                        {filteredAgents.map((agent) => (
+                          <button
+                            key={agent.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedAgentId(agent.id);
+                              setSelectedCategoryId('');
+                              setAgentSearchQuery('');
+                            }}
+                            className="w-full px-4 py-2 text-left rounded-lg hover:bg-accent hover:text-accent-foreground text-foreground transition-colors"
+                          >
+                            {agent.firstName} {agent.lastName}
+                            {agent.email && (
+                              <span className="text-xs text-muted-foreground block">{agent.email}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                  {agentSearchQuery.trim() && filteredAgents.length === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-lg p-4 text-center text-muted-foreground"
+                    >
+                      No agents found
+                    </motion.div>
+                  )}
+                </div>
+              )}
+              {!agentSearchQuery.trim() && (
+                <Select
+                  value={selectedAgentId}
+                  onChange={(value) => {
+                    setSelectedAgentId(value);
+                    setSelectedCategoryId('');
+                    setAgentSearchQuery('');
+                  }}
+                  disabled={!!selectedCategoryId}
+                  placeholder="Select an agent..."
+                  options={[
+                    { value: '', label: 'Select an agent...' },
+                    ...agents.map((agent) => ({
+                      value: agent.id,
+                      label: `${agent.firstName} ${agent.lastName}`,
+                    })),
+                  ]}
+                />
+              )}
+              {agentSearchQuery.trim() && !selectedAgentId && (
+                <div className="text-sm text-muted-foreground mt-2">
+                  {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''} found. Click on one to select.
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
@@ -320,6 +407,7 @@ export default function AllQueues() {
                 onChange={(value) => {
                   setSelectedCategoryId(value);
                   setSelectedAgentId('');
+                  setAgentSearchQuery('');
                 }}
                 disabled={!!selectedAgentId}
                 placeholder="Select a category..."
@@ -520,11 +608,36 @@ export default function AllQueues() {
             <p className="text-muted-foreground mb-6">
               Select an agent from the list above to manage their queue
             </p>
+            {/* Search Input for Category Agents */}
+            <div className="mb-4">
+              <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1 max-w-md">
+                <span className="pl-2 pr-1 text-xl text-primary/80">
+                  <Search className="w-5 h-5" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search agents..."
+                  value={agentSearchQuery}
+                  onChange={(e) => setAgentSearchQuery(e.target.value)}
+                  className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
+                />
+              </div>
+            </div>
             <div className="grid md:grid-cols-2 gap-4">
               {agents
                 .filter((agent) => {
-                  return agent.agentCategories?.some(
+                  const matchesCategory = agent.agentCategories?.some(
                     (ac: any) => ac.categoryId === selectedCategoryId && ac.isActive
+                  );
+                  if (!matchesCategory) return false;
+                  
+                  const query = agentSearchQuery.toLowerCase();
+                  return (
+                    !agentSearchQuery ||
+                    agent.firstName?.toLowerCase().includes(query) ||
+                    agent.lastName?.toLowerCase().includes(query) ||
+                    agent.email?.toLowerCase().includes(query) ||
+                    agent.employeeId?.toLowerCase().includes(query)
                   );
                 })
                 .map((agent, index) => (

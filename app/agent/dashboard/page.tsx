@@ -41,9 +41,11 @@ import {
   AlertCircle,
   Mail
 } from 'lucide-react';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function AgentDashboard() {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [queue, setQueue] = useState<any[]>([]);
   const [currentTicket, setCurrentTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -189,7 +191,8 @@ export default function AgentDashboard() {
   };
 
   const handleReopen = async (ticketId: string) => {
-    if (!confirm('Reopen this ticket? It will be added back to the queue.')) return;
+    const confirmed = await confirm('Reopen this ticket? It will be added back to the queue.');
+    if (!confirmed) return;
     try {
       await agentApi.reopenTicket(ticketId);
       loadQueue();

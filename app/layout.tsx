@@ -3,6 +3,7 @@ import { Roboto } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SessionTimeoutWarning } from "@/components/SessionTimeoutWarning";
+import { ConfirmDialogProvider } from "@/components/ConfirmDialog";
 
 const roboto = Roboto({ 
   subsets: ["latin"],
@@ -24,8 +25,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={roboto.className}>
         <ThemeProvider>
-          {children}
-          <SessionTimeoutWarning />
+          <ConfirmDialogProvider>
+            {children}
+            <SessionTimeoutWarning />
+          </ConfirmDialogProvider>
         </ThemeProvider>
       </body>
     </html>

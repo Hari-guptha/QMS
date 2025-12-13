@@ -21,16 +21,21 @@ import {
   Users,
   Loader2,
   Wifi,
-  WifiOff
+  WifiOff,
+  Search
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function CategoriesManagement() {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [categories, setCategories] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [assigningAgent, setAssigningAgent] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -134,6 +139,7 @@ export default function CategoriesManagement() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCreating(true);
     try {
       await adminApi.createCategory(formData);
       setShowForm(false);
@@ -141,11 +147,28 @@ export default function CategoriesManagement() {
       loadCategories();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to create service');
+    } finally {
+      setCreating(false);
     }
   };
 
+  const handleCloseModal = () => {
+    setShowForm(false);
+    setFormData({ name: '', description: '', estimatedWaitTime: 0 });
+  };
+
+  // Filter categories based on search query
+  const filteredCategories = categories.filter((category) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      category.name?.toLowerCase().includes(query) ||
+      category.description?.toLowerCase().includes(query)
+    );
+  });
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this service?')) return;
+    const confirmed = await confirm('Are you sure you want to delete this service?');
+    if (!confirmed) return;
     try {
       const response = await adminApi.deleteCategory(id);
       const result = response.data || response;
@@ -207,7 +230,8 @@ export default function CategoriesManagement() {
   };
 
   const handleRemoveAgent = async (categoryId: string, agentId: string) => {
-    if (!confirm('Remove this agent from service?')) return;
+    const confirmed = await confirm('Remove this agent from service?');
+    if (!confirmed) return;
     try {
       await adminApi.removeAgent(categoryId, agentId);
       loadCategories();
@@ -243,129 +267,180 @@ export default function CategoriesManagement() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex justify-between items-center mb-8"
+          className="mb-8"
         >
-          <div>
-            <Link 
-              href="/admin/dashboard" 
-              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Link>
+          <Link 
+            href="/admin/dashboard" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Link>
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-chart-2/10 rounded-lg">
                 <FolderOpen className="w-6 h-6 text-chart-2" />
               </div>
               <h1 className="text-4xl font-bold text-foreground">Services Management</h1>
             </div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
-                socketConnected 
-                  ? 'bg-chart-2/10 border-chart-2/30 text-chart-2' 
-                  : 'bg-destructive/10 border-destructive/30 text-destructive'
-              }`}
-            >
-              {socketConnected ? (
-                <Wifi className="w-4 h-4" />
-              ) : (
-                <WifiOff className="w-4 h-4" />
-              )}
-              <span className="text-sm font-medium">
-                {socketConnected ? 'Live Updates' : 'Disconnected'}
+            
+            {/* Search and Add Button - Combined in One Container */}
+            <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1">
+              <span className="pl-2 pr-1 text-xl text-primary/80">
+                <Search className="w-5 h-5" />
               </span>
-            </motion.div>
+              <input
+                type="text"
+                placeholder="Search services..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
+              />
+              <span className="mx-2 h-6 w-px bg-border"></span>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowForm(true)}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-primary-foreground h-9 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-all shadow-none font-semibold text-base"
+              >
+                <span className="hidden sm:inline">+ Add</span>
+                <span className="sm:hidden text-xl leading-none">+</span>
+              </motion.button>
+            </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${
+              socketConnected 
+                ? 'bg-chart-2/10 border-chart-2/30 text-chart-2' 
+                : 'bg-destructive/10 border-destructive/30 text-destructive'
+            }`}
           >
-            {showForm ? (
-              <>
-                <X className="w-5 h-5" />
-                Cancel
-              </>
+            {socketConnected ? (
+              <Wifi className="w-4 h-4" />
             ) : (
-              <>
-                <Plus className="w-5 h-5" />
-                Create Service
-              </>
+              <WifiOff className="w-4 h-4" />
             )}
-          </motion.button>
+            <span className="text-sm font-medium">
+              {socketConnected ? 'Live Updates' : 'Disconnected'}
+            </span>
+          </motion.div>
         </motion.div>
 
-        {/* Create Form */}
+        {/* Create Form Modal */}
         <AnimatePresence>
           {showForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-card text-card-foreground border rounded-2xl shadow-lg p-8 mb-8 overflow-hidden"
-            >
-              <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2">
-                <Plus className="w-6 h-6 text-primary" />
-                Create New Service
-              </h2>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <motion.input
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  type="text"
-                  placeholder="Service Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                  required
-                />
-                <motion.textarea
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  placeholder="Description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[100px]"
-                />
-                <motion.input
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  type="number"
-                  placeholder="Estimated Wait Time (minutes)"
-                  value={formData.estimatedWaitTime}
-                  onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) })}
-                  className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                  min="0"
-                />
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-5 h-5" />
-                  Create Service
-                </motion.button>
-              </form>
-            </motion.div>
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleCloseModal}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              />
+              
+              {/* Modal */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              >
+                <div className="bg-card text-card-foreground border rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between p-6 border-b border-border">
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground">Create New Service</h2>
+                      <p className="text-sm text-muted-foreground mt-1">Add a new service to the system</p>
+                    </div>
+                    <button
+                      onClick={handleCloseModal}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-foreground" />
+                    </button>
+                  </div>
+                  
+                  {/* Modal Body */}
+                  <form onSubmit={handleCreate} className="p-6">
+                    <div className="space-y-4">
+                      <motion.input
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        type="text"
+                        placeholder="Service Name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        required
+                      />
+                      <motion.textarea
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        placeholder="Description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[100px]"
+                      />
+                      <motion.input
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        type="number"
+                        placeholder="Estimated Wait Time (minutes)"
+                        value={formData.estimatedWaitTime}
+                        onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        min="0"
+                      />
+                    </div>
+                    
+                    {/* Modal Footer */}
+                    <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-border">
+                      <button
+                        type="button"
+                        onClick={handleCloseModal}
+                        className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="submit"
+                        disabled={creating}
+                        className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {creating ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-5 h-5" />
+                            Create Service
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
 
         {/* Categories Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AnimatePresence>
-            {categories.map((category, index) => (
+            {filteredCategories.map((category, index) => (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}
