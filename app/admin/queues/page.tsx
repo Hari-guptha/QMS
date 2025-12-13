@@ -591,7 +591,7 @@ export default function AllQueues() {
                         type="text"
                         value={editFormData.customerName}
                         onChange={(e) => setEditFormData({ ...editFormData, customerName: e.target.value })}
-                        className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                         placeholder="Enter customer name"
                       />
                     </div>
@@ -603,7 +603,7 @@ export default function AllQueues() {
                         type="tel"
                         value={editFormData.customerPhone}
                         onChange={(e) => setEditFormData({ ...editFormData, customerPhone: e.target.value })}
-                        className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                         placeholder="Enter phone number"
                       />
                     </div>
@@ -615,7 +615,7 @@ export default function AllQueues() {
                         type="email"
                         value={editFormData.customerEmail}
                         onChange={(e) => setEditFormData({ ...editFormData, customerEmail: e.target.value })}
-                        className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                         placeholder="Enter email address"
                       />
                     </div>

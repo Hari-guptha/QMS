@@ -56,10 +56,10 @@ export function Select({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={`
-          w-full px-4 py-3 border border-border rounded-xl
-          bg-input text-foreground
-          focus:ring-[3px] focus:ring-ring focus:ring-opacity-50
-          transition-all
+          w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm
+          bg-white dark:bg-background text-foreground
+          focus:outline-none focus:ring-2 focus:ring-primary/40
+          transition
           flex items-center justify-between
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-ring'}
         `}

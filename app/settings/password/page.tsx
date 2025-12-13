@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { authApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
-import { Lock, Save, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -43,8 +43,10 @@ export default function UpdatePasswordPage() {
       return;
     }
 
-    if (formData.newPassword.length < 6) {
-      setError('New password must be at least 6 characters long');
+    // Password validation
+    const passwordErrors = validatePassword(formData.newPassword);
+    if (passwordErrors.length > 0) {
+      setError(passwordErrors.join(', '));
       setSaving(false);
       return;
     }
@@ -75,6 +77,38 @@ export default function UpdatePasswordPage() {
     );
   }
 
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = [];
+    if (password.length < 8) {
+      errors.push('At least 8 characters');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('One lowercase letter');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('One uppercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+      errors.push('One number');
+    }
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      errors.push('One special character');
+    }
+    return errors;
+  };
+
+  const checkPasswordRequirements = (password: string) => {
+    return {
+      minLength: password.length >= 8,
+      hasLowercase: /[a-z]/.test(password),
+      hasUppercase: /[A-Z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      hasSpecial: /[^a-zA-Z0-9]/.test(password),
+    };
+  };
+
+  const passwordRequirements = checkPasswordRequirements(formData.newPassword);
+
   const user = auth.getUser();
   const getDashboardPath = () => {
     if (user?.role === 'admin') return '/admin/dashboard';
@@ -85,43 +119,39 @@ export default function UpdatePasswordPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
-          <a
-            href={getDashboardPath()}
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
+      <div className="max-w-2xl mx-auto p-6">
+        {/* Header - Centered */}
+        <div className="text-center space-y-2 mb-8">
+          <div 
+            className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: 'var(--primary-10)' }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </a>
-          <div className="flex items-center gap-3 mb-2">
-            <Lock className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight leading-tight">
-              Update Password
-            </h1>
+            <Lock className="h-6 w-6 text-primary" />
           </div>
+          <h1 className="text-3xl font-bold tracking-tight">Update Password</h1>
           <p className="text-muted-foreground text-lg">
-            Change your account password for better security
+            Enter your current password and choose a new secure password
           </p>
         </div>
 
-        <div className="bg-card text-card-foreground border rounded-xl shadow-sm">
-          <div className="p-6">
+        {/* Password Update Form Card */}
+        <div className="bg-card border border-border rounded-lg shadow-sm mb-6">
+          <div className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
+                <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md text-sm">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="bg-chart-2/10 border border-chart-2 text-chart-2 px-4 py-3 rounded-md">
+                <div className="bg-chart-2/10 border border-chart-2 text-chart-2 px-4 py-3 rounded-md text-sm">
                   {success}
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   Current Password
                 </label>
                 <div className="relative">
@@ -131,25 +161,26 @@ export default function UpdatePasswordPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, currentPassword: e.target.value })
                     }
-                    className="w-full px-4 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
+                    placeholder="Enter your current password"
+                    className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition pr-10"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showCurrentPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   New Password
                 </label>
                 <div className="relative">
@@ -159,29 +190,27 @@ export default function UpdatePasswordPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, newPassword: e.target.value })
                     }
-                    className="w-full px-4 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
+                    placeholder="Enter your new password"
+                    className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition pr-10"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showNewPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Password must be at least 6 characters long
-                </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   Confirm New Password
                 </label>
                 <div className="relative">
@@ -191,42 +220,71 @@ export default function UpdatePasswordPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, confirmPassword: e.target.value })
                     }
-                    className="w-full px-4 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50"
+                    placeholder="Confirm your new password"
+                    className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition pr-10"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => router.push(getDashboardPath())}
-                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors border"
-                >
-                  Cancel
-                </button>
+              {/* Update Password Button - Centered */}
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-xs flex items-center gap-2"
+                className="w-full h-11 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-sm font-medium text-base"
                 >
-                  <Save className="w-4 h-4" />
                   {saving ? 'Updating...' : 'Update Password'}
                 </button>
-              </div>
             </form>
+          </div>
+        </div>
+
+        {/* Password Requirements Card */}
+        <div className="bg-muted/30 border border-border rounded-lg p-6">
+          <h3 className="text-sm font-medium mb-4 text-center">Password Requirements</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 text-sm">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.minLength ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+              <span className={passwordRequirements.minLength ? 'text-foreground' : 'text-muted-foreground'}>
+                At least 8 characters
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasUppercase ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+              <span className={passwordRequirements.hasUppercase ? 'text-foreground' : 'text-muted-foreground'}>
+                One uppercase letter
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasLowercase ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+              <span className={passwordRequirements.hasLowercase ? 'text-foreground' : 'text-muted-foreground'}>
+                One lowercase letter
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasNumber ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+              <span className={passwordRequirements.hasNumber ? 'text-foreground' : 'text-muted-foreground'}>
+                One number
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-sm md:col-span-2 justify-center">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasSpecial ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+              <span className={passwordRequirements.hasSpecial ? 'text-foreground' : 'text-muted-foreground'}>
+                One special character
+              </span>
+            </div>
           </div>
         </div>
       </div>

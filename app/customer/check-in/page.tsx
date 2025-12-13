@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { publicApi } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { 
   Ticket, 
   User, 
@@ -34,12 +35,72 @@ export default function CustomerCheckIn() {
 
   useEffect(() => {
     loadCategories();
-  }, []);
+
+    // Set up socket connection for real-time updates
+    const socket = getSocket();
+    
+    socket.emit('join-public-room');
+
+    // Listen for category events
+    const handleCategoryCreated = (category: any) => {
+      console.log('Category created event received:', category);
+      // Only add if it has at least one assigned agent
+      if (category.agentCategories?.some((ac: any) => ac.isActive && ac.agent)) {
+        loadCategories();
+      }
+    };
+
+    const handleCategoryUpdated = (category: any) => {
+      console.log('Category updated event received:', category);
+      // Reload to check if it should be shown/hidden based on agents
+      loadCategories();
+    };
+
+    const handleCategoryDeleted = (categoryId: string) => {
+      console.log('Category deleted event received:', categoryId);
+      // Remove from local state immediately
+      setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
+      // If currently selected category was deleted, reset selection
+      if (selectedCategory === categoryId) {
+        setSelectedCategory('');
+        setStep('category');
+      }
+    };
+
+    const handleAgentAssigned = (data: any) => {
+      console.log('Agent assigned event received:', data);
+      // Reload categories to show newly assigned service
+      loadCategories();
+    };
+
+    socket.on('category:created', handleCategoryCreated);
+    socket.on('category:updated', handleCategoryUpdated);
+    socket.on('category:deleted', handleCategoryDeleted);
+    socket.on('category:agent-assigned', handleAgentAssigned);
+
+    return () => {
+      socket.off('category:created', handleCategoryCreated);
+      socket.off('category:updated', handleCategoryUpdated);
+      socket.off('category:deleted', handleCategoryDeleted);
+      socket.off('category:agent-assigned', handleAgentAssigned);
+    };
+  }, [selectedCategory]);
 
   const loadCategories = async () => {
     try {
       const response = await publicApi.getCategories();
-      setCategories(response.data);
+      // Filter categories to only show those with at least one assigned agent
+      const categoriesWithAgents = response.data.filter((category: any) => {
+        // Check if agentCategories exists and has at least one active agent
+        if (!category.agentCategories || category.agentCategories.length === 0) {
+          return false;
+        }
+        const hasActiveAgent = category.agentCategories.some(
+          (ac: any) => ac.isActive === true && ac.agent
+        );
+        return hasActiveAgent;
+      });
+      setCategories(categoriesWithAgents);
     } catch (error) {
       console.error('Failed to load categories:', error);
       setError('Failed to load service categories. Please try again.');
@@ -262,8 +323,7 @@ export default function CustomerCheckIn() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                      <User className="w-4 h-4" />
+                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
                       Name (Optional)
                     </label>
                     <input
@@ -272,7 +332,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerName: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all placeholder:text-muted-foreground/70"
+                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       placeholder="Enter your full name"
                     />
                   </motion.div>
@@ -282,8 +342,7 @@ export default function CustomerCheckIn() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                      <Phone className="w-4 h-4" />
+                    <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
                       Phone (Optional)
                     </label>
                     <input
@@ -292,7 +351,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerPhone: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all placeholder:text-muted-foreground/70"
+                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       placeholder="+1234567890"
                     />
                   </motion.div>
@@ -312,7 +371,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerEmail: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-border rounded-md bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 transition-all placeholder:text-muted-foreground/70"
+                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       placeholder="your@email.com"
                     />
                   </motion.div>

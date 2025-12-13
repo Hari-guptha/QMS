@@ -38,7 +38,8 @@ import {
   Wifi,
   WifiOff,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Mail
 } from 'lucide-react';
 
 export default function AgentDashboard() {
@@ -56,6 +57,18 @@ export default function AgentDashboard() {
 
     const user = auth.getUser();
     if (!user) {
+      router.push('/agent/login');
+      return;
+    }
+
+    // Redirect admins to admin dashboard
+    if (user.role === 'admin') {
+      router.push('/admin/dashboard');
+      return;
+    }
+
+    // Only allow agents
+    if (user.role !== 'agent') {
       router.push('/agent/login');
       return;
     }
@@ -307,15 +320,45 @@ export default function AgentDashboard() {
                     </div>
                     <h2 className="text-2xl font-bold text-foreground">Currently Serving</h2>
                   </div>
-                  <div className="mb-4">
-                    <p className="text-4xl font-mono font-bold text-foreground mb-2">
-                      {currentTicket.tokenNumber}
-                    </p>
-                    {currentTicket.customerName && (
-                      <p className="text-muted-foreground flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        {currentTicket.customerName}
+                  <div className="mb-4 space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Ticket ID</p>
+                      <p className="text-4xl font-mono font-bold text-foreground">
+                        {currentTicket.tokenNumber}
                       </p>
+                    </div>
+                    {currentTicket.category && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Service</p>
+                        <p className="text-lg font-semibold text-foreground">
+                          {currentTicket.category.name}
+                        </p>
+                      </div>
+                    )}
+                    {(currentTicket.customerName || currentTicket.customerPhone || currentTicket.customerEmail) && (
+                      <div className="pt-2 border-t border-chart-2/20">
+                        <p className="text-xs text-muted-foreground mb-2">Customer Details</p>
+                        <div className="space-y-1">
+                          {currentTicket.customerName && (
+                            <p className="text-sm text-foreground flex items-center gap-2">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                              {currentTicket.customerName}
+                            </p>
+                          )}
+                          {currentTicket.customerPhone && (
+                            <p className="text-sm text-foreground flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              {currentTicket.customerPhone}
+                            </p>
+                          )}
+                          {currentTicket.customerEmail && (
+                            <p className="text-sm text-foreground flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              {currentTicket.customerEmail}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-3">
@@ -384,13 +427,30 @@ export default function AgentDashboard() {
                         transition={{ delay: index * 0.1 }}
                         className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl flex justify-between items-center"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/20 rounded-lg">
-                            <Phone className="w-4 h-4 text-primary" />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            <div className="p-2 bg-primary/20 rounded-lg">
+                              <Phone className="w-4 h-4 text-primary" />
+                            </div>
+                            <span className="font-mono font-bold text-xl text-foreground">
+                              {ticket.tokenNumber}
+                            </span>
                           </div>
-                          <span className="font-mono font-bold text-xl text-foreground">
-                            {ticket.tokenNumber}
-                          </span>
+                          {ticket.category && (
+                            <p className="text-xs text-muted-foreground ml-11">
+                              {ticket.category.name}
+                            </p>
+                          )}
+                          {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
+                            <div className="mt-2 ml-11 space-y-1">
+                              {ticket.customerName && (
+                                <p className="text-xs text-foreground">{ticket.customerName}</p>
+                              )}
+                              {ticket.customerPhone && (
+                                <p className="text-xs text-muted-foreground">{ticket.customerPhone}</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -487,8 +547,8 @@ export default function AgentDashboard() {
             className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6 h-fit"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-chart-4/10 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-chart-4" />
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
+                <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Statistics</h2>
             </div>
@@ -497,10 +557,15 @@ export default function AgentDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl"
+                className="p-4 bg-white dark:bg-[#171717] border border-primary/20 rounded-xl"
               >
                 <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                      <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
                   <span className="text-muted-foreground">Total in Queue</span>
+                  </div>
                   <span className="text-3xl font-bold text-foreground">{queue.length}</span>
                 </div>
               </motion.div>
@@ -508,10 +573,15 @@ export default function AgentDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="p-4 bg-gradient-to-br from-chart-4/10 to-chart-4/5 border border-chart-4/20 rounded-xl"
+                className="p-4 bg-white dark:bg-[#171717] border border-chart-4/20 rounded-xl"
               >
                 <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center justify-center w-10 h-10 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg">
+                      <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    </div>
                   <span className="text-muted-foreground">Pending</span>
+                  </div>
                   <span className="text-3xl font-bold text-foreground">{pendingTickets.length}</span>
                 </div>
               </motion.div>
@@ -519,10 +589,15 @@ export default function AgentDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl"
+                className="p-4 bg-white dark:bg-[#171717] border border-primary/20 rounded-xl"
               >
                 <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg">
+                      <Phone className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
                   <span className="text-muted-foreground">Called</span>
+                  </div>
                   <span className="text-3xl font-bold text-foreground">{calledTickets.length}</span>
                 </div>
               </motion.div>
@@ -530,10 +605,15 @@ export default function AgentDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="p-4 bg-gradient-to-br from-chart-2/10 to-chart-2/5 border border-chart-2/20 rounded-xl"
+                className="p-4 bg-white dark:bg-[#171717] border border-chart-2/20 rounded-xl"
               >
                 <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center justify-center w-10 h-10 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
+                      <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
                   <span className="text-muted-foreground">Serving</span>
+                  </div>
                   <span className="text-3xl font-bold text-foreground">
                     {currentTicket ? 1 : 0}
                   </span>
@@ -584,8 +664,8 @@ function SortableTicketItem({ ticket, index }: { ticket: any; index: number }) {
           style={{ touchAction: 'none' }}
         >
           <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
-          <div>
-            <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-1">
               <span className="font-mono font-bold text-xl text-foreground">
                 {ticket.tokenNumber}
               </span>
@@ -594,9 +674,31 @@ function SortableTicketItem({ ticket, index }: { ticket: any; index: number }) {
               </span>
             </div>
             {ticket.category && (
-              <span className="text-sm text-muted-foreground mt-1 block">
+              <p className="text-sm text-muted-foreground mb-1">
                 {ticket.category.name}
-              </span>
+              </p>
+            )}
+            {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
+              <div className="mt-2 space-y-1">
+                {ticket.customerName && (
+                  <p className="text-xs text-foreground flex items-center gap-1">
+                    <Users className="w-3 h-3 text-muted-foreground" />
+                    {ticket.customerName}
+                  </p>
+                )}
+                {ticket.customerPhone && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {ticket.customerPhone}
+                  </p>
+                )}
+                {ticket.customerEmail && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
+                    {ticket.customerEmail}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>

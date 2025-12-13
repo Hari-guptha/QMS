@@ -98,8 +98,8 @@ export default function AdminDashboard() {
       title: 'Users Management',
       description: 'Manage agents and users',
       color: 'from-primary/20 to-primary/5',
-      iconColor: 'text-primary',
-      iconBg: 'bg-primary/10',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      iconBg: 'bg-blue-100 dark:bg-blue-500/20',
     },
     {
       href: '/admin/categories',
@@ -107,8 +107,8 @@ export default function AdminDashboard() {
       title: 'Categories',
       description: 'Manage service categories',
       color: 'from-chart-2/20 to-chart-2/5',
-      iconColor: 'text-chart-2',
-      iconBg: 'bg-chart-2/10',
+      iconColor: 'text-green-600 dark:text-green-400',
+      iconBg: 'bg-green-100 dark:bg-green-500/20',
     },
     {
       href: '/admin/queues',
@@ -116,8 +116,8 @@ export default function AdminDashboard() {
       title: 'All Queues',
       description: 'View and manage all queues',
       color: 'from-chart-1/20 to-chart-1/5',
-      iconColor: 'text-chart-1',
-      iconBg: 'bg-chart-1/10',
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      iconBg: 'bg-orange-100 dark:bg-orange-500/20',
     },
     {
       href: '/admin/analytics',
@@ -125,8 +125,8 @@ export default function AdminDashboard() {
       title: 'Analytics',
       description: 'View reports and statistics',
       color: 'from-chart-4/20 to-chart-4/5',
-      iconColor: 'text-chart-4',
-      iconBg: 'bg-chart-4/10',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      iconBg: 'bg-purple-100 dark:bg-purple-500/20',
     },
   ];
 
@@ -163,11 +163,11 @@ export default function AdminDashboard() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Link href={link.href}>
-                  <div className={`relative h-full bg-gradient-to-br ${link.color} border border-border rounded-2xl p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden`}>
+                  <div className={`relative h-full bg-white dark:bg-[#171717] border border-border rounded-2xl p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden`}>
                     <motion.div
                       whileHover={{ rotate: [0, -10, 10, -10, 0] }}
                       transition={{ duration: 0.5 }}
-                      className={`inline-flex items-center justify-center w-14 h-14 ${link.iconBg} rounded-xl mb-4`}
+                      className={`inline-flex items-center justify-center w-14 h-14 ${link.iconBg} rounded-lg mb-4`}
                     >
                       <Icon className={`w-7 h-7 ${link.iconColor}`} />
                     </motion.div>
@@ -196,8 +196,8 @@ export default function AdminDashboard() {
           className="bg-card text-card-foreground border rounded-2xl shadow-sm p-8"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-primary" />
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+              <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Quick Stats</h2>
           </div>
@@ -207,10 +207,12 @@ export default function AdminDashboard() {
               initial="hidden"
               animate="visible"
               transition={{ delay: 0.5 }}
-              className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl"
+              className="p-6 bg-white dark:bg-[#171717] border border-primary/20 rounded-xl"
             >
               <div className="flex items-center gap-3 mb-2">
-                <Clock className="w-5 h-5 text-primary" />
+                <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                  <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
                 <span className="text-sm font-medium text-muted-foreground">Avg Wait Time</span>
               </div>
               <p className="text-4xl font-bold text-foreground">
@@ -223,10 +225,12 @@ export default function AdminDashboard() {
               initial="hidden"
               animate="visible"
               transition={{ delay: 0.6 }}
-              className="p-6 bg-gradient-to-br from-chart-2/10 to-chart-2/5 border border-chart-2/20 rounded-xl"
+              className="p-6 bg-white dark:bg-[#171717] border border-chart-2/20 rounded-xl"
             >
               <div className="flex items-center gap-3 mb-2">
-                <TrendingUp className="w-5 h-5 text-chart-2" />
+                <div className="inline-flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
                 <span className="text-sm font-medium text-muted-foreground">Avg Service Time</span>
               </div>
               <p className="text-4xl font-bold text-foreground">
@@ -239,10 +243,12 @@ export default function AdminDashboard() {
               initial="hidden"
               animate="visible"
               transition={{ delay: 0.7 }}
-              className="p-6 bg-gradient-to-br from-destructive/10 to-destructive/5 border border-destructive/20 rounded-xl"
+              className="p-6 bg-white dark:bg-[#171717] border border-destructive/20 rounded-xl"
             >
               <div className="flex items-center gap-3 mb-2">
-                <AlertCircle className="w-5 h-5 text-destructive" />
+                <div className="inline-flex items-center justify-center w-10 h-10 bg-red-100 dark:bg-red-500/20 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
                 <span className="text-sm font-medium text-muted-foreground">Abandonment Rate</span>
               </div>
               <p className="text-4xl font-bold text-foreground">

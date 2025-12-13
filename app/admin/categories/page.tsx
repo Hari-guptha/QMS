@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { Navbar } from '@/components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -18,7 +19,9 @@ import {
   ArrowLeft,
   Clock,
   Users,
-  Loader2
+  Loader2,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 
@@ -30,6 +33,7 @@ export default function CategoriesManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [assigningAgent, setAssigningAgent] = useState<string | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -43,12 +47,75 @@ export default function CategoriesManagement() {
     }
     loadCategories();
     loadAgents();
+
+    // Set up socket connection for real-time updates
+    const user = auth.getUser();
+    if (user) {
+      const socket = getSocket();
+      setSocketConnected(socket.connected);
+      
+      // Join admin room for category updates
+      const handleConnect = () => {
+        socket.emit('join-admin-room', user.id);
+        setSocketConnected(true);
+        console.log('Socket connected, joined admin room:', user.id);
+      };
+
+      const handleDisconnect = () => {
+        setSocketConnected(false);
+        console.log('Socket disconnected');
+      };
+
+      if (socket.connected) {
+        handleConnect();
+      } else {
+        socket.on('connect', handleConnect);
+      }
+
+      socket.on('disconnect', handleDisconnect);
+
+      // Listen for category events
+      const handleCategoryCreated = (category: any) => {
+        console.log('Category created event received:', category);
+        // Only add if it's active
+        if (category.isActive !== false) {
+          loadCategories();
+        }
+      };
+
+      const handleCategoryUpdated = (category: any) => {
+        console.log('Category updated event received:', category);
+        // Reload to handle activation/deactivation
+        loadCategories();
+      };
+
+      const handleCategoryDeleted = (categoryId: string) => {
+        console.log('Category deleted event received:', categoryId);
+        // Remove from local state immediately
+        setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
+      };
+
+      socket.on('category:created', handleCategoryCreated);
+      socket.on('category:updated', handleCategoryUpdated);
+      socket.on('category:deleted', handleCategoryDeleted);
+
+      // Cleanup on unmount
+      return () => {
+        socket.off('connect', handleConnect);
+        socket.off('disconnect', handleDisconnect);
+        socket.off('category:created', handleCategoryCreated);
+        socket.off('category:updated', handleCategoryUpdated);
+        socket.off('category:deleted', handleCategoryDeleted);
+      };
+    }
   }, [router]);
 
   const loadCategories = async () => {
     try {
       const response = await adminApi.getCategories();
-      setCategories(response.data);
+      // Filter out inactive (soft-deleted) categories
+      const activeCategories = response.data.filter((cat: any) => cat.isActive !== false);
+      setCategories(activeCategories);
     } catch (error) {
       console.error('Failed to load categories:', error);
     } finally {
@@ -73,17 +140,36 @@ export default function CategoriesManagement() {
       setFormData({ name: '', description: '', estimatedWaitTime: 0 });
       loadCategories();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create category');
+      alert(error.response?.data?.message || 'Failed to create service');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    if (!confirm('Are you sure you want to delete this service?')) return;
     try {
-      await adminApi.deleteCategory(id);
-      loadCategories();
+      const response = await adminApi.deleteCategory(id);
+      const result = response.data || response;
+      
+      // Check if it was soft-deleted (deactivated) or hard-deleted
+      if (result.deactivated) {
+        // Soft delete - remove from UI but show message
+        setCategories((prev) => prev.filter((cat) => cat.id !== id));
+        alert(result.message || 'Service has been deactivated because it has associated tickets.');
+      } else {
+        // Hard delete - remove from UI
+        setCategories((prev) => prev.filter((cat) => cat.id !== id));
+        // Show success message if available
+        if (result.message) {
+          console.log(result.message);
+        }
+      }
+      // Socket will handle the live update
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete category');
+      console.error('Delete error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete service';
+      alert(errorMessage);
+      // Reload on error to ensure consistency
+      loadCategories();
     }
   };
 
@@ -104,22 +190,24 @@ export default function CategoriesManagement() {
       setFormData({ name: '', description: '', estimatedWaitTime: 0 });
       loadCategories();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update category');
+      alert(error.response?.data?.message || 'Failed to update service');
     }
   };
 
   const handleAssignAgent = async (categoryId: string, agentId: string) => {
     try {
       await adminApi.assignAgent(categoryId, agentId);
+      // Reload to get updated category with agent
       loadCategories();
       setAssigningAgent(null);
+      // Note: Backend should emit 'category:agent-assigned' socket event
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to assign agent');
     }
   };
 
   const handleRemoveAgent = async (categoryId: string, agentId: string) => {
-    if (!confirm('Remove this agent from category?')) return;
+    if (!confirm('Remove this agent from service?')) return;
     try {
       await adminApi.removeAgent(categoryId, agentId);
       loadCategories();
@@ -169,8 +257,27 @@ export default function CategoriesManagement() {
               <div className="p-2 bg-chart-2/10 rounded-lg">
                 <FolderOpen className="w-6 h-6 text-chart-2" />
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Categories Management</h1>
+              <h1 className="text-4xl font-bold text-foreground">Services Management</h1>
             </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                socketConnected 
+                  ? 'bg-chart-2/10 border-chart-2/30 text-chart-2' 
+                  : 'bg-destructive/10 border-destructive/30 text-destructive'
+              }`}
+            >
+              {socketConnected ? (
+                <Wifi className="w-4 h-4" />
+              ) : (
+                <WifiOff className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">
+                {socketConnected ? 'Live Updates' : 'Disconnected'}
+              </span>
+            </motion.div>
           </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -186,7 +293,7 @@ export default function CategoriesManagement() {
             ) : (
               <>
                 <Plus className="w-5 h-5" />
-                Create Category
+                Create Service
               </>
             )}
           </motion.button>
@@ -204,7 +311,7 @@ export default function CategoriesManagement() {
             >
               <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2">
                 <Plus className="w-6 h-6 text-primary" />
-                Create New Category
+                Create New Service
               </h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <motion.input
@@ -212,10 +319,10 @@ export default function CategoriesManagement() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                   type="text"
-                  placeholder="Category Name"
+                  placeholder="Service Name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                  className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                   required
                 />
                 <motion.textarea
@@ -225,7 +332,7 @@ export default function CategoriesManagement() {
                   placeholder="Description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all min-h-[100px]"
+                  className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[100px]"
                 />
                 <motion.input
                   initial={{ opacity: 0, y: 20 }}
@@ -235,7 +342,7 @@ export default function CategoriesManagement() {
                   placeholder="Estimated Wait Time (minutes)"
                   value={formData.estimatedWaitTime}
                   onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 placeholder:text-muted-foreground/70 transition-all"
+                  className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                   min="0"
                 />
                 <motion.button
@@ -248,7 +355,7 @@ export default function CategoriesManagement() {
                   className="w-full bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
                 >
                   <Plus className="w-5 h-5" />
-                  Create Category
+                  Create Service
                 </motion.button>
               </form>
             </motion.div>
@@ -279,20 +386,20 @@ export default function CategoriesManagement() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
+                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       required
                     />
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
+                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       rows={2}
                     />
                     <input
                       type="number"
                       value={formData.estimatedWaitTime}
                       onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 border border-border rounded-xl bg-input text-foreground focus:ring-[3px] focus:ring-ring focus:ring-opacity-50 text-sm"
+                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       min="0"
                     />
                     <div className="flex gap-2">

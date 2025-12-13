@@ -24,10 +24,13 @@ export default function AgentLogin() {
 
     try {
       const response = await auth.login(username, password);
-      if (response.user.role === 'agent' || response.user.role === 'admin') {
+      if (response.user.role === 'agent') {
         router.push('/agent/dashboard');
+      } else if (response.user.role === 'admin') {
+        setError('Please use the Admin login page to access admin features.');
+        auth.logout();
       } else {
-        setError('Access denied. Agent or Admin account required.');
+        setError('Access denied. Agent account required.');
         auth.logout();
       }
     } catch (err: any) {
@@ -92,7 +95,7 @@ export default function AgentLogin() {
 
           {/* Login Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-foreground mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
               Login
             </label>
             <input
@@ -100,14 +103,14 @@ export default function AgentLogin() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your login Id"
-              className="w-full px-4 py-3 border border-gray-300 dark:border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-input text-gray-900 dark:text-foreground placeholder:text-gray-400 dark:placeholder:text-muted-foreground/70 transition-all"
+              className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
               required
             />
           </div>
 
           {/* Password Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-foreground mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
               Password
             </label>
             <div className="relative">
@@ -116,7 +119,7 @@ export default function AgentLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-input text-gray-900 dark:text-foreground placeholder:text-gray-400 dark:placeholder:text-muted-foreground/70 transition-all"
+                className="w-full p-3 sm:p-3 pr-12 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                 required
               />
               <button

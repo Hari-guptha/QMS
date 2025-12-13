@@ -13,6 +13,7 @@
     --primary-foreground: oklch(0.985 0 0);
     --primary-light: #60a5fa;
     --primary-dark: #2563eb;
+    --primary-10: #eff6ff; /* Light blue background for light mode */
     
     /* Light Mode Colors */
     --background: oklch(97.614% 0.00011 271.152);
@@ -30,6 +31,8 @@
     --destructive-foreground: oklch(0.985 0 0);
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
     
     /* Sidebar Colors - Light Mode */
     --sidebar: oklch(100% 0.00011 271.152);
@@ -67,8 +70,11 @@
     --ring: oklch(0.556 0 0);
     --destructive: oklch(0.704 0.191 22.216);
     --destructive-foreground: oklch(0.985 0 0);
+    --primary-10: rgba(59, 130, 246, 0.2); /* Darker blue background for dark mode */
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
     
     /* Sidebar Colors - Dark Mode */
     --sidebar: oklch(0.205 0 0);

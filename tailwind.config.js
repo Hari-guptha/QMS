@@ -40,6 +40,10 @@ module.exports = {
           DEFAULT: 'var(--card)',
           foreground: 'var(--card-foreground)',
         },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
         sidebar: {
           DEFAULT: 'var(--sidebar)',
           foreground: 'var(--sidebar-foreground)',
