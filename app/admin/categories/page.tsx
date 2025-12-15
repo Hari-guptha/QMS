@@ -586,10 +586,13 @@ export default function CategoriesManagement() {
                                 { value: '', label: 'Select agent...' },
                                 ...agents
                                   .filter((agent) => {
-                                    const assigned = category.agentCategories?.some(
-                                      (ac: any) => ac.agentId === agent.id && ac.isActive
+                                    // Check if agent is assigned to ANY service (not just the current one)
+                                    const assignedToAnyService = categories.some((cat) =>
+                                      cat.agentCategories?.some(
+                                        (ac: any) => ac.agentId === agent.id && ac.isActive
+                                      )
                                     );
-                                    return !assigned;
+                                    return !assignedToAnyService;
                                   })
                                   .map((agent) => ({
                                     value: agent.id,

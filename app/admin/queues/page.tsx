@@ -170,14 +170,17 @@ export default function AllQueues() {
     }
   };
 
-  const handleAdminMarkServing = async (ticketId: string) => {
+  const handleAdminHold = async (ticketId: string) => {
+    const confirmed = await confirm('Put this ticket on hold?');
+    if (!confirmed) return;
     try {
-      await adminApi.adminMarkAsServing(ticketId);
+      await adminApi.adminMarkAsNoShow(ticketId);
       loadAgentQueue(selectedAgentId);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update ticket');
+      alert(error.response?.data?.message || 'Failed to put ticket on hold');
     }
   };
+
 
   const handleDeleteTicket = async (ticketId: string) => {
     const confirmed = await confirm('Are you sure you want to delete this ticket? This action cannot be undone.');
@@ -229,7 +232,8 @@ export default function AllQueues() {
   );
 
   const pendingTickets = queue.filter((t: any) => t.status === 'pending');
-  const otherTickets = queue.filter((t: any) => t.status !== 'pending');
+  const holdTickets = queue.filter((t: any) => t.status === 'hold');
+  const otherTickets = queue.filter((t: any) => t.status !== 'pending' && t.status !== 'hold');
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
@@ -251,12 +255,12 @@ export default function AllQueues() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'called':
-        return <Phone className="w-4 h-4" />;
       case 'serving':
         return <UserCheck className="w-4 h-4" />;
       case 'completed':
         return <CheckCircle2 className="w-4 h-4" />;
+      case 'hold':
+        return <X className="w-4 h-4" />;
       default:
         return null;
     }
@@ -264,12 +268,12 @@ export default function AllQueues() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'called':
-        return 'bg-primary/20 text-primary border-primary/30';
       case 'serving':
         return 'bg-chart-2/20 text-chart-2 border-chart-2/30';
       case 'completed':
         return 'bg-chart-3/20 text-chart-3 border-chart-3/30';
+      case 'hold':
+        return 'bg-destructive/20 text-destructive border-destructive/30';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
@@ -497,18 +501,7 @@ export default function AllQueues() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            {ticket.status === 'called' && (
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleAdminMarkServing(ticket.id)}
-                                className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
-                              >
-                                <UserCheck className="w-4 h-4" />
-                                Mark Serving
-                              </motion.button>
-                            )}
-                            {(ticket.status === 'completed' || ticket.status === 'no_show') && (
+                            {(ticket.status === 'completed' || ticket.status === 'no_show' || ticket.status === 'hold') && (
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -519,16 +512,27 @@ export default function AllQueues() {
                                 Reopen
                               </motion.button>
                             )}
-                            {ticket.status !== 'completed' && ticket.status !== 'no_show' && (
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleAdminComplete(ticket.id)}
-                                className="bg-chart-2 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                                Complete
-                              </motion.button>
+                            {ticket.status !== 'completed' && ticket.status !== 'no_show' && ticket.status !== 'hold' && (
+                              <>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleAdminComplete(ticket.id)}
+                                  className="bg-chart-2 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  Complete
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleAdminHold(ticket.id)}
+                                  className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
+                                >
+                                  <X className="w-4 h-4" />
+                                  Hold
+                                </motion.button>
+                              </>
                             )}
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -579,6 +583,7 @@ export default function AllQueues() {
                               key={ticket.id}
                               ticket={ticket}
                               onComplete={handleAdminComplete}
+                              onHold={handleAdminHold}
                               onDelete={handleDeleteTicket}
                               index={index}
                             />
@@ -767,11 +772,13 @@ export default function AllQueues() {
 function SortableTicketItem({ 
   ticket, 
   onComplete, 
+  onHold,
   onDelete,
   index 
 }: { 
   ticket: any; 
   onComplete: (id: string) => void; 
+  onHold: (id: string) => void;
   onDelete: (id: string) => void;
   index: number;
 }) {
@@ -837,6 +844,19 @@ function SortableTicketItem({
           >
             <CheckCircle2 className="w-4 h-4" />
             Complete
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onHold(ticket.id);
+            }}
+            className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <X className="w-4 h-4" />
+            Hold
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}

@@ -18,6 +18,7 @@ export enum TicketStatus {
   SERVING = 'serving',
   COMPLETED = 'completed',
   NO_SHOW = 'no_show',
+  HOLD = 'hold',
   CANCELLED = 'cancelled',
 }
 

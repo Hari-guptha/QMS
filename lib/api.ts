@@ -88,6 +88,7 @@ export const authApi = {
     api.post('/auth/update-password', { currentPassword, newPassword }),
   updateProfile: (data: { firstName?: string; lastName?: string; email?: string }) =>
     api.put('/auth/profile', data),
+  getProfile: () => api.get('/users/profile/me'),
   microsoftAuth: () => {
     // Redirect to Microsoft OAuth endpoint
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';

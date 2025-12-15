@@ -14,15 +14,15 @@ export class CreateTicketDto {
   @IsNotEmpty()
   categoryId: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: true })
   @IsString()
-  @IsOptional()
-  customerName?: string;
+  @IsNotEmpty()
+  customerName: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: true })
   @IsString()
-  @IsOptional()
-  customerPhone?: string;
+  @IsNotEmpty()
+  customerPhone: string;
 
   @ApiProperty({ required: false })
   @ValidateIf((o) => o.customerEmail && o.customerEmail.trim() !== '')

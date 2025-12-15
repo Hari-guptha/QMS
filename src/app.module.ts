@@ -30,7 +30,7 @@ import { Ticket } from './queue/entities/ticket.entity';
         password: configService.get('DB_PASSWORD', ''),
         database: configService.get('DB_DATABASE', 'qms_db'),
         entities: [User, Category, AgentCategory, Ticket],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: false, // Disabled to prevent enum modification conflicts. Use migrations or run: npm run update:enum
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],

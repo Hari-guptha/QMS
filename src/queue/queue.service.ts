@@ -296,8 +296,9 @@ export class QueueService {
       throw new NotFoundException('No pending tickets in queue');
     }
 
-    nextTicket.status = TicketStatus.CALLED;
+    nextTicket.status = TicketStatus.SERVING;
     nextTicket.calledAt = new Date();
+    nextTicket.servingStartedAt = new Date();
     const savedTicket = await this.ticketRepository.save(nextTicket);
 
     // Send SMS notification
@@ -371,7 +372,7 @@ export class QueueService {
       throw new BadRequestException('You can only mark your own tickets');
     }
 
-    ticket.status = TicketStatus.NO_SHOW;
+    ticket.status = TicketStatus.HOLD;
     ticket.noShowAt = new Date();
     const savedTicket = await this.ticketRepository.save(ticket);
 
@@ -552,7 +553,7 @@ export class QueueService {
    */
   async adminMarkAsNoShow(ticketId: string): Promise<Ticket> {
     const ticket = await this.getTicketById(ticketId);
-    ticket.status = TicketStatus.NO_SHOW;
+    ticket.status = TicketStatus.HOLD;
     ticket.noShowAt = new Date();
     const savedTicket = await this.ticketRepository.save(ticket);
 
@@ -584,9 +585,9 @@ export class QueueService {
       throw new BadRequestException('You can only reopen your own tickets');
     }
 
-    // Only allow reopening completed or no-show tickets
-    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.NO_SHOW) {
-      throw new BadRequestException('Can only reopen completed or no-show tickets');
+    // Only allow reopening completed, no-show, or hold tickets
+    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.NO_SHOW && ticket.status !== TicketStatus.HOLD) {
+      throw new BadRequestException('Can only reopen completed, no-show, or hold tickets');
     }
 
     // Reset to pending and recalculate position
@@ -612,10 +613,10 @@ export class QueueService {
    */
   async adminReopenTicket(ticketId: string): Promise<Ticket> {
     const ticket = await this.getTicketById(ticketId);
-
-    // Only allow reopening completed or no-show tickets
-    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.NO_SHOW) {
-      throw new BadRequestException('Can only reopen completed or no-show tickets');
+    
+    // Only allow reopening completed, no-show, or hold tickets
+    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.NO_SHOW && ticket.status !== TicketStatus.HOLD) {
+      throw new BadRequestException('Can only reopen completed, no-show, or hold tickets');
     }
 
     // Reset to pending and recalculate position

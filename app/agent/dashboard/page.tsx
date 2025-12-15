@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { agentApi } from '@/lib/api';
+import { agentApi, authApi } from '@/lib/api';
 import { auth } from '@/lib/auth';
 import { getSocket } from '@/lib/socket';
 import { Navbar } from '@/components/Navbar';
@@ -39,7 +39,8 @@ import {
   WifiOff,
   Loader2,
   AlertCircle,
-  Mail
+  Mail,
+  FolderOpen
 } from 'lucide-react';
 import { useConfirm } from '@/components/ConfirmDialog';
 
@@ -50,6 +51,7 @@ export default function AgentDashboard() {
   const [currentTicket, setCurrentTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [assignedService, setAssignedService] = useState<any>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -76,6 +78,7 @@ export default function AgentDashboard() {
     }
 
     loadQueue();
+    loadAgentProfile();
 
     const socket = getSocket();
     setSocketConnected(socket.connected);
@@ -143,12 +146,34 @@ export default function AgentDashboard() {
     try {
       const response = await agentApi.getMyQueue();
       setQueue(response.data);
+      // Only set current ticket if it's serving (not hold or completed)
       const serving = response.data.find((t: any) => t.status === 'serving');
-      if (serving) setCurrentTicket(serving);
+      if (serving) {
+        setCurrentTicket(serving);
+      } else {
+        // Clear current ticket if no serving ticket exists
+        setCurrentTicket(null);
+      }
     } catch (error) {
       console.error('Failed to load queue:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAgentProfile = async () => {
+    try {
+      const response = await authApi.getProfile();
+      const agent = response.data;
+      // Find the active assigned service (agent can only have one)
+      const activeCategory = agent.agentCategories?.find(
+        (ac: any) => ac.isActive && ac.category
+      );
+      if (activeCategory) {
+        setAssignedService(activeCategory.category);
+      }
+    } catch (error) {
+      console.error('Failed to load agent profile:', error);
     }
   };
 
@@ -162,14 +187,6 @@ export default function AgentDashboard() {
     }
   };
 
-  const handleMarkServing = async (ticketId: string) => {
-    try {
-      await agentApi.markAsServing(ticketId);
-      loadQueue();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update');
-    }
-  };
 
   const handleComplete = async (ticketId: string) => {
     try {
@@ -184,6 +201,10 @@ export default function AgentDashboard() {
   const handleNoShow = async (ticketId: string) => {
     try {
       await agentApi.markAsNoShow(ticketId);
+      // Clear current ticket if it's the one being put on hold
+      if (currentTicket && currentTicket.id === ticketId) {
+        setCurrentTicket(null);
+      }
       loadQueue();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to update');
@@ -262,7 +283,7 @@ export default function AgentDashboard() {
   }
 
   const pendingTickets = queue.filter((t: any) => t.status === 'pending');
-  const calledTickets = queue.filter((t: any) => t.status === 'called');
+  const holdTickets = queue.filter((t: any) => t.status === 'hold');
   const completedTickets = queue.filter((t: any) => t.status === 'completed' || t.status === 'no_show');
 
   return (
@@ -277,11 +298,25 @@ export default function AgentDashboard() {
           className="mb-8"
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Ticket className="w-6 h-6 text-primary" />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Ticket className="w-6 h-6 text-primary" />
+                </div>
+                <h1 className="text-4xl font-bold text-foreground">Agent Dashboard</h1>
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Agent Dashboard</h1>
+              {assignedService && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center gap-2 ml-11"
+                >
+                  <FolderOpen className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Assigned Service:</span>
+                  <span className="text-sm font-semibold text-foreground">{assignedService.name}</span>
+                </motion.div>
+              )}
             </div>
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -381,7 +416,7 @@ export default function AgentDashboard() {
                       className="flex-1 bg-destructive text-destructive-foreground px-6 py-3 rounded-xl hover:bg-destructive/90 transition-colors shadow-lg flex items-center justify-center gap-2"
                     >
                       <X className="w-5 h-5" />
-                      No Show
+                      Hold
                     </motion.button>
                   </div>
                 </motion.div>
@@ -414,62 +449,6 @@ export default function AgentDashboard() {
                 </motion.button>
               </div>
 
-              {/* Called Tickets */}
-              {calledTickets.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
-                    <Phone className="w-5 h-5 text-primary" />
-                    Called ({calledTickets.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {calledTickets.map((ticket: any, index: number) => (
-                      <motion.div
-                        key={ticket.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl flex justify-between items-center"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="p-2 bg-primary/20 rounded-lg">
-                              <Phone className="w-4 h-4 text-primary" />
-                            </div>
-                            <span className="font-mono font-bold text-xl text-foreground">
-                              {ticket.tokenNumber}
-                            </span>
-                          </div>
-                          {ticket.category && (
-                            <p className="text-xs text-muted-foreground ml-11">
-                              {ticket.category.name}
-                            </p>
-                          )}
-                          {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
-                            <div className="mt-2 ml-11 space-y-1">
-                              {ticket.customerName && (
-                                <p className="text-xs text-foreground">{ticket.customerName}</p>
-                              )}
-                              {ticket.customerPhone && (
-                                <p className="text-xs text-muted-foreground">{ticket.customerPhone}</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleMarkServing(ticket.id)}
-                          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                          Mark Serving
-                        </motion.button>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Pending Tickets */}
               <div>
                 <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
@@ -501,12 +480,79 @@ export default function AgentDashboard() {
                 )}
               </div>
 
+              {/* Hold Tickets */}
+              {holdTickets.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                    <X className="w-5 h-5 text-destructive" />
+                    Hold ({holdTickets.length})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {holdTickets.map((ticket: any, index: number) => (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl hover:shadow-md transition-all"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="font-mono font-bold text-xl text-foreground">
+                                {ticket.tokenNumber}
+                              </span>
+                              {ticket.category && (
+                                <span className="px-2 py-1 bg-destructive/20 text-destructive rounded-full text-xs">
+                                  {ticket.category.name}
+                                </span>
+                              )}
+                            </div>
+                            {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
+                              <div className="space-y-1">
+                                {ticket.customerName && (
+                                  <p className="text-sm text-foreground flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-muted-foreground" />
+                                    {ticket.customerName}
+                                  </p>
+                                )}
+                                {ticket.customerPhone && (
+                                  <p className="text-sm text-foreground flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-muted-foreground" />
+                                    {ticket.customerPhone}
+                                  </p>
+                                )}
+                                {ticket.customerEmail && (
+                                  <p className="text-sm text-foreground flex items-center gap-2">
+                                    <Mail className="w-4 h-4 text-muted-foreground" />
+                                    {ticket.customerEmail}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleReopen(ticket.id)}
+                            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 ml-4"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            Reopen
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Completed Tickets */}
               {completedTickets.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-chart-3" />
-                    Completed/No-Show ({completedTickets.length})
+                    Completed ({completedTickets.length})
                   </h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {completedTickets.map((ticket: any, index: number) => (
@@ -515,25 +561,56 @@ export default function AgentDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="p-3 bg-muted border rounded-xl flex justify-between items-center hover:shadow-md transition-all"
+                        className="p-4 bg-muted border rounded-xl hover:shadow-md transition-all"
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono font-bold text-foreground">
-                            {ticket.tokenNumber}
-                          </span>
-                          <span className="px-2 py-1 bg-muted-foreground/20 text-muted-foreground rounded-full text-xs">
-                            {ticket.status}
-                          </span>
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="font-mono font-bold text-xl text-foreground">
+                                {ticket.tokenNumber}
+                              </span>
+                              {ticket.category && (
+                                <span className="px-2 py-1 bg-chart-3/20 text-chart-3 rounded-full text-xs">
+                                  {ticket.category.name}
+                                </span>
+                              )}
+                              <span className="px-2 py-1 bg-muted-foreground/20 text-muted-foreground rounded-full text-xs">
+                                {ticket.status}
+                              </span>
+                            </div>
+                            {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
+                              <div className="space-y-1">
+                                {ticket.customerName && (
+                                  <p className="text-sm text-foreground flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-muted-foreground" />
+                                    {ticket.customerName}
+                                  </p>
+                                )}
+                                {ticket.customerPhone && (
+                                  <p className="text-sm text-foreground flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-muted-foreground" />
+                                    {ticket.customerPhone}
+                                  </p>
+                                )}
+                                {ticket.customerEmail && (
+                                  <p className="text-sm text-foreground flex items-center gap-2">
+                                    <Mail className="w-4 h-4 text-muted-foreground" />
+                                    {ticket.customerEmail}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleReopen(ticket.id)}
+                            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 ml-4"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            Reopen
+                          </motion.button>
                         </div>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleReopen(ticket.id)}
-                          className="bg-primary text-primary-foreground px-3 py-1 rounded-lg text-xs hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-1"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          Reopen
-                        </motion.button>
                       </motion.div>
                     ))}
                   </div>
@@ -591,22 +668,6 @@ export default function AgentDashboard() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="p-4 bg-white dark:bg-[#171717] border border-primary/20 rounded-xl"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="inline-flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg">
-                      <Phone className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    </div>
-                  <span className="text-muted-foreground">Called</span>
-                  </div>
-                  <span className="text-3xl font-bold text-foreground">{calledTickets.length}</span>
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
                 className="p-4 bg-white dark:bg-[#171717] border border-chart-2/20 rounded-xl"
               >
@@ -620,6 +681,22 @@ export default function AgentDashboard() {
                   <span className="text-3xl font-bold text-foreground">
                     {currentTicket ? 1 : 0}
                   </span>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="p-4 bg-white dark:bg-[#171717] border border-destructive/20 rounded-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center justify-center w-10 h-10 bg-red-100 dark:bg-red-500/20 rounded-lg">
+                      <X className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    </div>
+                  <span className="text-muted-foreground">Hold</span>
+                  </div>
+                  <span className="text-3xl font-bold text-foreground">{holdTickets.length}</span>
                 </div>
               </motion.div>
             </div>

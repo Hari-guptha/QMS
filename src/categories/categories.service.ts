@@ -101,6 +101,7 @@ export class CategoriesService {
 
     const category = await this.findOne(categoryId);
 
+    // Check if agent is already assigned to this category
     const existing = await this.agentCategoryRepository.findOne({
       where: { agentId, categoryId },
     });
@@ -108,6 +109,20 @@ export class CategoriesService {
     if (existing) {
       existing.isActive = true;
       return this.agentCategoryRepository.save(existing);
+    }
+
+    // Check if agent is assigned to any other active category
+    // If so, remove them from the old category (one agent = one service rule)
+    const otherAssignments = await this.agentCategoryRepository.find({
+      where: { agentId, isActive: true },
+    });
+
+    // Remove agent from all other categories
+    for (const assignment of otherAssignments) {
+      if (assignment.categoryId !== categoryId) {
+        assignment.isActive = false;
+        await this.agentCategoryRepository.save(assignment);
+      }
     }
 
     const agentCategory = this.agentCategoryRepository.create({

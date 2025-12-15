@@ -119,12 +119,24 @@ export default function CustomerCheckIn() {
     e.preventDefault();
     if (!selectedCategory) return;
 
+    // Validate required fields
+    if (!formData.customerName.trim()) {
+      setError('Name is required');
+      return;
+    }
+    if (!formData.customerPhone.trim()) {
+      setError('Phone number is required');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
       const response = await publicApi.checkIn({
         categoryId: selectedCategory,
-        ...formData,
+        customerName: formData.customerName.trim(),
+        customerPhone: formData.customerPhone.trim(),
+        ...(formData.customerEmail?.trim() && { customerEmail: formData.customerEmail.trim() }),
       });
       router.push(`/customer/token/${response.data.tokenNumber}`);
     } catch (error: any) {
@@ -324,7 +336,7 @@ export default function CustomerCheckIn() {
                     transition={{ delay: 0.1 }}
                   >
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                      Name (Optional)
+                      Name <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
@@ -332,6 +344,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerName: e.target.value })
                       }
+                      required
                       className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       placeholder="Enter your full name"
                     />
@@ -343,7 +356,7 @@ export default function CustomerCheckIn() {
                     transition={{ delay: 0.2 }}
                   >
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                      Phone (Optional)
+                      Phone <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="tel"
@@ -351,6 +364,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerPhone: e.target.value })
                       }
+                      required
                       className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       placeholder="+1234567890"
                     />
@@ -384,7 +398,7 @@ export default function CustomerCheckIn() {
                   >
                     <button
                       type="submit"
-                      disabled={loading || !selectedCategory}
+                      disabled={loading || !selectedCategory || !formData.customerName.trim() || !formData.customerPhone.trim()}
                       className="w-full bg-primary text-primary-foreground py-4 rounded-md font-semibold hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-2 group"
                     >
                       {loading ? (
