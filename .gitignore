@@ -4,6 +4,7 @@
 /frontend/node_modules
 /frontend/.next
 /frontend/out
+/frontend/build
 
 # Logs
 logs
@@ -13,9 +14,11 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+.pnpm-debug.log*
 
 # OS
 .DS_Store
+*.pem
 
 # Tests
 /coverage
@@ -42,7 +45,21 @@ lerna-debug.log*
 .env.local
 .env.*.local
 
-# Frontend
-frontend/.next
-frontend/out
-frontend/build
+# Frontend specific
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+/.next/
+/out/
+/build
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

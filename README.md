@@ -1,16 +1,26 @@
-# Queue Management System (QMS) - Backend
+# Queue Management System (QMS)
 
 Universal Queue Management System - A completely generic, white-label Queue Management System that works for any business: Banks, Hospitals, Government Offices, Salons, Restaurants, Universities, DMVs, Clinics, etc.
 
+This is a monorepo containing both the backend (NestJS) and frontend (Next.js) applications.
+
 ## Technology Stack
 
-- **Backend**: Node.js 20 + NestJS 10
+### Backend
+- **Framework**: Node.js 20 + NestJS 10
 - **Database**: PostgreSQL (via TypeORM)
 - **Real-Time**: Socket.io
 - **Authentication**: JWT + Refresh Tokens
 - **SMS**: Twilio
 - **Email**: Resend
 - **Documentation**: Swagger/OpenAPI
+
+### Frontend
+- **Framework**: Next.js 14
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Real-Time**: Socket.io Client
+- **UI Components**: Custom components with Framer Motion
 
 ## Core Principles
 
@@ -26,6 +36,8 @@ Universal Queue Management System - A completely generic, white-label Queue Mana
 
 ## Installation
 
+### Backend Setup
+
 ```bash
 # Install dependencies
 npm install
@@ -40,6 +52,22 @@ cp .env.example .env
 # - Resend API key (optional)
 ```
 
+### Frontend Setup
+
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Create .env.local
+cat > .env.local << EOF
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+EOF
+```
+
 ## Database Setup
 
 ```bash
@@ -52,6 +80,8 @@ createdb qms_db
 
 ## Running the Application
 
+### Backend
+
 ```bash
 # Development
 npm run start:dev
@@ -63,6 +93,22 @@ npm run start:prod
 
 The API will be available at `http://localhost:3000`
 Swagger documentation at `http://localhost:3000/api`
+
+### Frontend
+
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Development
+npm run dev
+
+# Production
+npm run build
+npm start
+```
+
+The frontend will be available at `http://localhost:3001` (or next available port)
 
 ## API Endpoints
 
@@ -141,6 +187,39 @@ Connect to `ws://localhost:3000/queue` namespace:
 - `queue:updated` - Queue updated
 - `status:updated` - Public status updated
 
+## Frontend Features
+
+- **Customer Flow**: Check-in, category selection, token generation, status page
+- **Agent Dashboard**: Queue management, call next, mark as serving/completed
+- **Admin Panel**: Users, categories, queues, analytics management
+- **Real-time Updates**: Socket.io integration for live updates
+- **Responsive Design**: Tailwind CSS for modern UI
+
+## Frontend Project Structure
+
+```
+frontend/
+  app/
+    customer/          # Customer flow pages
+      check-in/        # Check-in form
+      token/[token]    # Token display page
+    agent/             # Agent pages
+      login/           # Agent login
+      dashboard/       # Agent dashboard
+    admin/             # Admin pages
+      login/           # Admin login
+      dashboard/       # Admin dashboard
+      users/           # Users management
+      categories/      # Categories management
+      queues/          # All queues view
+      analytics/       # Analytics dashboard
+    status/            # Public status page
+  lib/
+    api.ts             # API client
+    auth.ts            # Authentication utilities
+    socket.ts          # Socket.io client
+```
+
 ## User Roles
 
 - **Customer/Public**: Can check-in and view status (no login required)
@@ -174,10 +253,19 @@ When a customer checks in and selects a category, the system automatically:
 
 ## Environment Variables
 
+### Backend
 See `.env.example` for all required environment variables.
+
+### Frontend
+Create `frontend/.env.local`:
+```
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+```
 
 ## Development
 
+### Backend
 ```bash
 # Run in development mode with hot reload
 npm run start:dev
@@ -192,8 +280,20 @@ npm run lint
 npm run format
 ```
 
+### Frontend
+```bash
+cd frontend
+
+# Run development server
+npm run dev
+
+# Lint code
+npm run lint
+```
+
 ## Production Deployment
 
+### Backend
 1. Set `NODE_ENV=production` in `.env`
 2. Set `synchronize: false` in database config (use migrations)
 3. Set strong JWT secrets
@@ -201,7 +301,12 @@ npm run format
 5. Set up proper CORS origins
 6. Use process manager (PM2, systemd, etc.)
 
+### Frontend
+1. Set production API URLs in environment variables
+2. Build the application: `npm run build`
+3. Start the production server: `npm start`
+4. Or deploy to a platform like Vercel, which supports Next.js natively
+
 ## License
 
 MIT
-
