@@ -19,14 +19,31 @@ import {
   Loader2,
   FolderOpen,
   Ticket,
-  Users
+  Users,
+  Search,
+  Filter,
+  X,
+  CheckCircle2,
+  Pause,
+  Mail,
+  Calendar,
+  Activity
 } from 'lucide-react';
+import { BarChart } from '@/components/charts/BarChart';
+import { LineChart } from '@/components/charts/LineChart';
+import { PieChart } from '@/components/charts/PieChart';
+import { AreaChart } from '@/components/charts/AreaChart';
+import { HeatmapChart } from '@/components/charts/HeatmapChart';
 
 export default function Analytics() {
   const router = useRouter();
   const [stats, setStats] = useState<any>({});
+  const [agentPerformance, setAgentPerformance] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -34,26 +51,27 @@ export default function Analytics() {
       return;
     }
     loadAnalytics();
+    loadCategories();
   }, [router]);
+
+  useEffect(() => {
+    loadAgentPerformance();
+  }, [selectedCategoryId]);
+
+  const loadCategories = async () => {
+    try {
+      const response = await adminApi.getCategories();
+      setCategories(response.data || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    }
+  };
 
   const loadAnalytics = async () => {
     try {
       setLoading(true);
       const response = await adminApi.getDashboard();
       setStats(response.data || {});
-      
-      // Get tickets for monthly trends - get all queues
-      try {
-        const ticketsResponse = await adminApi.getAllQueues();
-        const tickets = Array.isArray(ticketsResponse.data) 
-          ? ticketsResponse.data 
-          : ticketsResponse.data?.tickets || [];
-        if (tickets.length > 0) {
-          processTicketData(tickets);
-        }
-      } catch (err) {
-        console.error('Failed to load tickets:', err);
-      }
     } catch (error: any) {
       console.error('Failed to load analytics:', error);
       alert(error.response?.data?.message || 'Failed to load analytics. Please try again.');
@@ -63,49 +81,18 @@ export default function Analytics() {
     }
   };
 
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [statusData, setStatusData] = useState<any>({});
-
-  const processTicketData = (tickets: any[]) => {
-    // Process monthly data
-    const monthly: { [key: string]: { completed: number; noShow: number } } = {};
-    const statusCounts: { [key: string]: number } = {};
-    
-    // Flatten tickets if they're nested in queues
-    const allTickets = tickets.flatMap((item: any) => 
-      item.tickets ? item.tickets : [item]
-    );
-    
-    allTickets.forEach((ticket: any) => {
-      // Monthly data
-      if (ticket.createdAt) {
-        const date = new Date(ticket.createdAt);
-        const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
-        if (!monthly[monthKey]) {
-          monthly[monthKey] = { completed: 0, noShow: 0 };
-        }
-        if (ticket.status === 'completed') monthly[monthKey].completed++;
-        if (ticket.status === 'no_show' || ticket.status === 'no-show') monthly[monthKey].noShow++;
-      }
-      
-      // Status counts
-      statusCounts[ticket.status] = (statusCounts[ticket.status] || 0) + 1;
-    });
-    
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyArray = months.map(month => ({
-      month,
-      completed: monthly[month]?.completed || 0,
-      noShow: monthly[month]?.noShow || 0,
-    }));
-    
-    setMonthlyData(monthlyArray);
-    setStatusData(statusCounts);
+  const loadAgentPerformance = async () => {
+    try {
+      const response = await adminApi.getDetailedAgentPerformance(undefined, undefined, selectedCategoryId || undefined);
+      setAgentPerformance(response.data || []);
+    } catch (error: any) {
+      console.error('Failed to load agent performance:', error);
+    }
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadAnalytics();
+    await Promise.all([loadAnalytics(), loadAgentPerformance()]);
   };
 
   const handleExport = async () => {
@@ -124,6 +111,15 @@ export default function Analytics() {
     }
   };
 
+  // Filter agents based on search query
+  const filteredAgents = agentPerformance.filter((agent) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      agent.agentName?.toLowerCase().includes(query) ||
+      agent.agentEmail?.toLowerCase().includes(query);
+    return matchesSearch;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -141,36 +137,6 @@ export default function Analytics() {
       </div>
     );
   }
-
-  const statCards = [
-    {
-      icon: Clock,
-      title: 'Average Wait Time',
-      value: `${stats.avgWaitTime || 0} min`,
-      iconColor: 'text-blue-600 dark:text-blue-400',
-      iconBg: 'bg-blue-100 dark:bg-blue-500/20',
-      borderColor: 'border-blue-500/30',
-      hasBorder: true,
-    },
-    {
-      icon: TrendingUp,
-      title: 'Average Service Time',
-      value: `${stats.avgServiceTime || 0} min`,
-      iconColor: 'text-green-600 dark:text-green-400',
-      iconBg: 'bg-green-100 dark:bg-green-500/20',
-      borderColor: '',
-      hasBorder: false,
-    },
-    {
-      icon: AlertCircle,
-      title: 'Abandonment Rate',
-      value: `${stats.abandonmentRate?.toFixed(1) || 0}%`,
-      iconColor: 'text-red-600 dark:text-red-400',
-      iconBg: 'bg-red-100 dark:bg-red-500/20',
-      borderColor: 'border-red-500/30',
-      hasBorder: true,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -221,310 +187,547 @@ export default function Analytics() {
           </div>
         </motion.div>
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {statCards.map((card, index) => {
-            const Icon = card.icon;
-            return (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -4 }}
-                className={`bg-white dark:bg-[#171717] border ${card.hasBorder ? card.borderColor : 'border-border'} rounded-lg p-6 shadow-lg hover:shadow-xl transition-all`}
-              >
-                <div className={`inline-flex items-center justify-center w-12 h-12 ${card.iconBg} rounded-lg mb-4`}>
-                  <Icon className={`w-6 h-6 ${card.iconColor}`} />
-                </div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">{card.title}</h3>
-                <p className="text-3xl font-bold text-foreground">{card.value}</p>
-              </motion.div>
-            );
-          })}
-        </div>
+        {/* Overall Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        >
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Ticket className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-muted-foreground">Total Tickets</span>
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {stats.ticketCounts?.total || 0}
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Clock className="w-5 h-5 text-yellow-600" />
+              <span className="text-sm font-medium text-muted-foreground">Pending</span>
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {stats.ticketCounts?.pending || 0}
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <UserCheck className="w-5 h-5 text-green-600" />
+              <span className="text-sm font-medium text-muted-foreground">Serving</span>
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {stats.ticketCounts?.serving || 0}
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle2 className="w-5 h-5 text-chart-3" />
+              <span className="text-sm font-medium text-muted-foreground">Completed</span>
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {stats.ticketCounts?.completed || 0}
+            </p>
+          </div>
+        </motion.div>
 
-        {/* Charts Grid */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          {/* Monthly Tickets Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white dark:bg-[#171717] border border-border rounded-lg shadow-lg p-6"
-          >
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-1">Queue Analytics</h2>
-              <p className="text-sm text-muted-foreground">Monthly ticket records for {new Date().getFullYear()}</p>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-red-600"></div>
-                  <span>Completed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-pink-400"></div>
-                  <span>No Show</span>
-                </div>
-              </div>
-              <div className="flex items-end justify-between gap-2 h-64">
-                {monthlyData.map((data, index) => {
-                  const maxValue = Math.max(...monthlyData.map(d => Math.max(d.completed, d.noShow)), 1);
-                  const completedHeight = (data.completed / maxValue) * 100;
-                  const noShowHeight = (data.noShow / maxValue) * 100;
-                  return (
-                    <div key={index} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full flex flex-col items-center justify-end gap-1 h-full">
-                        <div 
-                          className="w-full bg-red-600 rounded-t"
-                          style={{ height: `${completedHeight}%`, minHeight: data.completed > 0 ? '4px' : '0' }}
-                        ></div>
-                        <div 
-                          className="w-full bg-pink-400 rounded-t"
-                          style={{ height: `${noShowHeight}%`, minHeight: data.noShow > 0 ? '4px' : '0' }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-muted-foreground mt-2">{data.month}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t border-border">
-                <div>
-                  <p className="text-2xl font-bold text-foreground">
-                    {monthlyData.reduce((sum, d) => sum + d.completed, 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Total Completed</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">
-                    {monthlyData.reduce((sum, d) => sum + d.noShow, 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Total No Show</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Category Statistics Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white dark:bg-[#171717] border border-border rounded-lg shadow-lg p-6"
-          >
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-1">Category Analytics</h2>
-              <p className="text-sm text-muted-foreground">Tickets per service category</p>
-            </div>
-            <div className="space-y-4">
-              {stats.categoryStats && stats.categoryStats.length > 0 ? (
-                <>
-                  <div className="space-y-3">
-                    {stats.categoryStats.map((cat: any, index: number) => {
-                      const maxTickets = Math.max(...stats.categoryStats.map((c: any) => c.totalTickets), 1);
-                      const percentage = (cat.totalTickets / maxTickets) * 100;
-                      return (
-                        <div key={index} className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-foreground font-medium">{cat.categoryName}</span>
-                            <span className="text-muted-foreground">{cat.totalTickets} tickets</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div 
-                              className="bg-primary h-2 rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="pt-4 border-t border-border">
-                    <p className="text-2xl font-bold text-foreground">
-                      {stats.categoryStats.reduce((sum: number, cat: any) => sum + cat.totalTickets, 0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Total Tickets</p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FolderOpen className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No category data available</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Peak Hours Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="bg-white dark:bg-[#171717] border border-border rounded-lg shadow-lg p-6"
-          >
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-1">Peak Hours</h2>
-              <p className="text-sm text-muted-foreground">Ticket creation by hour of day</p>
-            </div>
-            <div className="space-y-4">
-              {stats.peakHours && stats.peakHours.length > 0 ? (
-                <>
-                  <div className="flex items-end justify-between gap-1 h-48">
-                    {Array.from({ length: 24 }, (_, hour) => {
-                      const hourData = stats.peakHours.find((h: any) => h.hour === hour);
-                      const count = hourData?.count || 0;
-                      const maxCount = Math.max(...stats.peakHours.map((h: any) => h.count), 1);
-                      const height = (count / maxCount) * 100;
-                      return (
-                        <div key={hour} className="flex-1 flex flex-col items-center gap-1">
-                          <div 
-                            className="w-full bg-primary rounded-t"
-                            style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
-                            title={`${hour}:00 - ${count} tickets`}
-                          ></div>
-                          {hour % 4 === 0 && (
-                            <span className="text-xs text-muted-foreground mt-1">{hour}h</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="pt-4 border-t border-border">
-                    <p className="text-2xl font-bold text-foreground">
-                      {stats.peakHours.reduce((sum: number, h: any) => sum + h.count, 0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Total Tickets</p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No peak hours data available</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Agent Performance Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="bg-white dark:bg-[#171717] border border-border rounded-lg shadow-lg p-6"
-          >
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-1">Agent Performance</h2>
-              <p className="text-sm text-muted-foreground">Tickets completed by agent</p>
-            </div>
-            <div className="space-y-4">
-              {stats.agentPerformance && stats.agentPerformance.length > 0 ? (
-                <>
-                  <div className="flex items-end justify-between gap-2 h-48">
-                    {stats.agentPerformance.slice(0, 8).map((agent: any, index: number) => {
-                      const maxTickets = Math.max(...stats.agentPerformance.map((a: any) => a.completedTickets), 1);
-                      const height = (agent.completedTickets / maxTickets) * 100;
-                      const initials = agent.agentName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
-                      return (
-                        <div key={index} className="flex-1 flex flex-col items-center gap-1">
-                          <div 
-                            className="w-full bg-green-500 rounded-t"
-                            style={{ height: `${height}%`, minHeight: agent.completedTickets > 0 ? '4px' : '0' }}
-                            title={`${agent.agentName} - ${agent.completedTickets} tickets`}
-                          ></div>
-                          <span className="text-xs text-muted-foreground mt-1 text-center truncate w-full" title={agent.agentName}>
-                            {initials}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="pt-4 border-t border-border">
-                    <p className="text-2xl font-bold text-foreground">
-                      {stats.agentPerformance.reduce((sum: number, a: any) => sum + a.completedTickets, 0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Total Completed</p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No agent performance data available</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Agent Performance Table */}
+        {/* Agent Performance Section */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden"
+          className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden mb-8"
         >
           <div className="p-6 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <UserCheck className="w-6 h-6 text-primary" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <UserCheck className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">Agent Performance</h2>
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Agent Performance</h2>
+            </div>
+
+            {/* Search and Filter */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search agents by name or email..."
+                  className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <select
+                  value={selectedCategoryId}
+                  onChange={(e) => setSelectedCategoryId(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 appearance-none"
+                >
+                  <option value="">All Services</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Total Agents</p>
+                <p className="text-2xl font-bold text-foreground">{filteredAgents.length}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Total Tickets</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {filteredAgents.reduce((sum, a) => sum + (a.totalTickets || 0), 0)}
+                </p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Completed</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {filteredAgents.reduce((sum, a) => sum + (a.completedTickets || 0), 0)}
+                </p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Avg Service Time</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {filteredAgents.length > 0
+                    ? Math.round(
+                        filteredAgents.reduce((sum, a) => sum + (a.avgServiceTime || 0), 0) /
+                          filteredAgents.length
+                      )
+                    : 0}{' '}
+                  min
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* Agent Performance Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agent</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tickets Served</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Wait Time</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Service Time</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Agent
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Totals
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Status Breakdown
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Time Metrics
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Performance
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {stats.agentPerformance?.map((agent: any, idx: number) => (
+                {filteredAgents.map((agent: any, idx: number) => (
                   <motion.tr
-                    key={idx}
+                    key={agent.agentId}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
                     className="hover:bg-muted/30 transition-colors"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <UserCheck className="w-5 h-5 text-primary" />
+                          <Users className="w-5 h-5 text-primary" />
                         </div>
-                        <span className="font-medium text-foreground">{agent.name}</span>
+                        <div>
+                          <p className="font-medium text-foreground">{agent.agentName}</p>
+                          {agent.agentEmail && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {agent.agentEmail}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-foreground font-semibold">{agent.ticketsServed || 0}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-foreground">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        {agent.avgWaitTime || 0} min
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Ticket className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-foreground font-semibold">
+                            {agent.totalTickets || 0}
+                          </span>
+                          <span className="text-xs text-muted-foreground">Total</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-chart-3" />
+                          <span className="text-foreground">
+                            {agent.completedTickets || 0}
+                          </span>
+                          <span className="text-xs text-muted-foreground">Completed</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-foreground">
-                        <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                        {agent.avgServiceTime || 0} min
+                    <td className="px-6 py-4">
+                      <div className="space-y-1 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-3 h-3 text-yellow-600" />
+                          <span className="text-foreground">
+                            Pending: {agent.pendingTickets || 0}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="w-3 h-3 text-green-600" />
+                          <span className="text-foreground">
+                            Serving: {agent.servingTickets || 0}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Pause className="w-3 h-3 text-red-600" />
+                          <span className="text-foreground">
+                            Hold: {agent.holdTickets || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-3 h-3 text-blue-600" />
+                          <span className="text-foreground">
+                            Wait: {agent.avgWaitTime || 0} min
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-3 h-3 text-green-600" />
+                          <span className="text-foreground">
+                            Service: {agent.avgServiceTime || 0} min
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="w-3 h-3 text-purple-600" />
+                          <span className="text-foreground">
+                            Total: {agent.avgTotalTime || 0} min
+                          </span>
+                        </div>
+                        {agent.avgCalledToServingTime !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="w-3 h-3 text-orange-600" />
+                            <span className="text-foreground">
+                              Called→Serving: {agent.avgCalledToServingTime || 0} min
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Completion Rate:</span>
+                          <span className="text-sm font-semibold text-foreground">
+                            {agent.completionRate?.toFixed(1) || 0}%
+                          </span>
+                        </div>
+                        {agent.serviceBreakdown && agent.serviceBreakdown.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-muted-foreground mb-1">Services:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {agent.serviceBreakdown.slice(0, 3).map((service: any, sIdx: number) => (
+                                <span
+                                  key={sIdx}
+                                  className="text-xs px-2 py-1 bg-primary/10 text-primary rounded"
+                                >
+                                  {service.categoryName} ({service.totalTickets})
+                                </span>
+                              ))}
+                              {agent.serviceBreakdown.length > 3 && (
+                                <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded">
+                                  +{agent.serviceBreakdown.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </motion.tr>
                 ))}
-                {(!stats.agentPerformance || stats.agentPerformance.length === 0) && (
+                {filteredAgents.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
-                      No agent performance data available
+                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                      {searchQuery || selectedCategoryId
+                        ? 'No agents found matching your filters'
+                        : 'No agent performance data available'}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+        </motion.div>
+
+        {/* Analytics Charts Section */}
+        <div className="space-y-8 mb-8">
+          {/* Ticket Status Distribution */}
+          {stats.statusDistribution && stats.statusDistribution.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="bg-card border border-border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Activity className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">Ticket Status Distribution</h2>
+              </div>
+              <PieChart
+                data={stats.statusDistribution.map((s: any) => ({
+                  label: s.label,
+                  value: s.value,
+                  color: s.status === 'completed' ? 'var(--chart-3)' :
+                         s.status === 'pending' ? '#f59e0b' :
+                         s.status === 'serving' ? '#10b981' :
+                         s.status === 'hold' ? '#ef4444' :
+                         s.status === 'no_show' ? '#8b5cf6' :
+                         'var(--muted-foreground)',
+                }))}
+                title=""
+                size={250}
+              />
+            </motion.div>
+          )}
+
+          {/* Daily Ticket Trends */}
+          {stats.dailyTrends && stats.dailyTrends.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="bg-card border border-border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-chart-2/10 rounded-lg">
+                  <Calendar className="w-6 h-6 text-chart-2" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">Daily Ticket Trends</h2>
+              </div>
+              <AreaChart
+                data={stats.dailyTrends.map((d: any) => ({
+                  label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                  value: d.total,
+                }))}
+                title=""
+                height={250}
+                color="var(--chart-2)"
+              />
+              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-chart-2"></div>
+                  <span className="text-muted-foreground">Total Tickets</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-chart-3"></div>
+                  <span className="text-muted-foreground">Completed</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Charts Grid */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Hourly Distribution */}
+            {stats.hourlyDistribution && (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
+                className="bg-card border border-border rounded-2xl shadow-lg p-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-chart-1/10 rounded-lg">
+                    <Clock className="w-6 h-6 text-chart-1" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">Hourly Ticket Distribution</h2>
+                </div>
+                <BarChart
+                  data={stats.hourlyDistribution.map((h: any) => ({
+                    label: `${h.hour}:00`,
+                    value: h.count,
+                    color: 'var(--chart-1)',
+                  }))}
+                  height={200}
+                />
+              </motion.div>
+            )}
+
+            {/* Day of Week Distribution */}
+            {stats.dayOfWeekDistribution && (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.8 }}
+                className="bg-card border border-border rounded-2xl shadow-lg p-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-chart-4/10 rounded-lg">
+                    <Calendar className="w-6 h-6 text-chart-4" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">Day of Week Distribution</h2>
+                </div>
+                <BarChart
+                  data={stats.dayOfWeekDistribution.map((d: any) => ({
+                    label: d.day,
+                    value: d.count,
+                    color: 'var(--chart-4)',
+                  }))}
+                  height={200}
+                />
+              </motion.div>
+            )}
+
+            {/* Service Category Performance */}
+            {stats.servicePerformance && stats.servicePerformance.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.9 }}
+                className="bg-card border border-border rounded-2xl shadow-lg p-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-chart-2/10 rounded-lg">
+                    <FolderOpen className="w-6 h-6 text-chart-2" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">Service Category Performance</h2>
+                </div>
+                <BarChart
+                  data={stats.servicePerformance.map((s: any) => ({
+                    label: s.categoryName.length > 10 ? s.categoryName.substring(0, 10) + '...' : s.categoryName,
+                    value: s.totalTickets,
+                    color: 'var(--chart-2)',
+                  }))}
+                  height={200}
+                />
+              </motion.div>
+            )}
+
+            {/* Agent Performance Comparison */}
+            {stats.agentPerformance && stats.agentPerformance.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.0 }}
+                className="bg-card border border-border rounded-2xl shadow-lg p-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-chart-3/10 rounded-lg">
+                    <UserCheck className="w-6 h-6 text-chart-3" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">Agent Performance (Top 10)</h2>
+                </div>
+                <BarChart
+                  data={stats.agentPerformance.slice(0, 10).map((a: any) => ({
+                    label: a.agentName.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
+                    value: a.completedTickets,
+                    color: 'var(--chart-3)',
+                  }))}
+                  height={200}
+                />
+              </motion.div>
+            )}
+          </div>
+
+          {/* Peak Hours Heatmap */}
+          {stats.peakHours && stats.peakHours.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1.1 }}
+              className="bg-card border border-border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BarChart3 className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">Peak Hours Heatmap</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-end justify-between gap-1 h-64">
+                  {Array.from({ length: 24 }, (_, hour) => {
+                    const hourData = stats.peakHours.find((h: any) => h.hour === hour);
+                    const count = hourData?.count || 0;
+                    const maxCount = Math.max(...stats.peakHours.map((h: any) => h.count), 1);
+                    const height = (count / maxCount) * 100;
+                    return (
+                      <div key={hour} className="flex-1 flex flex-col items-center gap-1">
+                        <div 
+                          className="w-full bg-primary rounded-t"
+                          style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
+                          title={`${hour}:00 - ${count} tickets`}
+                        ></div>
+                        {hour % 4 === 0 && (
+                          <span className="text-xs text-muted-foreground mt-1">{hour}h</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="pt-4 border-t border-border">
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.peakHours.reduce((sum: number, h: any) => sum + h.count, 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Total Tickets</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Performance Metrics Summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+          className="grid md:grid-cols-3 gap-6 mb-8"
+        >
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-medium text-muted-foreground">Avg Wait Time</span>
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {stats.avgWaitTime || 0}
+              <span className="text-xl text-muted-foreground ml-2">min</span>
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <TrendingUp className="w-5 h-5 text-green-600" />
+              <span className="text-sm font-medium text-muted-foreground">Avg Service Time</span>
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {stats.avgServiceTime || 0}
+              <span className="text-xl text-muted-foreground ml-2">min</span>
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <span className="text-sm font-medium text-muted-foreground">Abandonment Rate</span>
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {stats.abandonmentRate?.toFixed(1) || 0}
+              <span className="text-xl text-muted-foreground ml-2">%</span>
+            </p>
           </div>
         </motion.div>
       </div>

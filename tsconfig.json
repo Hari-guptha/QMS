@@ -19,6 +19,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "jsx": "preserve",
     "paths": {
       "@/*": ["src/*"]
     }
@@ -28,6 +29,9 @@
     "node_modules",
     "dist",
     "frontend",
+    "app",
+    "components",
+    "lib",
     "coverage",
     "test",
     "**/*.spec.ts",

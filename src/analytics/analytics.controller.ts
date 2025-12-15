@@ -116,6 +116,18 @@ export class AnalyticsController {
     return this.analyticsService.getCategoryStats(start, end);
   }
 
+  @Get('detailed-agent-performance')
+  @ApiOperation({ summary: 'Get detailed agent performance with all metrics (Admin only)' })
+  async getDetailedAgentPerformance(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.analyticsService.getDetailedAgentPerformance(start, end, categoryId);
+  }
+
   @Get('export/excel')
   @ApiOperation({ summary: 'Export analytics to Excel (Admin only)' })
   @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

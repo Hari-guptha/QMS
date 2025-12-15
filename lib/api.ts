@@ -170,6 +170,8 @@ export const adminApi = {
     api.get('/analytics/dashboard', { params: { startDate, endDate } }),
   getAgentPerformance: (startDate?: string, endDate?: string) =>
     api.get('/analytics/agent-performance', { params: { startDate, endDate } }),
+  getDetailedAgentPerformance: (startDate?: string, endDate?: string, categoryId?: string) =>
+    api.get('/analytics/detailed-agent-performance', { params: { startDate, endDate, categoryId } }),
   exportExcel: (startDate?: string, endDate?: string) =>
     api.get('/analytics/export/excel', { params: { startDate, endDate }, responseType: 'blob' }),
 };

@@ -16,7 +16,12 @@ import {
   TrendingUp,
   AlertCircle,
   ArrowRight,
-  Loader2
+  Loader2,
+  Ticket,
+  UserCheck,
+  X,
+  CheckCircle2,
+  Pause
 } from 'lucide-react';
 
 const cardVariants = {
@@ -188,25 +193,117 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - Ticket Counts */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="bg-card text-card-foreground border rounded-2xl shadow-sm p-8"
+          className="bg-card text-card-foreground border rounded-2xl shadow-sm p-8 mb-6"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <Ticket className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Quick Stats</h2>
+            <h2 className="text-2xl font-bold text-foreground">Ticket Overview</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <motion.div
+              variants={statVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.5 }}
+              className="p-4 bg-white dark:bg-[#171717] border border-primary/20 rounded-xl"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Ticket className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground">Total Tickets</span>
+              </div>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.ticketCounts?.total || 0}
+              </p>
+            </motion.div>
+            <motion.div
+              variants={statVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.6 }}
+              className="p-4 bg-white dark:bg-[#171717] border border-yellow-500/20 rounded-xl"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-xs font-medium text-muted-foreground">Pending</span>
+              </div>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.ticketCounts?.pending || 0}
+              </p>
+            </motion.div>
+            <motion.div
+              variants={statVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.7 }}
+              className="p-4 bg-white dark:bg-[#171717] border border-green-500/20 rounded-xl"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <UserCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-xs font-medium text-muted-foreground">Serving</span>
+              </div>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.ticketCounts?.serving || 0}
+              </p>
+            </motion.div>
+            <motion.div
+              variants={statVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.8 }}
+              className="p-4 bg-white dark:bg-[#171717] border border-red-500/20 rounded-xl"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Pause className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <span className="text-xs font-medium text-muted-foreground">Hold</span>
+              </div>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.ticketCounts?.hold || 0}
+              </p>
+            </motion.div>
+            <motion.div
+              variants={statVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.9 }}
+              className="p-4 bg-white dark:bg-[#171717] border border-chart-3/20 rounded-xl"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-chart-3" />
+                <span className="text-xs font-medium text-muted-foreground">Completed</span>
+              </div>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.ticketCounts?.completed || 0}
+              </p>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Performance Metrics */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="bg-card text-card-foreground border rounded-2xl shadow-sm p-8 mb-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
+              <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">Performance Metrics</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             <motion.div
               variants={statVariants}
               initial="hidden"
               animate="visible"
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.6 }}
               className="p-6 bg-white dark:bg-[#171717] border border-primary/20 rounded-xl"
             >
               <div className="flex items-center gap-3 mb-2">
@@ -224,7 +321,7 @@ export default function AdminDashboard() {
               variants={statVariants}
               initial="hidden"
               animate="visible"
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.7 }}
               className="p-6 bg-white dark:bg-[#171717] border border-chart-2/20 rounded-xl"
             >
               <div className="flex items-center gap-3 mb-2">
@@ -242,7 +339,7 @@ export default function AdminDashboard() {
               variants={statVariants}
               initial="hidden"
               animate="visible"
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.8 }}
               className="p-6 bg-white dark:bg-[#171717] border border-destructive/20 rounded-xl"
             >
               <div className="flex items-center gap-3 mb-2">
@@ -258,6 +355,66 @@ export default function AdminDashboard() {
             </motion.div>
           </div>
         </motion.div>
+
+        {/* Service-Based Performance */}
+        {stats.servicePerformance && stats.servicePerformance.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="bg-card text-card-foreground border rounded-2xl shadow-sm p-8"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-chart-2/20 rounded-lg">
+                <FolderOpen className="w-6 h-6 text-chart-2" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">Service Performance</h2>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {stats.servicePerformance.map((service: any, index: number) => (
+                <motion.div
+                  key={service.categoryId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 + index * 0.1 }}
+                  className="p-4 bg-white dark:bg-[#171717] border border-border rounded-xl"
+                >
+                  <h3 className="font-semibold text-foreground mb-3">{service.categoryName}</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total:</span>
+                      <span className="font-medium text-foreground">{service.totalTickets}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Pending:</span>
+                      <span className="font-medium text-yellow-600">{service.pendingTickets}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Serving:</span>
+                      <span className="font-medium text-green-600">{service.servingTickets}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Hold:</span>
+                      <span className="font-medium text-red-600">{service.holdTickets}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Completed:</span>
+                      <span className="font-medium text-chart-3">{service.completedTickets}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t">
+                      <span className="text-muted-foreground">Avg Service Time:</span>
+                      <span className="font-medium text-foreground">{service.avgServiceTime} min</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Completion Rate:</span>
+                      <span className="font-medium text-foreground">{service.completionRate.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
