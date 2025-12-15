@@ -1,0 +1,246 @@
+'use client';
+
+import Link from 'next/link';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { motion } from 'framer-motion';
+import { 
+  Users, 
+  UserCheck, 
+  Settings, 
+  ArrowRight, 
+  Ticket,
+  Clock,
+  BarChart3,
+  Shield,
+  Zap,
+  CheckCircle2
+} from 'lucide-react';
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.5
+    }
+  },
+  hover: {
+    y: -8,
+    scale: 1.02,
+    transition: {
+      duration: 0.3
+    }
+  }
+};
+
+const featureVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: {
+      duration: 0.5
+    }
+  }
+};
+
+export default function Home() {
+  const cards = [
+    {
+      href: '/customer/check-in',
+      icon: Users,
+      title: 'Customer',
+      description: 'Check in and get your queue token instantly',
+      color: 'from-primary/20 to-primary/5',
+      iconColor: 'text-primary',
+      iconBg: 'bg-primary/10',
+      delay: 0
+    },
+    {
+      href: '/agent/login',
+      icon: UserCheck,
+      title: 'Agent',
+      description: 'Manage your queue and serve customers efficiently',
+      color: 'from-chart-2/20 to-chart-2/5',
+      iconColor: 'text-chart-2',
+      iconBg: 'bg-chart-2/10',
+      delay: 0.1
+    },
+    {
+      href: '/admin/login',
+      icon: Settings,
+      title: 'Admin',
+      description: 'System administration and analytics dashboard',
+      color: 'from-chart-1/20 to-chart-1/5',
+      iconColor: 'text-chart-1',
+      iconBg: 'bg-chart-1/10',
+      delay: 0.2
+    }
+  ];
+
+  const features = [
+    {
+      icon: Zap,
+      title: 'Lightning Fast',
+      description: 'Instant token generation and real-time updates'
+    },
+    {
+      icon: BarChart3,
+      title: 'Analytics Dashboard',
+      description: 'Comprehensive insights and performance metrics'
+    },
+    {
+      icon: Shield,
+      title: 'Secure & Reliable',
+      description: 'Enterprise-grade security and data protection'
+    },
+    {
+      icon: Clock,
+      title: 'Real-time Updates',
+      description: 'Live queue status and instant notifications'
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-background overflow-hidden">
+      {/* Theme Toggle Header */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="absolute top-4 right-4 z-50"
+      >
+        <ThemeToggle />
+      </motion.div>
+
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-br from-primary/10 via-background to-background border-b overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: 'easeInOut'
+            }}
+          />
+          <motion.div
+            className="absolute bottom-20 right-10 w-96 h-96 bg-chart-2/5 rounded-full blur-3xl"
+            animate={{
+              scale: [1.2, 1, 1.2],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: 'easeInOut'
+            }}
+          />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-24">
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-center mb-12"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
+              className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-2xl mb-6"
+            >
+              <Ticket className="w-10 h-10 text-primary" />
+            </motion.div>
+            
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground tracking-tight mb-6"
+            >
+              Queue Management
+              <span className="block text-primary mt-2">System</span>
+            </motion.h1>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+        {/* Action Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          {cards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <motion.div
+                key={card.href}
+                initial="hidden"
+                animate="visible"
+                whileHover="hover"
+                variants={cardVariants}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+              >
+                <Link href={card.href}>
+                  <div className={`relative h-full bg-gradient-to-br ${card.color} border border-border rounded-2xl p-8 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden`}>
+                    {/* Hover Effect Background */}
+                    <motion.div
+                      className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                    />
+                    
+                    <div className="relative z-10">
+                      <motion.div
+                        whileHover={{ rotate: [0, -10, 10, -10, 0] }}
+                        transition={{ duration: 0.5 }}
+                        className={`inline-flex items-center justify-center w-16 h-16 ${card.iconBg} rounded-xl mb-6`}
+                      >
+                        <Icon className={`w-8 h-8 ${card.iconColor}`} />
+                      </motion.div>
+                      
+                      <h2 className="text-2xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
+                        {card.title}
+                      </h2>
+                      
+                      <p className="text-muted-foreground mb-6 leading-relaxed">
+                        {card.description}
+                      </p>
+                      
+                      <div className="flex items-center text-primary font-medium group-hover:gap-2 transition-all">
+                        <span>Get Started</span>
+                        <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Status Page Link */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-center"
+        >
+          <Link
+            href="/status"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl"
+          >
+            <span>View Public Status Page</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
