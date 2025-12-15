@@ -9,6 +9,8 @@ import { Ticket } from '../src/queue/entities/ticket.entity';
 // Load environment variables
 config();
 
+// issue 
+
 const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
