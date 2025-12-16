@@ -91,9 +91,9 @@ export class AnalyticsService {
   async getPeakHours(startDate?: Date, endDate?: Date): Promise<any> {
     const query = this.ticketRepository
       .createQueryBuilder('ticket')
-      .select('HOUR(ticket.createdAt)', 'hour')
+      .select('DATEPART(HOUR, ticket.createdAt)', 'hour')
       .addSelect('COUNT(ticket.id)', 'count')
-      .groupBy('hour')
+      .groupBy('DATEPART(HOUR, ticket.createdAt)')
       .orderBy('count', 'DESC');
 
     if (startDate && endDate) {
@@ -147,7 +147,7 @@ export class AnalyticsService {
         'completedTickets',
       )
       .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.servingStartedAt IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, ticket.servingStartedAt, ticket.completedAt) ELSE NULL END)',
+        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.servingStartedAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.servingStartedAt, ticket.completedAt) ELSE NULL END)',
         'avgServiceTime',
       )
       .where('ticket.agentId IS NOT NULL')
@@ -199,7 +199,7 @@ export class AnalyticsService {
       .select('ticket.categoryId', 'categoryId')
       .addSelect('COUNT(ticket.id)', 'totalTickets')
       .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.createdAt IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, ticket.createdAt, ticket.completedAt) ELSE NULL END)',
+        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.createdAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.createdAt, ticket.completedAt) ELSE NULL END)',
         'avgTotalTime',
       )
       .groupBy('ticket.categoryId');
@@ -278,11 +278,11 @@ export class AnalyticsService {
         'completedTickets',
       )
       .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.createdAt IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, ticket.createdAt, ticket.completedAt) ELSE NULL END)',
+        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.createdAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.createdAt, ticket.completedAt) ELSE NULL END)',
         'avgTotalTime',
       )
       .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.servingStartedAt IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, ticket.servingStartedAt, ticket.completedAt) ELSE NULL END)',
+        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.servingStartedAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.servingStartedAt, ticket.completedAt) ELSE NULL END)',
         'avgServiceTime',
       )
       .setParameter('pending', TicketStatus.PENDING)
@@ -489,7 +489,7 @@ export class AnalyticsService {
   async getDailyTicketTrends(startDate?: Date, endDate?: Date): Promise<any[]> {
     const query = this.ticketRepository
       .createQueryBuilder('ticket')
-      .select('DATE(ticket.createdAt)', 'date')
+      .select('CAST(ticket.createdAt AS DATE)', 'date')
       .addSelect('COUNT(ticket.id)', 'count')
       .addSelect(
         'SUM(CASE WHEN ticket.status = :completed THEN 1 ELSE 0 END)',
@@ -501,8 +501,8 @@ export class AnalyticsService {
       )
       .setParameter('completed', TicketStatus.COMPLETED)
       .setParameter('pending', TicketStatus.PENDING)
-      .groupBy('DATE(ticket.createdAt)')
-      .orderBy('DATE(ticket.createdAt)', 'ASC');
+      .groupBy('CAST(ticket.createdAt AS DATE)')
+      .orderBy('CAST(ticket.createdAt AS DATE)', 'ASC');
 
     if (startDate && endDate) {
       query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
@@ -532,10 +532,10 @@ export class AnalyticsService {
   async getHourlyDistribution(startDate?: Date, endDate?: Date): Promise<any[]> {
     const query = this.ticketRepository
       .createQueryBuilder('ticket')
-      .select('HOUR(ticket.createdAt)', 'hour')
+      .select('DATEPART(HOUR, ticket.createdAt)', 'hour')
       .addSelect('COUNT(ticket.id)', 'count')
-      .groupBy('HOUR(ticket.createdAt)')
-      .orderBy('HOUR(ticket.createdAt)', 'ASC');
+      .groupBy('DATEPART(HOUR, ticket.createdAt)')
+      .orderBy('DATEPART(HOUR, ticket.createdAt)', 'ASC');
 
     if (startDate && endDate) {
       query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
@@ -557,10 +557,10 @@ export class AnalyticsService {
   async getDayOfWeekDistribution(startDate?: Date, endDate?: Date): Promise<any[]> {
     const query = this.ticketRepository
       .createQueryBuilder('ticket')
-      .select('DAYOFWEEK(ticket.createdAt)', 'dayOfWeek')
+      .select('DATEPART(WEEKDAY, ticket.createdAt)', 'dayOfWeek')
       .addSelect('COUNT(ticket.id)', 'count')
-      .groupBy('DAYOFWEEK(ticket.createdAt)')
-      .orderBy('DAYOFWEEK(ticket.createdAt)', 'ASC');
+      .groupBy('DATEPART(WEEKDAY, ticket.createdAt)')
+      .orderBy('DATEPART(WEEKDAY, ticket.createdAt)', 'ASC');
 
     if (startDate && endDate) {
       query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {

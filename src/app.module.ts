@@ -23,15 +23,19 @@ import { Ticket } from './queue/entities/ticket.entity';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
+        type: 'mssql',
         host: configService.get('DB_HOST', 'localhost'),
-        port: configService.get('DB_PORT', 3306),
-        username: configService.get('DB_USERNAME', 'root'),
+        port: configService.get('DB_PORT', 1433),
+        username: configService.get('DB_USERNAME', 'sa'),
         password: configService.get('DB_PASSWORD', ''),
         database: configService.get('DB_DATABASE', 'qms_db'),
         entities: [User, Category, AgentCategory, Ticket],
         synchronize: false, // Disabled to prevent enum modification conflicts. Use migrations or run: npm run update:enum
         logging: configService.get('NODE_ENV') === 'development',
+        options: {
+          encrypt: configService.get('DB_ENCRYPT', 'true') === 'true',
+          trustServerCertificate: configService.get('DB_TRUST_CERT', 'true') === 'true',
+        },
       }),
       inject: [ConfigService],
     }),

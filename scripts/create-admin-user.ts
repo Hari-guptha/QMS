@@ -12,14 +12,18 @@ config();
 // issue 
 
 const AppDataSource = new DataSource({
-  type: 'postgres',
+  type: 'mssql',
   host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  port: parseInt(process.env.DB_PORT || '1433'),
+  username: process.env.DB_USERNAME || 'sa',
+  password: process.env.DB_PASSWORD || '',
   database: process.env.DB_DATABASE || 'qms_db',
   entities: [User, Category, AgentCategory, Ticket],
   synchronize: false,
+  options: {
+    encrypt: process.env.DB_ENCRYPT === 'true' || true,
+    trustServerCertificate: process.env.DB_TRUST_CERT === 'true' || true,
+  },
 });
 
 async function createAdminUser() {

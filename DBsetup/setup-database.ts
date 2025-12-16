@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import * as bcrypt from 'bcrypt';
-import { createConnection } from 'mysql2/promise';
+import * as sql from 'mssql';
 import { User, UserRole } from '../src/users/entities/user.entity';
 import { Category } from '../src/categories/entities/category.entity';
 import { AgentCategory } from '../src/categories/entities/agent-category.entity';
@@ -18,41 +18,48 @@ const configService = new ConfigService();
 // Database configuration
 const dbConfig = {
   host: configService.get('DB_HOST', 'localhost'),
-  port: parseInt(configService.get('DB_PORT', '3306')),
-  username: configService.get('DB_USERNAME', 'root'),
+  port: parseInt(configService.get('DB_PORT', '1433')),
+  username: configService.get('DB_USERNAME', 'sa'),
   password: configService.get('DB_PASSWORD', ''),
   database: configService.get('DB_DATABASE', 'qms_db'),
 };
 
 async function createDatabaseIfNotExists() {
   try {
-    // Validate port - MySQL default is 3306, warn if using PostgreSQL port
-    if (dbConfig.port === 5432) {
-      console.warn('⚠️  WARNING: Port 5432 is typically used for PostgreSQL, not MySQL!');
-      console.warn('   MySQL default port is 3306. Please check your .env file.\n');
-    }
-
     console.log('📦 Creating database if it does not exist...');
-    console.log(`   Attempting to connect to MySQL at ${dbConfig.host}:${dbConfig.port}...`);
+    console.log(`   Attempting to connect to MS SQL Server at ${dbConfig.host}:${dbConfig.port}...`);
     
-    // Connect to MySQL without specifying database
-    const connection = await createConnection({
-      host: dbConfig.host,
+    // Connect to MS SQL Server without specifying database (connect to master)
+    const pool = await sql.connect({
+      server: dbConfig.host,
       port: dbConfig.port,
       user: dbConfig.username,
       password: dbConfig.password,
+      database: 'master',
+      options: {
+        encrypt: configService.get('DB_ENCRYPT', 'true') === 'true',
+        trustServerCertificate: configService.get('DB_TRUST_CERT', 'true') === 'true',
+      },
     });
 
-    // Create database if it doesn't exist
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-    console.log(`✅ Database '${dbConfig.database}' is ready`);
+    // Check if database exists
+    const dbCheck = await pool.request().query(`
+      SELECT name FROM sys.databases WHERE name = '${dbConfig.database}'
+    `);
+
+    if (dbCheck.recordset.length === 0) {
+      // Create database if it doesn't exist
+      await pool.request().query(`CREATE DATABASE [${dbConfig.database}]`);
+      console.log(`✅ Database '${dbConfig.database}' created successfully`);
+    } else {
+      console.log(`✅ Database '${dbConfig.database}' already exists`);
+    }
     
-    await connection.end();
+    await pool.close();
   } catch (error) {
     console.error('❌ Error creating database:');
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorCode = (error as any)?.code;
-    const errorErrno = (error as any)?.errno;
     
     console.error(`   Error: ${errorMessage}`);
     if (errorCode) {
@@ -60,18 +67,17 @@ async function createDatabaseIfNotExists() {
     }
     
     // Provide helpful error messages
-    if (errorCode === 'ECONNREFUSED' || errorErrno === -4078) {
+    if (errorCode === 'ECONNREFUSED' || errorMessage.includes('connect')) {
       console.error('\n💡 Troubleshooting:');
-      console.error('   1. Make sure MySQL server is running');
-      console.error('   2. Check that the port is correct (MySQL default: 3306)');
+      console.error('   1. Make sure MS SQL Server is running');
+      console.error('   2. Check that the port is correct (MS SQL default: 1433)');
       console.error('   3. Verify host, username, and password in .env file');
-      if (dbConfig.port === 5432) {
-        console.error('   4. ⚠️  Port 5432 is for PostgreSQL. For MySQL, use port 3306');
-      }
-    } else if (errorCode === 'ER_ACCESS_DENIED_ERROR' || errorMessage.includes('Access denied')) {
+      console.error('   4. Ensure SQL Server allows TCP/IP connections');
+    } else if (errorMessage.includes('Login failed') || errorMessage.includes('authentication')) {
       console.error('\n💡 Troubleshooting:');
       console.error('   1. Check username and password in .env file');
-      console.error('   2. Verify MySQL user has CREATE DATABASE privileges');
+      console.error('   2. Verify SQL Server authentication is enabled (Mixed Mode)');
+      console.error('   3. Ensure the user has CREATE DATABASE privileges');
     }
     
     throw error;
@@ -88,18 +94,13 @@ async function setupDatabase() {
     console.log(`  Username: ${dbConfig.username}`);
     
     // Validate configuration
-    if (dbConfig.port === 5432) {
-      console.log('\n⚠️  WARNING: Port 5432 detected!');
-      console.log('   This port is typically used for PostgreSQL.');
-      console.log('   Your app.module.ts is configured for MySQL (default port: 3306).');
-      console.log('   Please update your .env file with MySQL settings:\n');
-      console.log('   DB_PORT=3306');
-      console.log('   DB_USERNAME=root  (or your MySQL username)');
-      console.log('   DB_PASSWORD=your_mysql_password\n');
-    }
-    
-    if (dbConfig.username === 'postgres' || dbConfig.username === 'mysql') {
-      console.log(`⚠️  Using username "${dbConfig.username}" - make sure this matches your MySQL user.\n`);
+    if (dbConfig.port === 3306 || dbConfig.port === 5432) {
+      console.log('\n⚠️  WARNING: Port detected might be for a different database!');
+      console.log('   MS SQL Server default port is 1433.');
+      console.log('   Please update your .env file with MS SQL settings:\n');
+      console.log('   DB_PORT=1433');
+      console.log('   DB_USERNAME=sa  (or your MS SQL username)');
+      console.log('   DB_PASSWORD=your_mssql_password\n');
     }
     
     console.log('');
@@ -116,7 +117,7 @@ async function setupDatabase() {
     // Step 3: Initialize TypeORM DataSource
     console.log('\n📊 Connecting to database and creating tables...');
     const AppDataSource = new DataSource({
-      type: 'mysql',
+      type: 'mssql',
       host: dbConfig.host,
       port: dbConfig.port,
       username: dbConfig.username,
@@ -125,6 +126,10 @@ async function setupDatabase() {
       entities: [User, Category, AgentCategory, Ticket],
       synchronize: true, // This will create all tables
       logging: false,
+      options: {
+        encrypt: configService.get('DB_ENCRYPT', 'true') === 'true',
+        trustServerCertificate: configService.get('DB_TRUST_CERT', 'true') === 'true',
+      },
     });
 
     await AppDataSource.initialize();
@@ -191,13 +196,15 @@ async function setupDatabase() {
     }
     
     console.error('\n💡 Make sure:');
-    console.error('   1. MySQL server is installed and running');
-    console.error('   2. .env file has correct MySQL credentials:');
+    console.error('   1. MS SQL Server is installed and running');
+    console.error('   2. .env file has correct MS SQL credentials:');
     console.error('      DB_HOST=localhost');
-    console.error('      DB_PORT=3306  (MySQL default, not 5432 which is PostgreSQL)');
-    console.error('      DB_USERNAME=root  (or your MySQL username)');
-    console.error('      DB_PASSWORD=your_mysql_password');
+    console.error('      DB_PORT=1433  (MS SQL Server default)');
+    console.error('      DB_USERNAME=sa  (or your MS SQL username)');
+    console.error('      DB_PASSWORD=your_mssql_password');
     console.error('      DB_DATABASE=qms_db');
+    console.error('      DB_ENCRYPT=true  (or false for local development)');
+    console.error('      DB_TRUST_CERT=true  (for self-signed certificates)');
     
     process.exit(1);
   }
