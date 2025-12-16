@@ -8,7 +8,7 @@ This is a monorepo containing both the backend (NestJS) and frontend (Next.js) a
 
 ### Backend
 - **Framework**: Node.js 20 + NestJS 10
-- **Database**: PostgreSQL (via TypeORM)
+- **Database**: Microsoft SQL Server (via TypeORM)
 - **Real-Time**: Socket.io
 - **Authentication**: JWT + Refresh Tokens
 - **SMS**: Twilio
@@ -34,49 +34,173 @@ This is a monorepo containing both the backend (NestJS) and frontend (Next.js) a
 8. **Analytics & Reports** available only to Admin
 9. **Zero trust** – Agents cannot modify other queues
 
+## Quick Start
+
+For a quick setup, follow these essential steps:
+
+1. **Install Prerequisites**: Node.js 20.x and Microsoft SQL Server
+2. **Install Dependencies**: `npm install` (root) and `npm install` (frontend)
+3. **Configure Environment**: Create `.env` with database and JWT settings (see [Environment Variables](#environment-variables-reference))
+4. **Setup Database**: Run `npm run setup:db` to create database and admin user
+5. **Start Backend**: `npm run start:dev` (runs on port 3000)
+6. **Start Frontend**: `cd frontend && npm run dev` (runs on port 3001)
+7. **Login**: Use `masteradmin` / `admin` (change password immediately!)
+
+For detailed instructions, see the [Installation](#installation) section below.
+
+## Prerequisites
+
+Before starting, ensure you have the following installed:
+
+- **Node.js** 20.x (LTS recommended)
+- **Microsoft SQL Server** (2017 or later) - SQL Server Express is sufficient for development
+- **npm** (comes with Node.js)
+
 ## Installation
 
-### Backend Setup
+### Step 1: Clone and Install Dependencies
 
 ```bash
-# Install dependencies
+# Install backend dependencies
 npm install
 
-# Copy environment file
-cp .env.example .env
-
-# Update .env with your configuration
-# - Database credentials
-# - JWT secrets
-# - Twilio credentials (optional)
-# - Resend API key (optional)
+# Install frontend dependencies
+cd frontend
+npm install
+cd ..
 ```
 
-### Frontend Setup
+### Step 2: Configure Environment Variables
+
+#### Backend Configuration
+
+Create a `.env` file in the root directory with the following variables:
 
 ```bash
-# Navigate to frontend directory
-cd frontend
+# Database Configuration (MS SQL Server)
+DB_HOST=localhost
+DB_PORT=1433
+DB_USERNAME=sa
+DB_PASSWORD=YourSQLServerPassword
+DB_DATABASE=qms_db
+DB_ENCRYPT=true
+DB_TRUST_CERT=true
 
-# Install dependencies
-npm install
+# JWT Authentication
+JWT_SECRET=your-super-secret-jwt-key-change-in-production-min-32-chars
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production-min-32-chars
+JWT_REFRESH_EXPIRES_IN=7d
 
-# Create .env.local
-cat > .env.local << EOF
+# Encryption Key (for sensitive data encryption)
+# Generate a secure 64-character hex key for production
+ENCRYPTION_KEY=your-generated-64-character-hex-key-or-leave-empty-for-dev-default
+
+# Application
+PORT=3000
+NODE_ENV=development
+
+# Optional: Redis (for Socket.io scaling in production)
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+
+# Optional: Twilio SMS Configuration
+# TWILIO_ACCOUNT_SID=your-twilio-account-sid
+# TWILIO_AUTH_TOKEN=your-twilio-auth-token
+# TWILIO_PHONE_NUMBER=+1234567890
+
+# Optional: Resend Email Configuration
+# RESEND_API_KEY=your-resend-api-key
+# RESEND_FROM_EMAIL=noreply@yourdomain.com
+```
+
+**Important Notes:**
+- Replace `YourSQLServerPassword` with your actual SQL Server password
+- For production, generate strong secrets for `JWT_SECRET` and `JWT_REFRESH_SECRET` (minimum 32 characters)
+- Generate a secure `ENCRYPTION_KEY` for production (64-character hex string)
+- For local development with SQL Server Express, you may need to set `DB_TRUST_CERT=true` and `DB_ENCRYPT=false`
+
+#### Frontend Configuration
+
+Create a `frontend/.env.local` file:
+
+```bash
 NEXT_PUBLIC_API_URL=http://localhost:3000
 NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
-EOF
 ```
 
-## Database Setup
+### Step 3: Database Setup
+
+#### Prerequisites for Database Setup
+
+1. **Ensure SQL Server is running** - Start SQL Server service on your machine
+2. **Verify SQL Server Authentication** - Ensure SQL Server is configured for Mixed Mode authentication (SQL Server and Windows Authentication)
+3. **Check SQL Server Port** - Default port is 1433. Verify it's open and accessible
+
+#### Running the Database Setup Script
+
+The setup script will:
+- Create the database if it doesn't exist
+- Create all required tables (Users, Categories, AgentCategories, Tickets)
+- Create a default admin user
 
 ```bash
-# Create PostgreSQL database
-createdb qms_db
-
-# The application will auto-create tables in development mode
-# For production, use migrations
+# Run the database setup script
+npm run setup:db
 ```
+
+**What the script does:**
+1. Connects to SQL Server using credentials from `.env`
+2. Creates the `qms_db` database if it doesn't exist
+3. Initializes encryption service
+4. Creates all database tables using TypeORM
+5. Creates default admin user with credentials:
+   - **Username/Email**: `masteradmin`
+   - **Password**: `admin`
+
+**⚠️ Security Warning**: Change the default admin password immediately after first login!
+
+#### Troubleshooting Database Setup
+
+**Connection Refused Error:**
+- Ensure SQL Server service is running
+- Check that port 1433 is correct (or your custom port)
+- Verify host, username, and password in `.env` file
+- Ensure SQL Server allows TCP/IP connections (check SQL Server Configuration Manager)
+
+**Authentication Failed:**
+- Verify username and password are correct
+- Ensure SQL Server authentication is enabled (Mixed Mode)
+- Check that the user has CREATE DATABASE privileges
+- For SQL Server Express, ensure you're using the `sa` account or a user with sufficient privileges
+
+**Database Already Exists:**
+- The script will not fail if the database exists
+- It will update tables if schema has changed
+- It will update the admin user if it exists
+
+**Port Warning:**
+- If you see a warning about port 3306 or 5432, you may have incorrect database settings
+- MS SQL Server default port is 1433
+- Update your `.env` file with correct MS SQL Server settings
+
+#### Manual Database Setup (Alternative)
+
+If you prefer to set up the database manually:
+
+1. **Create the database:**
+   ```sql
+   CREATE DATABASE qms_db;
+   ```
+
+2. **Update `.env`** with your database credentials
+
+3. **Run the application** - Tables will be created automatically if `synchronize: true` is enabled (development only)
+
+4. **Create admin user** - Use the script or manually insert:
+   ```bash
+   npm run setup:db
+   ```
 
 ## Running the Application
 
@@ -251,16 +375,115 @@ When a customer checks in and selects a category, the system automatically:
 - Category statistics
 - Excel export
 
-## Environment Variables
+## Environment Variables Reference
 
-### Backend
-See `.env.example` for all required environment variables.
+### Backend Required Variables
 
-### Frontend
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `DB_HOST` | SQL Server host address | `localhost` | `localhost` or `192.168.1.100` |
+| `DB_PORT` | SQL Server port | `1433` | `1433` |
+| `DB_USERNAME` | SQL Server username | `sa` | `sa` or your SQL user |
+| `DB_PASSWORD` | SQL Server password | (empty) | Your SQL password |
+| `DB_DATABASE` | Database name | `qms_db` | `qms_db` |
+| `DB_ENCRYPT` | Enable encryption for connection | `true` | `true` or `false` |
+| `DB_TRUST_CERT` | Trust server certificate | `true` | `true` (for self-signed certs) |
+| `JWT_SECRET` | Secret key for JWT tokens | (required) | Min 32 characters |
+| `JWT_EXPIRES_IN` | Access token expiration | `15m` | `15m`, `1h`, `7d` |
+| `JWT_REFRESH_SECRET` | Secret key for refresh tokens | (required) | Min 32 characters |
+| `JWT_REFRESH_EXPIRES_IN` | Refresh token expiration | `7d` | `7d`, `30d` |
+| `ENCRYPTION_KEY` | Key for data encryption | (optional) | 64-character hex string |
+| `PORT` | Backend server port | `3000` | `3000` |
+| `NODE_ENV` | Environment mode | `development` | `development` or `production` |
+
+### Backend Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REDIS_HOST` | Redis host (for Socket.io scaling) | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `TWILIO_ACCOUNT_SID` | Twilio account SID | (none) |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token | (none) |
+| `TWILIO_PHONE_NUMBER` | Twilio phone number | (none) |
+| `RESEND_API_KEY` | Resend API key | (none) |
+| `RESEND_FROM_EMAIL` | Default from email address | (none) |
+
+### Frontend Required Variables
+
 Create `frontend/.env.local`:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:3000` |
+| `NEXT_PUBLIC_SOCKET_URL` | WebSocket server URL | `http://localhost:3000` |
+
+### Generating Secure Keys
+
+**JWT Secrets:**
+```bash
+# Generate a secure JWT secret (32+ characters)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
-NEXT_PUBLIC_API_URL=http://localhost:3000
-NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+
+**Encryption Key:**
+```bash
+# Generate a secure encryption key (64-character hex)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Environment File Template
+
+Create a `.env` file in the root directory:
+
+```env
+# ============================================
+# Database Configuration (MS SQL Server)
+# ============================================
+DB_HOST=localhost
+DB_PORT=1433
+DB_USERNAME=sa
+DB_PASSWORD=YourSQLServerPassword
+DB_DATABASE=qms_db
+DB_ENCRYPT=true
+DB_TRUST_CERT=true
+
+# ============================================
+# JWT Authentication
+# ============================================
+JWT_SECRET=your-super-secret-jwt-key-change-in-production-min-32-chars
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production-min-32-chars
+JWT_REFRESH_EXPIRES_IN=7d
+
+# ============================================
+# Encryption (for sensitive data)
+# ============================================
+ENCRYPTION_KEY=your-generated-64-character-hex-key-or-leave-empty-for-dev-default
+
+# ============================================
+# Application Settings
+# ============================================
+PORT=3000
+NODE_ENV=development
+
+# ============================================
+# Optional: Redis (for Socket.io scaling)
+# ============================================
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+
+# ============================================
+# Optional: Twilio SMS
+# ============================================
+# TWILIO_ACCOUNT_SID=your-twilio-account-sid
+# TWILIO_AUTH_TOKEN=your-twilio-auth-token
+# TWILIO_PHONE_NUMBER=+1234567890
+
+# ============================================
+# Optional: Resend Email
+# ============================================
+# RESEND_API_KEY=your-resend-api-key
+# RESEND_FROM_EMAIL=noreply@yourdomain.com
 ```
 
 ## Development
@@ -291,21 +514,92 @@ npm run dev
 npm run lint
 ```
 
+## Complete Setup Checklist
+
+Follow these steps in order:
+
+- [ ] Install Node.js 20.x
+- [ ] Install and configure Microsoft SQL Server
+- [ ] Clone the repository
+- [ ] Run `npm install` in root directory
+- [ ] Run `npm install` in `frontend` directory
+- [ ] Create `.env` file with database and JWT configuration
+- [ ] Create `frontend/.env.local` with API URLs
+- [ ] Ensure SQL Server is running
+- [ ] Run `npm run setup:db` to create database and tables
+- [ ] Verify admin user was created (username: `masteradmin`, password: `admin`)
+- [ ] Start backend: `npm run start:dev`
+- [ ] Start frontend: `cd frontend && npm run dev`
+- [ ] Access application at `http://localhost:3001`
+- [ ] Change default admin password after first login
+
 ## Production Deployment
 
 ### Backend
-1. Set `NODE_ENV=production` in `.env`
-2. Set `synchronize: false` in database config (use migrations)
-3. Set strong JWT secrets
-4. Configure Redis for Socket.io scaling (if needed)
-5. Set up proper CORS origins
-6. Use process manager (PM2, systemd, etc.)
+
+1. **Environment Configuration:**
+   - Set `NODE_ENV=production` in `.env`
+   - Set `synchronize: false` in database config (already set)
+   - Generate and set strong JWT secrets (minimum 32 characters)
+   - Generate and set secure `ENCRYPTION_KEY` (64-character hex)
+   - Configure production database credentials
+
+2. **Database:**
+   - Run `npm run setup:db` on production server
+   - Or use migrations for schema management
+   - Ensure database backups are configured
+
+3. **Security:**
+   - Use strong passwords for database
+   - Enable SSL/TLS for database connections
+   - Set `DB_ENCRYPT=true` and configure certificates
+   - Review and restrict CORS origins
+   - Use environment-specific secrets
+
+4. **Scaling:**
+   - Configure Redis for Socket.io scaling (if needed)
+   - Set up load balancing if required
+   - Use process manager (PM2, systemd, etc.)
+
+5. **Build and Deploy:**
+   ```bash
+   npm run build
+   npm run start:prod
+   ```
 
 ### Frontend
-1. Set production API URLs in environment variables
-2. Build the application: `npm run build`
-3. Start the production server: `npm start`
-4. Or deploy to a platform like Vercel, which supports Next.js natively
+
+1. **Environment Variables:**
+   - Set production API URLs in `frontend/.env.local`:
+     ```env
+     NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+     NEXT_PUBLIC_SOCKET_URL=https://api.yourdomain.com
+     ```
+
+2. **Build:**
+   ```bash
+   cd frontend
+   npm run build
+   npm start
+   ```
+
+3. **Deployment Options:**
+   - **Vercel**: Supports Next.js natively, automatic deployments
+   - **Docker**: Containerize the application
+   - **Traditional Hosting**: Build and serve static files or use Node.js server
+
+### Production Checklist
+
+- [ ] All environment variables configured
+- [ ] Strong JWT secrets generated
+- [ ] Encryption key generated and secured
+- [ ] Database backups configured
+- [ ] SSL/TLS certificates installed
+- [ ] CORS origins restricted
+- [ ] Error logging and monitoring set up
+- [ ] Process manager configured (PM2/systemd)
+- [ ] Firewall rules configured
+- [ ] Regular security updates scheduled
 
 ## License
 
