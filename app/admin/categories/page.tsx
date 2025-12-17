@@ -82,8 +82,8 @@ export default function CategoriesManagement() {
       // Listen for category events
       const handleCategoryCreated = (category: any) => {
         console.log('Category created event received:', category);
-        // Only add if it's active
-        if (category.isActive !== false) {
+        // Only add if it's active (handle MSSQL bit type)
+        if (!isFalsy(category.isActive)) {
           loadCategories();
         }
       };
@@ -115,11 +115,15 @@ export default function CategoriesManagement() {
     }
   }, [router]);
 
+  // Helper to check boolean values (MSSQL returns 1/0 for bit)
+  const isTruthy = (val: any) => val === true || val === 1;
+  const isFalsy = (val: any) => val === false || val === 0;
+
   const loadCategories = async () => {
     try {
       const response = await adminApi.getCategories();
-      // Filter out inactive (soft-deleted) categories
-      const activeCategories = response.data.filter((cat: any) => cat.isActive !== false);
+      // Filter out inactive (soft-deleted) categories (handle MSSQL bit type)
+      const activeCategories = response.data.filter((cat: any) => !isFalsy(cat.isActive));
       setCategories(activeCategories);
     } catch (error) {
       console.error('Failed to load categories:', error);
@@ -587,9 +591,10 @@ export default function CategoriesManagement() {
                                 ...agents
                                   .filter((agent) => {
                                     // Check if agent is assigned to ANY service (not just the current one)
+                                    // Handle MSSQL bit type (1/0) for isActive
                                     const assignedToAnyService = categories.some((cat) =>
                                       cat.agentCategories?.some(
-                                        (ac: any) => ac.agentId === agent.id && ac.isActive
+                                        (ac: any) => ac.agentId === agent.id && isTruthy(ac.isActive)
                                       )
                                     );
                                     return !assignedToAnyService;
@@ -606,9 +611,9 @@ export default function CategoriesManagement() {
                       </AnimatePresence>
 
                       <div className="space-y-2">
-                        {category.agentCategories?.filter((ac: any) => ac.isActive).length > 0 ? (
+                        {category.agentCategories?.filter((ac: any) => isTruthy(ac.isActive)).length > 0 ? (
                           category.agentCategories
-                            .filter((ac: any) => ac.isActive)
+                            .filter((ac: any) => isTruthy(ac.isActive))
                             .map((ac: any, idx: number) => (
                               <motion.div
                                 key={ac.id}

@@ -44,6 +44,9 @@ import {
 import { Select } from '@/components/ui/Select';
 import { useConfirm } from '@/components/ConfirmDialog';
 
+// Helper to check boolean values (MSSQL returns 1/0 for bit)
+const isTruthy = (val: any) => val === true || val === 1;
+
 export default function AllQueues() {
   const router = useRouter();
   const { confirm } = useConfirm();
@@ -631,8 +634,9 @@ export default function AllQueues() {
             <div className="grid md:grid-cols-2 gap-4">
               {agents
                 .filter((agent) => {
+                  // Handle MSSQL bit type (1/0) for isActive
                   const matchesCategory = agent.agentCategories?.some(
-                    (ac: any) => ac.categoryId === selectedCategoryId && ac.isActive
+                    (ac: any) => ac.categoryId === selectedCategoryId && isTruthy(ac.isActive)
                   );
                   if (!matchesCategory) return false;
                   

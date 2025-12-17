@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Category } from './category.entity';
+import { booleanTransformer } from '../../encryption/transformers';
 
 @Entity('agent_categories')
 export class AgentCategory {
@@ -30,7 +31,7 @@ export class AgentCategory {
   @JoinColumn({ name: 'categoryId' })
   category: Category;
 
-  @Column({ type: 'bit', default: true })
+  @Column({ type: 'bit', default: true, transformer: booleanTransformer })
   isActive: boolean;
 
   @CreateDateColumn({ type: 'datetime2' })

@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { AgentCategory } from './agent-category.entity';
 import { Ticket } from '../../queue/entities/ticket.entity';
+import { booleanTransformer } from '../../encryption/transformers';
 
 @Entity('categories')
 export class Category {
@@ -20,7 +21,7 @@ export class Category {
   @Column({ type: 'nvarchar', length: 500, nullable: true })
   description: string;
 
-  @Column({ type: 'bit', default: true })
+  @Column({ type: 'bit', default: true, transformer: booleanTransformer })
   isActive: boolean;
 
   @Column({ type: 'int', default: 0 })

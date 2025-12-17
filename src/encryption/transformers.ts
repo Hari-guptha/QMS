@@ -74,3 +74,19 @@ export const encryptObjectTransformer: ValueTransformer = {
   },
 };
 
+/**
+ * Transformer for MSSQL bit type to ensure proper boolean conversion
+ * MSSQL returns 1/0 for bit columns, this ensures they become true/false
+ */
+export const booleanTransformer: ValueTransformer = {
+  to(value: boolean | null | undefined): boolean | null {
+    return value;
+  },
+  from(value: any): boolean {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'boolean') return value;
+    // Handle MSSQL bit type (1/0) and string representations
+    return value === 1 || value === '1' || value === true || value === 'true';
+  },
+};
+

@@ -45,7 +45,8 @@ export default function CustomerCheckIn() {
     const handleCategoryCreated = (category: any) => {
       console.log('Category created event received:', category);
       // Only add if it has at least one assigned agent
-      if (category.agentCategories?.some((ac: any) => ac.isActive && ac.agent)) {
+      // Handle MSSQL bit type (returns 1/0) and boolean (true/false)
+      if (category.agentCategories?.some((ac: any) => (ac.isActive === true || ac.isActive === 1) && ac.agent)) {
         loadCategories();
       }
     };
@@ -96,7 +97,8 @@ export default function CustomerCheckIn() {
           return false;
         }
         const hasActiveAgent = category.agentCategories.some(
-          (ac: any) => ac.isActive === true && ac.agent
+          // Handle MSSQL bit type (returns 1/0) and boolean (true/false)
+          (ac: any) => (ac.isActive === true || ac.isActive === 1) && ac.agent && (ac.agent.isActive === true || ac.agent.isActive === 1)
         );
         return hasActiveAgent;
       });

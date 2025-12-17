@@ -693,8 +693,9 @@ export default function AllQueues() {
             <div className="grid md:grid-cols-2 gap-4">
               {agents
                 .filter((agent) => {
+                  // Handle MSSQL bit type (1/0) for isActive
                   const matchesCategory = agent.agentCategories?.some(
-                    (ac: any) => ac.categoryId === selectedCategoryId && ac.isActive
+                    (ac: any) => ac.categoryId === selectedCategoryId && (ac.isActive === true || ac.isActive === 1)
                   );
                   if (!matchesCategory) return false;
                   

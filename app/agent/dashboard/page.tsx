@@ -44,6 +44,9 @@ import {
 } from 'lucide-react';
 import { useConfirm } from '@/components/ConfirmDialog';
 
+// Helper to check boolean values (MSSQL returns 1/0 for bit)
+const isTruthy = (val: any) => val === true || val === 1;
+
 export default function AgentDashboard() {
   const router = useRouter();
   const { confirm } = useConfirm();
@@ -166,8 +169,9 @@ export default function AgentDashboard() {
       const response = await authApi.getProfile();
       const agent = response.data;
       // Find the active assigned service (agent can only have one)
+      // Handle MSSQL bit type (1/0) for isActive
       const activeCategory = agent.agentCategories?.find(
-        (ac: any) => ac.isActive && ac.category
+        (ac: any) => isTruthy(ac.isActive) && ac.category
       );
       if (activeCategory) {
         setAssignedService(activeCategory.category);

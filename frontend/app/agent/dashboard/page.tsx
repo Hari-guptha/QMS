@@ -166,8 +166,9 @@ export default function AgentDashboard() {
       const response = await authApi.getProfile();
       const agent = response.data;
       // Find the active assigned service (agent can only have one)
+      // Handle MSSQL bit type (1/0) for isActive
       const activeCategory = agent.agentCategories?.find(
-        (ac: any) => ac.isActive && ac.category
+        (ac: any) => (ac.isActive === true || ac.isActive === 1) && ac.category
       );
       if (activeCategory) {
         setAssignedService(activeCategory.category);

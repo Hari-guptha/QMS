@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Ticket } from '../../queue/entities/ticket.entity';
 import { AgentCategory } from '../../categories/entities/agent-category.entity';
-import { encryptTransformer } from '../../encryption/transformers';
+import { encryptTransformer, booleanTransformer } from '../../encryption/transformers';
 
 export enum UserRole {
   CUSTOMER = 'customer',
@@ -44,7 +44,7 @@ export class User {
   })
   role: UserRole;
 
-  @Column({ type: 'bit', default: true })
+  @Column({ type: 'bit', default: true, transformer: booleanTransformer })
   isActive: boolean;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
