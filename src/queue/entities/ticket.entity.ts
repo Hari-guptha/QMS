@@ -39,8 +39,8 @@ export class Ticket {
   agentId: string; // Assigned agent
 
   @Column({
-    type: 'enum',
-    enum: TicketStatus,
+    type: 'varchar',
+    length: 20,
     default: TicketStatus.PENDING,
   })
   status: TicketStatus;
@@ -54,8 +54,8 @@ export class Ticket {
   @Column({ nullable: true, transformer: encryptTransformer })
   customerEmail: string;
 
-  @Column({ type: 'json', nullable: true, transformer: encryptObjectTransformer })
-  formData: Record<string, any>; // Additional form data
+  @Column({ type: 'nvarchar', length: 'max', nullable: true, transformer: encryptObjectTransformer })
+  formData: Record<string, any>; // Additional form data (stored as JSON string)
 
   @Column({ nullable: true })
   calledAt: Date;

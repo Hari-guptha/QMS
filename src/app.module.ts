@@ -24,17 +24,17 @@ import { Ticket } from './queue/entities/ticket.entity';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'mssql',
-        host: configService.get('DB_HOST', 'localhost'),
-        port: configService.get('DB_PORT', 1433),
-        username: configService.get('DB_USERNAME', 'sa'),
-        password: configService.get('DB_PASSWORD', ''),
-        database: configService.get('DB_DATABASE', 'qms_db'),
+        host: configService.get<string>('DB_HOST'),
+        port: parseInt(configService.get<string>('DB_PORT', '1433'), 10),
+        username: configService.get<string>('DB_USER'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
         entities: [User, Category, AgentCategory, Ticket],
-        synchronize: false, // Disabled to prevent enum modification conflicts. Use migrations or run: npm run update:enum
+        synchronize: false, // Disabled - use DBsetup/setup-database.ts for schema changes
         logging: configService.get('NODE_ENV') === 'development',
         options: {
-          encrypt: configService.get('DB_ENCRYPT', 'true') === 'true',
-          trustServerCertificate: configService.get('DB_TRUST_CERT', 'true') === 'true',
+          encrypt: configService.get('DB_ENCRYPT', 'false') === 'true',
+          trustServerCertificate: configService.get('TrustServerCertificate', 'true') === 'true',
         },
       }),
       inject: [ConfigService],

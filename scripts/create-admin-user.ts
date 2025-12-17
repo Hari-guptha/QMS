@@ -9,20 +9,26 @@ import { Ticket } from '../src/queue/entities/ticket.entity';
 // Load environment variables
 config();
 
-// issue 
+// Validate required environment variables
+const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+  process.exit(1);
+}
 
 const AppDataSource = new DataSource({
   type: 'mssql',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '1433'),
-  username: process.env.DB_USERNAME || 'sa',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_DATABASE || 'qms_db',
+  host: process.env.DB_HOST!,
+  port: parseInt(process.env.DB_PORT!, 10),
+  username: process.env.DB_USER!,
+  password: process.env.DB_PASSWORD!,
+  database: process.env.DB_NAME!,
   entities: [User, Category, AgentCategory, Ticket],
   synchronize: false,
   options: {
-    encrypt: process.env.DB_ENCRYPT === 'true' || true,
-    trustServerCertificate: process.env.DB_TRUST_CERT === 'true' || true,
+    encrypt: (process.env.DB_ENCRYPT ?? 'false') === 'true',
+    trustServerCertificate: (process.env.TrustServerCertificate ?? 'true') === 'true',
   },
 });
 

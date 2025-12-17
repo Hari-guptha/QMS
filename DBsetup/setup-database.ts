@@ -20,21 +20,29 @@ dotenvConfig();
 const configService = new ConfigService();
 
 /**
- * ENV → ConfigService → Default
+ * Read configuration from .env file only
  */
 const dbConfig = {
-  host: process.env.DB_HOST ?? configService.get('DB_HOST') ?? 'localhost',
-  port: parseInt(
-    process.env.DB_PORT ?? configService.get('DB_PORT') ?? '1433',
-    10
-  ),
-  username:
-    process.env.DB_USERNAME ?? configService.get('DB_USERNAME') ?? 'sa',
-  password:
-    process.env.DB_PASSWORD ?? configService.get('DB_PASSWORD') ?? '',
-  database:
-    process.env.DB_DATABASE ?? configService.get('DB_DATABASE') ?? 'qms_db',
+  host: process.env.DB_HOST!,
+  port: parseInt(process.env.DB_PORT!, 10),
+  username: process.env.DB_USER!,
+  password: process.env.DB_PASSWORD!,
+  database: process.env.DB_NAME!,
 };
+
+// Validate required environment variables
+const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+  console.error('\nPlease ensure your .env file contains:');
+  console.error('  DB_HOST=your_server_ip');
+  console.error('  DB_PORT=1433');
+  console.error('  DB_USER=your_username');
+  console.error('  DB_PASSWORD=your_password');
+  console.error('  DB_NAME=your_database_name');
+  process.exit(1);
+}
 
 /* -------------------------------------------------------------------------- */
 /*                     CREATE DATABASE IF NOT EXISTS                           */
@@ -51,7 +59,7 @@ async function createDatabaseIfNotExists(): Promise<void> {
     database: 'master',
     options: {
       encrypt: (process.env.DB_ENCRYPT ?? 'false') === 'true',
-      trustServerCertificate: (process.env.DB_TRUST_CERT ?? 'true') === 'true',
+      trustServerCertificate: (process.env.TrustServerCertificate ?? 'true') === 'true',
       enableArithAbort: true,
     },
   } as sql.config;
@@ -113,7 +121,7 @@ async function setupDatabase(): Promise<void> {
       options: {
         encrypt: (process.env.DB_ENCRYPT ?? 'false') === 'true',
         trustServerCertificate:
-          (process.env.DB_TRUST_CERT ?? 'true') === 'true',
+          (process.env.TrustServerCertificate ?? 'true') === 'true',
       },
     });
 
