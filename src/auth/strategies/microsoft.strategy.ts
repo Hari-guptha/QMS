@@ -48,14 +48,28 @@ export class MicrosoftStrategy extends PassportStrategy(Strategy, 'microsoft') {
     const firstName = name?.givenName || displayName?.split(' ')[0] || '';
     const lastName = name?.familyName || displayName?.split(' ').slice(1).join(' ') || '';
 
-    // Find user by Microsoft ID or email
+    // Find user by Microsoft ID first (if exists)
     let user = await this.userRepository.findOne({
-      where: [{ microsoftId: id }, { email }],
+      where: { microsoftId: id },
     });
 
+    // If not found by Microsoft ID, check by email
+    if (!user) {
+      user = await this.userRepository.findOne({
+        where: { email },
+      });
+    }
+
     if (user) {
-      // Update Microsoft ID if not set
+      // Update Microsoft ID if not set (link existing account)
       if (!user.microsoftId) {
+        // Verify no other user has this microsoftId (app-level uniqueness check)
+        const existingMsUser = await this.userRepository.findOne({
+          where: { microsoftId: id },
+        });
+        if (existingMsUser && existingMsUser.id !== user.id) {
+          return done(new Error('This Microsoft account is already linked to another user'), null);
+        }
         user.microsoftId = id;
         await this.userRepository.save(user);
       }

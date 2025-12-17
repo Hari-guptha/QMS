@@ -14,16 +14,16 @@ export class Category {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'nvarchar', length: 100, unique: true })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'nvarchar', length: 500, nullable: true })
   description: string;
 
-  @Column({ default: true })
+  @Column({ type: 'bit', default: true })
   isActive: boolean;
 
-  @Column({ default: 0 })
+  @Column({ type: 'int', default: 0 })
   estimatedWaitTime: number; // in minutes
 
   @OneToMany(() => AgentCategory, (agentCategory) => agentCategory.category)
@@ -32,10 +32,10 @@ export class Category {
   @OneToMany(() => Ticket, (ticket) => ticket.category)
   tickets: Ticket[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'datetime2' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'datetime2' })
   updatedAt: Date;
 }
 

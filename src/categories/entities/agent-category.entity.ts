@@ -14,10 +14,10 @@ export class AgentCategory {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'uniqueidentifier' })
   agentId: string;
 
-  @Column()
+  @Column({ type: 'uniqueidentifier' })
   categoryId: string;
 
   @ManyToOne(() => User, (user) => user.agentCategories, { onDelete: 'CASCADE' })
@@ -30,10 +30,10 @@ export class AgentCategory {
   @JoinColumn({ name: 'categoryId' })
   category: Category;
 
-  @Column({ default: true })
+  @Column({ type: 'bit', default: true })
   isActive: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'datetime2' })
   assignedAt: Date;
 }
 

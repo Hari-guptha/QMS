@@ -29,13 +29,13 @@ export class Ticket {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'nvarchar', length: 50, unique: true })
   tokenNumber: string; // Format: CATEGORY_CODE-001, CATEGORY_CODE-002, etc.
 
-  @Column()
+  @Column({ type: 'uniqueidentifier' })
   categoryId: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uniqueidentifier', nullable: true })
   agentId: string; // Assigned agent
 
   @Column({
@@ -45,28 +45,28 @@ export class Ticket {
   })
   status: TicketStatus;
 
-  @Column({ nullable: true, transformer: encryptTransformer })
+  @Column({ type: 'nvarchar', length: 500, nullable: true, transformer: encryptTransformer })
   customerName: string;
 
-  @Column({ nullable: true, transformer: encryptTransformer })
+  @Column({ type: 'nvarchar', length: 500, nullable: true, transformer: encryptTransformer })
   customerPhone: string;
 
-  @Column({ nullable: true, transformer: encryptTransformer })
+  @Column({ type: 'nvarchar', length: 500, nullable: true, transformer: encryptTransformer })
   customerEmail: string;
 
   @Column({ type: 'nvarchar', length: 'max', nullable: true, transformer: encryptObjectTransformer })
   formData: Record<string, any>; // Additional form data (stored as JSON string)
 
-  @Column({ nullable: true })
+  @Column({ type: 'datetime2', nullable: true })
   calledAt: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'datetime2', nullable: true })
   servingStartedAt: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'datetime2', nullable: true })
   completedAt: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'datetime2', nullable: true })
   noShowAt: Date;
 
   @Column({ type: 'int', default: 0 })
@@ -80,10 +80,10 @@ export class Ticket {
   @JoinColumn({ name: 'agentId' })
   agent: User;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'datetime2' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'datetime2' })
   updatedAt: Date;
 }
 

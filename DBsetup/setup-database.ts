@@ -84,6 +84,72 @@ async function createDatabaseIfNotExists(): Promise<void> {
 }
 
 /* -------------------------------------------------------------------------- */
+/*                     FIX MSSQL CONSTRAINTS (Migration)                       */
+/* -------------------------------------------------------------------------- */
+
+async function fixMssqlConstraints(): Promise<void> {
+  console.log('🔧 Checking/fixing MSSQL constraints...');
+
+  const config: sql.config = {
+    server: dbConfig.host,
+    port: dbConfig.port,
+    user: dbConfig.username,
+    password: dbConfig.password,
+    database: dbConfig.database,
+    options: {
+      encrypt: (process.env.DB_ENCRYPT ?? 'false') === 'true',
+      trustServerCertificate: (process.env.TrustServerCertificate ?? 'true') === 'true',
+      enableArithAbort: true,
+    },
+  } as sql.config;
+
+  const pool = new sql.ConnectionPool(config);
+  await pool.connect();
+
+  try {
+    // Drop unique constraint on microsoftId if exists (MSSQL doesn't allow multiple NULLs)
+    const constraintQuery = `
+      SELECT name 
+      FROM sys.key_constraints 
+      WHERE parent_object_id = OBJECT_ID('users') 
+        AND type = 'UQ' 
+        AND name LIKE '%microsoftId%'
+    `;
+    const constraints = await pool.request().query(constraintQuery);
+    
+    for (const row of constraints.recordset) {
+      console.log(`  Dropping old constraint: ${row.name}`);
+      await pool.request().query(`ALTER TABLE [users] DROP CONSTRAINT [${row.name}]`);
+    }
+
+    // Also check for auto-generated constraint names
+    const allConstraints = await pool.request().query(`
+      SELECT kc.name as constraint_name, c.name as column_name
+      FROM sys.key_constraints kc
+      JOIN sys.index_columns ic ON kc.parent_object_id = ic.object_id AND kc.unique_index_id = ic.index_id
+      JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+      WHERE kc.parent_object_id = OBJECT_ID('users') 
+        AND kc.type = 'UQ'
+        AND c.name = 'microsoftId'
+    `);
+
+    for (const row of allConstraints.recordset) {
+      console.log(`  Dropping constraint on microsoftId: ${row.constraint_name}`);
+      await pool.request().query(`ALTER TABLE [users] DROP CONSTRAINT [${row.constraint_name}]`);
+    }
+
+    console.log('✅ Constraints checked/fixed');
+  } catch (error: any) {
+    // Ignore errors if table doesn't exist yet
+    if (!error.message?.includes('Invalid object name')) {
+      console.log('  ⚠️  Constraint check skipped (table may not exist yet)');
+    }
+  }
+
+  await pool.close();
+}
+
+/* -------------------------------------------------------------------------- */
 /*                                 SETUP                                      */
 /* -------------------------------------------------------------------------- */
 
@@ -100,12 +166,15 @@ async function setupDatabase(): Promise<void> {
     /* --------------------- STEP 1: CREATE DB ------------------------------- */
     await createDatabaseIfNotExists();
 
-    /* --------------------- STEP 2: ENCRYPTION ------------------------------ */
+    /* --------------------- STEP 2: FIX CONSTRAINTS ------------------------- */
+    await fixMssqlConstraints();
+
+    /* --------------------- STEP 3: ENCRYPTION ------------------------------ */
     console.log('🔐 Initializing encryption service...');
     const encryptionService = new EncryptionService(configService);
     setEncryptionService(encryptionService);
 
-    /* --------------------- STEP 3: TYPEORM -------------------------------- */
+    /* --------------------- STEP 4: TYPEORM -------------------------------- */
     console.log('\n📊 Connecting to database...');
 
     const AppDataSource = new DataSource({
@@ -130,7 +199,7 @@ async function setupDatabase(): Promise<void> {
     console.log('✅ Database connected');
     console.log('✅ Tables created / updated');
 
-    /* --------------------- STEP 4: ADMIN USER ------------------------------ */
+    /* --------------------- STEP 5: ADMIN USER ------------------------------ */
     console.log('\n👤 Creating admin user...');
 
     const userRepo = AppDataSource.getRepository(User);

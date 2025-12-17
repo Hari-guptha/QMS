@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { Ticket } from '../../queue/entities/ticket.entity';
 import { AgentCategory } from '../../categories/entities/agent-category.entity';
@@ -21,19 +22,19 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'nvarchar', length: 255, unique: true })
   email: string; // Keep unencrypted for login/search purposes
 
-  @Column({ nullable: true, transformer: encryptTransformer })
+  @Column({ type: 'nvarchar', length: 500, nullable: true, transformer: encryptTransformer })
   phone: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
   password: string; // Already hashed, don't encrypt. Null for OAuth users
 
-  @Column({ transformer: encryptTransformer })
+  @Column({ type: 'nvarchar', length: 500, transformer: encryptTransformer })
   firstName: string;
 
-  @Column({ transformer: encryptTransformer })
+  @Column({ type: 'nvarchar', length: 500, transformer: encryptTransformer })
   lastName: string;
 
   @Column({
@@ -43,16 +44,19 @@ export class User {
   })
   role: UserRole;
 
-  @Column({ default: true })
+  @Column({ type: 'bit', default: true })
   isActive: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'nvarchar', length: 100, nullable: true })
   employeeId: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'nvarchar', length: 50, nullable: true })
   counterNumber: string;
 
-  @Column({ nullable: true, unique: true })
+  // Note: In MSSQL, unique constraint on nullable column only allows ONE null
+  // Using Index instead - uniqueness for non-null values enforced at app level
+  @Index()
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
   microsoftId: string;
 
   @OneToMany(() => Ticket, (ticket) => ticket.agent)
