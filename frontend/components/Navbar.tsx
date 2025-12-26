@@ -6,17 +6,18 @@ import { useTheme } from 'next-themes';
 import { auth, User } from '@/lib/auth';
 import { User as UserIcon, ChevronDown, LogOut, UserCircle, Palette, Lock, Moon, Bell, Sun } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useI18n } from '@/lib/i18n';
 
 export function Navbar() {
+  const { t } = useI18n();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const languageDropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,22 +30,19 @@ export function Navbar() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
-      if (languageDropdownRef.current && !languageDropdownRef.current.contains(event.target as Node)) {
-        setIsLanguageDropdownOpen(false);
-      }
       if (themeDropdownRef.current && !themeDropdownRef.current.contains(event.target as Node)) {
         setIsThemeDropdownOpen(false);
       }
     };
 
-    if (isDropdownOpen || isLanguageDropdownOpen || isThemeDropdownOpen) {
+    if (isDropdownOpen || isThemeDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isDropdownOpen, isLanguageDropdownOpen, isThemeDropdownOpen]);
+  }, [isDropdownOpen, isThemeDropdownOpen]);
 
   const handleSignOut = () => {
     setIsDropdownOpen(false);
@@ -84,56 +82,13 @@ export function Navbar() {
               href={getDashboardPath()}
               className="text-xl font-bold text-foreground hover:text-primary transition-colors"
             >
-              Queue Management System
+              {t('nav.queueManagement')}
             </a>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Language Selector */}
-            <div className="relative" ref={languageDropdownRef}>
-            <button
-                onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors"
-                aria-label="Language selector"
-            >
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-600 via-blue-500 to-red-500 flex items-center justify-center overflow-hidden">
-                  <div className="w-full h-full flex flex-col">
-                    <div className="h-1/3 bg-red-600"></div>
-                    <div className="h-1/3 bg-white"></div>
-                    <div className="h-1/3 bg-blue-600"></div>
-                  </div>
-              </div>
-                <span className="text-sm font-medium">English</span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                    isLanguageDropdownOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-
-              {isLanguageDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-card border rounded-xl shadow-lg overflow-hidden z-50">
-                  <div className="p-1">
-                    <button
-                      onClick={() => {
-                        setIsLanguageDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                    >
-                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-600 via-blue-500 to-red-500 flex items-center justify-center overflow-hidden">
-                        <div className="w-full h-full flex flex-col">
-                          <div className="h-1/3 bg-red-600"></div>
-                          <div className="h-1/3 bg-white"></div>
-                          <div className="h-1/3 bg-blue-600"></div>
-                    </div>
-                  </div>
-                      <span>English</span>
-                      <span className="ml-auto text-xs">✓</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <LanguageSelector />
 
             {/* Theme Toggle */}
             {mounted && (
@@ -251,7 +206,7 @@ export function Navbar() {
                       {/* User Info Header */}
                       <div className="px-4 py-4 flex flex-col gap-2 bg-gradient-to-r from-primary/5 to-primary/0 rounded-t-lg">
                         <span className="text-center text-xs uppercase text-primary font-medium tracking-wide">
-                          {getRoleDisplay(user.role)} Account
+                          {getRoleDisplay(user.role)} {t('nav.account')}
                         </span>
                         <span className="text-base font-semibold text-foreground truncate">
                           {user.firstName} {user.lastName}
@@ -273,7 +228,7 @@ export function Navbar() {
                           tabIndex={-1}
                     onClick={() => setIsDropdownOpen(false)}
                   >
-                          <span className="w-full text-left">My Account</span>
+                          <span className="w-full text-left">{t('nav.myAccount')}</span>
                   </a>
                   <a
                     href="/settings/appearance"
@@ -282,7 +237,7 @@ export function Navbar() {
                           tabIndex={-1}
                     onClick={() => setIsDropdownOpen(false)}
                   >
-                          <span className="w-full text-left">Theme & Layout</span>
+                          <span className="w-full text-left">{t('nav.themeLayout')}</span>
                   </a>
                   <a
                     href="/settings/password"
@@ -291,7 +246,7 @@ export function Navbar() {
                           tabIndex={-1}
                     onClick={() => setIsDropdownOpen(false)}
                   >
-                          <span className="w-full text-left">Update Password</span>
+                          <span className="w-full text-left">{t('nav.updatePassword')}</span>
                   </a>
                   <button
                     onClick={handleSignOut}
@@ -299,7 +254,7 @@ export function Navbar() {
                           role="menuitem"
                           tabIndex={-1}
                   >
-                          <span className="w-full text-left">Sign Out</span>
+                          <span className="w-full text-left">{t('nav.signOut')}</span>
                   </button>
                 </div>
                     </motion.div>

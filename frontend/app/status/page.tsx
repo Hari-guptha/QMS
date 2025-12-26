@@ -6,8 +6,11 @@ import { getSocket } from '@/lib/socket';
 import { Clock, Users, Ticket, CheckCircle2, Phone, UserCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useI18n } from '@/lib/i18n';
 
 export default function StatusPage() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -100,13 +103,13 @@ export default function StatusPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'called':
-        return 'Called';
+        return t('status.called');
       case 'serving':
-        return 'Serving';
+        return t('status.serving');
       case 'completed':
-        return 'Completed';
+        return t('status.completed');
       case 'pending':
-        return 'Pending';
+        return t('status.pending');
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -142,7 +145,7 @@ export default function StatusPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <div className="text-lg text-foreground">Loading queue status...</div>
+          <div className="text-lg text-foreground">{t('status.loading')}</div>
         </div>
       </div>
     );
@@ -150,8 +153,9 @@ export default function StatusPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Theme Toggle Header */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Theme Toggle and Language Selector Header */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <LanguageSelector />
         <ThemeToggle />
       </div>
       
@@ -165,10 +169,10 @@ export default function StatusPage() {
               transition={{ duration: 0.5 }}
             >
               <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-4">
-                Queue Status
+                {t('status.title')}
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Real-time view of all active queues and ticket statuses
+                {t('status.subtitle')}
               </p>
             </motion.div>
           </div>
@@ -187,7 +191,7 @@ export default function StatusPage() {
                 </div>
                 <div>
                   <div className="text-2xl md:text-3xl font-bold text-foreground">{stats.totalTickets}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Total Tickets</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">{t('status.totalTickets')}</div>
                 </div>
               </div>
             </motion.div>
@@ -204,7 +208,7 @@ export default function StatusPage() {
                 </div>
                 <div>
                   <div className="text-2xl md:text-3xl font-bold text-foreground">{stats.pendingTickets}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Pending</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">{t('status.pending')}</div>
                 </div>
               </div>
             </motion.div>
@@ -221,7 +225,7 @@ export default function StatusPage() {
                 </div>
                 <div>
                   <div className="text-2xl md:text-3xl font-bold text-foreground">{stats.activeTickets}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Active</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">{t('status.active')}</div>
                 </div>
               </div>
             </motion.div>
@@ -238,7 +242,7 @@ export default function StatusPage() {
                 </div>
                 <div>
                   <div className="text-2xl md:text-3xl font-bold text-foreground">{stats.totalAgents}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Agents</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">{t('status.agents')}</div>
                 </div>
               </div>
             </motion.div>
@@ -249,17 +253,17 @@ export default function StatusPage() {
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
               <span className="text-muted-foreground">
-                {isConnected ? 'Live Updates' : 'Disconnected'}
+                {isConnected ? t('status.liveUpdates') : t('status.disconnected')}
               </span>
             </div>
             <span className="text-muted-foreground">•</span>
             <span className="text-muted-foreground">
-              Last updated: {lastUpdated.toLocaleTimeString()}
+              {t('status.lastUpdated')} {lastUpdated.toLocaleTimeString()}
             </span>
             <button
               onClick={loadStatus}
               className="ml-2 p-1.5 hover:bg-accent rounded-md transition-colors"
-              title="Refresh"
+              title={t('status.refresh')}
             >
               <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -278,15 +282,15 @@ export default function StatusPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-muted rounded-full mb-4">
               <AlertCircle className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">No Active Queues</h3>
+            <h3 className="text-xl font-semibold text-foreground mb-2">{t('status.noActiveQueues')}</h3>
             <p className="text-muted-foreground mb-6">
-              There are no active queues at the moment. Check back later!
+              {t('status.noActiveQueuesDesc')}
             </p>
             <a
               href="/"
               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
             >
-              ← Back to Home
+              ← {t('customer.backToHome')}
             </a>
           </motion.div>
         ) : (
@@ -330,13 +334,13 @@ export default function StatusPage() {
                                 {pendingCount > 0 && (
                                   <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    {pendingCount} pending
+                                    {pendingCount} {t('status.pending').toLowerCase()}
                                   </span>
                                 )}
                                 {activeCount > 0 && (
                                   <span className="flex items-center gap-1">
                                     <UserCheck className="w-3 h-3" />
-                                    {activeCount} active
+                                    {activeCount} {t('status.active').toLowerCase()}
                                   </span>
                                 )}
                               </div>
@@ -347,7 +351,7 @@ export default function StatusPage() {
                         {/* Tickets List */}
                         {agentTickets.length === 0 ? (
                           <div className="text-center py-4 text-sm text-muted-foreground">
-                            No tickets in queue
+                            {t('status.noTicketsInQueue')}
                           </div>
                         ) : (
                           <div className="space-y-2">
@@ -376,7 +380,7 @@ export default function StatusPage() {
                                           </span>
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                          Position: #{ticket.positionInQueue}
+                                          {t('status.position')} #{ticket.positionInQueue}
                                         </div>
                                       </div>
                                     </div>
@@ -401,7 +405,7 @@ export default function StatusPage() {
             href="/"
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
           >
-            ← Back to Home
+            ← {t('customer.backToHome')}
           </a>
         </div>
       </div>

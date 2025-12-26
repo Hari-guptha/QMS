@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { authApi } from '@/lib/api';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function AgentLogin() {
+  const { t } = useI18n();
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -27,14 +30,14 @@ export default function AgentLogin() {
       if (response.user.role === 'agent') {
         router.push('/agent/dashboard');
       } else if (response.user.role === 'admin') {
-        setError('Please use the Admin login page to access admin features.');
+        setError(t('login.useAdminPage'));
         auth.logout();
       } else {
-        setError('Access denied. Agent account required.');
+        setError(t('login.accessDeniedAgent'));
         auth.logout();
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || t('login.failed'));
     } finally {
       setLoading(false);
     }
@@ -52,8 +55,9 @@ export default function AgentLogin() {
         </div>
       </div>
 
-      {/* Theme Toggle */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Theme Toggle and Language Selector */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <LanguageSelector />
         <ThemeToggle />
       </div>
 
@@ -75,10 +79,10 @@ export default function AgentLogin() {
         {/* Welcome Text */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-500 mb-2">
-            Welcome Back
+            {t('login.welcomeBack')}
           </h2>
           <p className="text-sm text-gray-600 dark:text-muted-foreground">
-            Sign in to your QMS account
+            {t('login.signInToQMS')}
           </p>
         </div>
 
@@ -96,13 +100,13 @@ export default function AgentLogin() {
           {/* Login Field */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-              Login
+              {t('login.login')}
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your login Id"
+              placeholder={t('login.enterLoginId')}
               className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
               required
             />
@@ -111,14 +115,14 @@ export default function AgentLogin() {
           {/* Password Field */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-              Password
+              {t('login.password')}
             </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('login.enterPassword')}
                 className="w-full p-3 sm:p-3 pr-12 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                 required
               />
@@ -145,13 +149,13 @@ export default function AgentLogin() {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-700 dark:text-foreground">Remember me</span>
+              <span className="text-sm text-gray-700 dark:text-foreground">{t('login.rememberMe')}</span>
             </label>
             <a
               href="#"
               className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
             >
-              Forgot password?
+              {t('login.forgotPassword')}
             </a>
           </div>
 
@@ -164,10 +168,10 @@ export default function AgentLogin() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Signing in...</span>
+                <span>{t('login.signingIn')}</span>
               </>
             ) : (
-              'Sign In'
+              t('login.signIn')
             )}
           </button>
 
@@ -177,7 +181,7 @@ export default function AgentLogin() {
               <div className="w-full border-t border-gray-300 dark:border-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white dark:bg-card text-gray-500 dark:text-muted-foreground">or</span>
+              <span className="px-4 bg-white dark:bg-card text-gray-500 dark:text-muted-foreground">{t('common.or')}</span>
             </div>
           </div>
 
@@ -198,7 +202,7 @@ export default function AgentLogin() {
               <rect x="0" y="13" width="10" height="10" fill="#00A4EF" />
               <rect x="13" y="13" width="10" height="10" fill="#FFB900" />
             </svg>
-            Sign in with Microsoft
+            {t('login.signInWithMicrosoft')}
           </button>
         </form>
       </motion.div>

@@ -18,8 +18,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useI18n } from '@/lib/i18n';
 
 export default function CustomerCheckIn() {
+  const { t } = useI18n();
   const router = useRouter();
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -105,7 +108,7 @@ export default function CustomerCheckIn() {
       setCategories(categoriesWithAgents);
     } catch (error) {
       console.error('Failed to load categories:', error);
-      setError('Failed to load service categories. Please try again.');
+      setError(t('error.failedLoadCategories'));
     } finally {
       setCategoriesLoading(false);
     }
@@ -123,11 +126,11 @@ export default function CustomerCheckIn() {
 
     // Validate required fields
     if (!formData.customerName.trim()) {
-      setError('Name is required');
+      setError(t('error.nameRequired'));
       return;
     }
     if (!formData.customerPhone.trim()) {
-      setError('Phone number is required');
+      setError(t('error.phoneRequired'));
       return;
     }
 
@@ -142,7 +145,7 @@ export default function CustomerCheckIn() {
       });
       router.push(`/customer/token/${response.data.tokenNumber}`);
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to check in. Please try again.');
+      setError(error.response?.data?.message || t('error.failedCheckIn'));
     } finally {
       setLoading(false);
     }
@@ -152,8 +155,9 @@ export default function CustomerCheckIn() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Theme Toggle Header */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Theme Toggle and Language Selector Header */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <LanguageSelector />
         <ThemeToggle />
       </div>
       
@@ -170,10 +174,10 @@ export default function CustomerCheckIn() {
               <Ticket className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-4">
-              Customer Check-In
+              {t('customer.checkIn')}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Select a service category and get your queue token instantly
+              {t('customer.selectService')}
             </p>
           </motion.div>
         </div>
@@ -198,7 +202,7 @@ export default function CustomerCheckIn() {
                   )}
                 </div>
                 <span className={`font-medium ${step === 'category' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  Select Service
+                  {t('customer.selectServiceStep')}
                 </span>
               </div>
               <div className="w-12 h-0.5 bg-border" />
@@ -211,7 +215,7 @@ export default function CustomerCheckIn() {
                   <User className="w-5 h-5" />
                 </div>
                 <span className={`font-medium ${step === 'details' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  Your Details
+                  {t('customer.yourDetails')}
                 </span>
               </div>
             </div>
@@ -246,12 +250,12 @@ export default function CustomerCheckIn() {
               {categoriesLoading ? (
                 <div className="text-center py-16">
                   <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                  <p className="text-muted-foreground">Loading service categories...</p>
+                  <p className="text-muted-foreground">{t('customer.loadingCategories')}</p>
                 </div>
               ) : categories.length === 0 ? (
                 <div className="text-center py-16">
                   <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No service categories available at the moment.</p>
+                  <p className="text-muted-foreground">{t('customer.noCategories')}</p>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -281,7 +285,7 @@ export default function CustomerCheckIn() {
                       {category.estimatedWaitTime && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Clock className="w-4 h-4" />
-                          <span>Est. wait: {category.estimatedWaitTime} min</span>
+                          <span>{t('customer.estimatedWait')} {category.estimatedWaitTime} {t('customer.minutes')}</span>
                         </div>
                       )}
                     </motion.button>
@@ -314,7 +318,7 @@ export default function CustomerCheckIn() {
                           <Ticket className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Selected Service</p>
+                          <p className="text-sm text-muted-foreground">{t('customer.selectedService')}</p>
                           <p className="font-semibold text-foreground">{selectedCategoryData.name}</p>
                         </div>
                       </div>
@@ -325,7 +329,7 @@ export default function CustomerCheckIn() {
                         }}
                         className="text-sm text-primary hover:text-primary/80 transition-colors"
                       >
-                        Change
+                        {t('customer.change')}
                       </button>
                     </div>
                   </motion.div>
@@ -338,7 +342,7 @@ export default function CustomerCheckIn() {
                     transition={{ delay: 0.1 }}
                   >
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                      Name <span className="text-destructive">*</span>
+                      {t('customer.name')} <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
@@ -348,7 +352,7 @@ export default function CustomerCheckIn() {
                       }
                       required
                       className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                      placeholder="Enter your full name"
+                      placeholder={t('customer.enterFullName')}
                     />
                   </motion.div>
 
@@ -358,7 +362,7 @@ export default function CustomerCheckIn() {
                     transition={{ delay: 0.2 }}
                   >
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                      Phone <span className="text-destructive">*</span>
+                      {t('customer.phone')} <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="tel"
@@ -368,7 +372,7 @@ export default function CustomerCheckIn() {
                       }
                       required
                       className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                      placeholder="+1234567890"
+                      placeholder={t('customer.enterPhone')}
                     />
                   </motion.div>
 
@@ -379,7 +383,7 @@ export default function CustomerCheckIn() {
                   >
                     <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                       <Mail className="w-4 h-4" />
-                      Email (Optional)
+                      {t('customer.emailOptional')}
                     </label>
                     <input
                       type="email"
@@ -388,7 +392,7 @@ export default function CustomerCheckIn() {
                         setFormData({ ...formData, customerEmail: e.target.value })
                       }
                       className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                      placeholder="your@email.com"
+                      placeholder={t('customer.enterEmail')}
                     />
                   </motion.div>
 
@@ -406,12 +410,12 @@ export default function CustomerCheckIn() {
                       {loading ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>Processing...</span>
+                          <span>{t('customer.processing')}</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="w-5 h-5" />
-                          <span>Get My Token</span>
+                          <span>{t('customer.getToken')}</span>
                           <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
@@ -430,14 +434,14 @@ export default function CustomerCheckIn() {
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
           >
             <Ticket className="w-4 h-4" />
-            View Queue Status
+            {t('customer.viewQueueStatus')}
           </a>
           <span className="text-muted-foreground mx-4">•</span>
           <a
             href="/"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
-            ← Back to Home
+            ← {t('customer.backToHome')}
           </a>
         </div>
       </div>

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -46,12 +48,14 @@ const featureVariants = {
 };
 
 export default function Home() {
+  const { t } = useI18n();
+  
   const cards = [
     {
       href: '/customer/check-in',
       icon: Users,
-      title: 'Customer',
-      description: 'Check in and get your queue token instantly',
+      title: t('home.customer'),
+      description: t('home.customerDesc'),
       color: 'from-primary/20 to-primary/5',
       iconColor: 'text-primary',
       iconBg: 'bg-primary/10',
@@ -60,8 +64,8 @@ export default function Home() {
     {
       href: '/agent/login',
       icon: UserCheck,
-      title: 'Agent',
-      description: 'Manage your queue and serve customers efficiently',
+      title: t('home.agent'),
+      description: t('home.agentDesc'),
       color: 'from-chart-2/20 to-chart-2/5',
       iconColor: 'text-chart-2',
       iconBg: 'bg-chart-2/10',
@@ -70,8 +74,8 @@ export default function Home() {
     {
       href: '/admin/login',
       icon: Settings,
-      title: 'Admin',
-      description: 'System administration and analytics dashboard',
+      title: t('home.admin'),
+      description: t('home.adminDesc'),
       color: 'from-chart-1/20 to-chart-1/5',
       iconColor: 'text-chart-1',
       iconBg: 'bg-chart-1/10',
@@ -82,35 +86,36 @@ export default function Home() {
   const features = [
     {
       icon: Zap,
-      title: 'Lightning Fast',
-      description: 'Instant token generation and real-time updates'
+      title: t('home.featureLightning'),
+      description: t('home.featureLightningDesc')
     },
     {
       icon: BarChart3,
-      title: 'Analytics Dashboard',
-      description: 'Comprehensive insights and performance metrics'
+      title: t('home.featureAnalytics'),
+      description: t('home.featureAnalyticsDesc')
     },
     {
       icon: Shield,
-      title: 'Secure & Reliable',
-      description: 'Enterprise-grade security and data protection'
+      title: t('home.featureSecure'),
+      description: t('home.featureSecureDesc')
     },
     {
       icon: Clock,
-      title: 'Real-time Updates',
-      description: 'Live queue status and instant notifications'
+      title: t('home.featureRealtime'),
+      description: t('home.featureRealtimeDesc')
     }
   ];
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* Theme Toggle Header */}
+      {/* Theme Toggle and Language Selector Header */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="absolute top-4 right-4 z-50"
+        className="absolute top-4 right-4 z-50 flex items-center gap-2"
       >
+        <LanguageSelector />
         <ThemeToggle />
       </motion.div>
 
@@ -166,8 +171,8 @@ export default function Home() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground tracking-tight mb-6"
             >
-              Queue Management
-              <span className="block text-primary mt-2">System</span>
+              {t('home.titleMain')}
+              <span className="block text-primary mt-2">{t('home.titleSystem')}</span>
             </motion.h1>
           </motion.div>
         </div>
@@ -213,7 +218,7 @@ export default function Home() {
                       </p>
                       
                       <div className="flex items-center text-primary font-medium group-hover:gap-2 transition-all">
-                        <span>Get Started</span>
+                        <span>{t('home.getStarted')}</span>
                         <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
@@ -236,7 +241,7 @@ export default function Home() {
             href="/status"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl"
           >
-            <span>View Public Status Page</span>
+            <span>{t('home.viewPublicStatus')}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </motion.div>
