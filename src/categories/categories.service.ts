@@ -4,11 +4,23 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { EncryptionService } from '../encryption/encryption.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private encryptionService: EncryptionService,
+  ) { }
+
+  private decryptUser(user: any) {
+    if (!user) return user;
+    if (user.phone) user.phone = this.encryptionService.decrypt(user.phone);
+    if (user.firstName) user.firstName = this.encryptionService.decrypt(user.firstName);
+    if (user.lastName) user.lastName = this.encryptionService.decrypt(user.lastName);
+    return user;
+  }
 
   async create(createCategoryDto: CreateCategoryDto) {
     const existingCategory = await this.prisma.category.findUnique({
@@ -29,7 +41,7 @@ export class CategoriesService {
     if (activeOnly) {
       where.isActive = true;
     }
-    return this.prisma.category.findMany({
+    const categories = await this.prisma.category.findMany({
       where,
       include: {
         agentCategories: {
@@ -39,6 +51,14 @@ export class CategoriesService {
         },
       },
     });
+
+    return categories.map((cat) => ({
+      ...cat,
+      agentCategories: cat.agentCategories.map((ac) => ({
+        ...ac,
+        agent: this.decryptUser(ac.agent),
+      })),
+    }));
   }
 
   async findOne(id: string) {
@@ -57,7 +77,13 @@ export class CategoriesService {
       throw new NotFoundException('Category not found');
     }
 
-    return category;
+    return {
+      ...category,
+      agentCategories: category.agentCategories.map((ac) => ({
+        ...ac,
+        agent: this.decryptUser(ac.agent),
+      })),
+    };
   }
 
   async update(id: string, updateData: any) {
@@ -160,7 +186,6 @@ export class CategoriesService {
       include: { agent: true },
     });
 
-    return agentCategories.map((ac) => ac.agent);
+    return agentCategories.map((ac) => this.decryptUser(ac.agent));
   }
 }
-
