@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-microsoft';
 import { ConfigService } from '@nestjs/config';
-import { UserRole } from '../../users/entities/user.entity';
+import { UserRole } from '../../common/enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EncryptionService } from '../../encryption/encryption.service';
 

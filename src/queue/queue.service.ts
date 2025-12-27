@@ -3,8 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { TicketStatus } from './entities/ticket.entity';
-import { UserRole } from '../users/entities/user.entity';
+import { TicketStatus, UserRole } from '../common/enums';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UsersService } from '../users/users.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -34,6 +33,14 @@ export class QueueService {
     return data;
   }
 
+  private decryptUser(user: any) {
+    if (!user) return user;
+    if (user.phone) user.phone = this.encryptionService.decrypt(user.phone);
+    if (user.firstName) user.firstName = this.encryptionService.decrypt(user.firstName);
+    if (user.lastName) user.lastName = this.encryptionService.decrypt(user.lastName);
+    return user;
+  }
+
   private decryptTicket(ticket: any) {
     if (!ticket) return ticket;
     if (ticket.customerName) ticket.customerName = this.encryptionService.decrypt(ticket.customerName);
@@ -45,6 +52,9 @@ export class QueueService {
       } catch (e) {
         // Fallback or ignore
       }
+    }
+    if (ticket.agent) {
+      ticket.agent = this.decryptUser(ticket.agent);
     }
     return ticket;
   }

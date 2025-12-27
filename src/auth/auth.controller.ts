@@ -9,7 +9,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GetUser } from './decorators/get-user.decorator';
-import { User } from '../users/entities/user.entity';
+import { User } from '@prisma/client';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -17,7 +17,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -63,14 +63,14 @@ export class AuthController {
     // User is attached to request by passport strategy
     const user = req.user;
     const tokens = await this.authService.loginWithMicrosoft(user);
-    
+
     // Redirect to frontend callback with tokens
     const frontendUrl = this.configService.get('FRONTEND_URL', 'http://localhost:3001');
     const redirectUrl = new URL(`${frontendUrl}/auth/microsoft/callback`);
     redirectUrl.searchParams.set('accessToken', tokens.accessToken);
     redirectUrl.searchParams.set('refreshToken', tokens.refreshToken);
     redirectUrl.searchParams.set('user', JSON.stringify(tokens.user));
-    
+
     res.redirect(redirectUrl.toString());
   }
 

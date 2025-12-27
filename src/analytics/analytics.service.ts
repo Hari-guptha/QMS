@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { TicketStatus } from '../queue/entities/ticket.entity';
+import { TicketStatus } from '../common/enums';
 import { EncryptionService } from '../encryption/encryption.service';
 
 @Injectable()

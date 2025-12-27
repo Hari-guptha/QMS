@@ -22,14 +22,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-import { UserRole } from '../users/entities/user.entity';
+import { UserRole } from '../common/enums';
 import { GetUser } from '../auth/decorators/get-user.decorator';
-import { User } from '../users/entities/user.entity';
+import { User } from '@prisma/client';
 
 @ApiTags('public', 'agent', 'admin')
 @Controller('queue')
 export class QueueController {
-  constructor(private readonly queueService: QueueService) {}
+  constructor(private readonly queueService: QueueService) { }
 
   // Public endpoints
   @Post('check-in')
@@ -283,10 +283,8 @@ export class QueueController {
     @Param('ticketId') ticketId: string,
     @Body() updateData: any,
   ) {
-    // Admin can override any ticket status
-    const ticket = await this.queueService.getTicketById(ticketId);
-    Object.assign(ticket, updateData);
-    return this.queueService['ticketRepository'].save(ticket);
+    // Admin can override any ticket status or data
+    return this.queueService.adminUpdateTicket(ticketId, updateData);
   }
 }
 

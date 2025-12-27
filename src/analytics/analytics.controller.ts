@@ -16,7 +16,7 @@ import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/entities/user.entity';
+import { UserRole } from '../common/enums';
 import * as ExcelJS from 'exceljs';
 
 @ApiTags('admin')
@@ -25,7 +25,7 @@ import * as ExcelJS from 'exceljs';
 @Roles(UserRole.ADMIN)
 @ApiBearerAuth()
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(private readonly analyticsService: AnalyticsService) { }
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get dashboard statistics (Admin only)' })
