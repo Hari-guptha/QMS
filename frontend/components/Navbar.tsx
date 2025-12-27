@@ -118,8 +118,8 @@ export function Navbar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 z-50 min-w-[8rem] overflow-hidden rounded-md border shadow-md p-1"
-                        style={{ 
+                        className="absolute end-0 mt-2 z-50 min-w-[8rem] overflow-hidden rounded-md border shadow-md p-1"
+                        style={{
                           backgroundColor: 'var(--popover)',
                           color: 'var(--popover-foreground)'
                         }}
@@ -128,33 +128,30 @@ export function Navbar() {
                       >
                         <button
                           onClick={() => handleThemeChange('light')}
-                          className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
-                            theme === 'light' ? 'bg-accent text-accent-foreground' : ''
-                          }`}
+                          className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${theme === 'light' ? 'bg-accent text-accent-foreground' : ''
+                            }`}
                           role="menuitem"
                           tabIndex={-1}
                         >
-                          Light
+                          {t('settings.appearance.light')}
                         </button>
                         <button
                           onClick={() => handleThemeChange('dark')}
-                          className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
-                            theme === 'dark' ? 'bg-accent text-accent-foreground' : ''
-                          }`}
+                          className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${theme === 'dark' ? 'bg-accent text-accent-foreground' : ''
+                            }`}
                           role="menuitem"
                           tabIndex={-1}
                         >
-                          Dark
+                          {t('settings.appearance.dark')}
                         </button>
                         <button
                           onClick={() => handleThemeChange('system')}
-                          className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
-                            theme === 'system' ? 'bg-accent text-accent-foreground' : ''
-                          }`}
+                          className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${theme === 'system' ? 'bg-accent text-accent-foreground' : ''
+                            }`}
                           role="menuitem"
                           tabIndex={-1}
                         >
-                          System
+                          {t('settings.appearance.system')}
                         </button>
                       </motion.div>
                     </>
@@ -195,8 +192,8 @@ export function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 z-50 w-56 shadow-lg rounded-lg border overflow-hidden p-0"
-                      style={{ 
+                      className="absolute end-0 mt-2 z-50 w-56 shadow-lg rounded-lg border overflow-hidden p-0"
+                      style={{
                         backgroundColor: 'var(--popover)',
                         color: 'var(--popover-foreground)'
                       }}
@@ -219,49 +216,49 @@ export function Navbar() {
                       {/* Separator */}
                       <div className="bg-border -mx-1 my-1 h-px" role="separator" aria-orientation="horizontal" />
 
-                {/* Menu Items */}
+                      {/* Menu Items */}
                       <div className="p-2">
-                  <a
-                    href="/settings/account"
+                        <a
+                          href="/settings/account"
                           className="relative flex w-full cursor-default items-center gap-2 rounded-sm px-4 py-2 text-sm outline-none select-none hover:bg-muted transition-colors"
                           role="menuitem"
                           tabIndex={-1}
-                    onClick={() => setIsDropdownOpen(false)}
-                  >
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
                           <span className="w-full text-left">{t('nav.myAccount')}</span>
-                  </a>
-                  <a
-                    href="/settings/appearance"
+                        </a>
+                        <a
+                          href="/settings/appearance"
                           className="relative flex w-full cursor-default items-center gap-2 rounded-sm px-4 py-2 text-sm outline-none select-none hover:bg-muted transition-colors"
                           role="menuitem"
                           tabIndex={-1}
-                    onClick={() => setIsDropdownOpen(false)}
-                  >
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
                           <span className="w-full text-left">{t('nav.themeLayout')}</span>
-                  </a>
-                  <a
-                    href="/settings/password"
+                        </a>
+                        <a
+                          href="/settings/password"
                           className="relative flex w-full cursor-default items-center gap-2 rounded-sm px-4 py-2 text-sm outline-none select-none hover:bg-muted transition-colors"
                           role="menuitem"
                           tabIndex={-1}
-                    onClick={() => setIsDropdownOpen(false)}
-                  >
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
                           <span className="w-full text-left">{t('nav.updatePassword')}</span>
-                  </a>
-                  <button
-                    onClick={handleSignOut}
+                        </a>
+                        <button
+                          onClick={handleSignOut}
                           className="relative flex w-full cursor-default items-center gap-2 rounded-sm px-4 py-2 text-sm outline-none select-none hover:bg-muted transition-colors text-red-600"
                           role="menuitem"
                           tabIndex={-1}
-                  >
+                        >
                           <span className="w-full text-left">{t('nav.signOut')}</span>
-                  </button>
-                </div>
+                        </button>
+                      </div>
                     </motion.div>
                   </>
                 )}
               </AnimatePresence>
-              </div>
+            </div>
           </div>
         </div>
       </div>

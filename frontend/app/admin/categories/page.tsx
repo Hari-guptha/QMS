@@ -7,11 +7,12 @@ import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { Navbar } from '@/components/Navbar';
+import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FolderOpen, 
-  Plus, 
-  Trash2, 
+import {
+  FolderOpen,
+  Plus,
+  Trash2,
   Edit2,
   X,
   Save,
@@ -29,6 +30,7 @@ import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function CategoriesManagement() {
   const router = useRouter();
+  const { t } = useI18n();
   const { confirm } = useConfirm();
   const [categories, setCategories] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
@@ -58,7 +60,7 @@ export default function CategoriesManagement() {
     if (user) {
       const socket = getSocket();
       setSocketConnected(socket.connected);
-      
+
       // Join admin room for category updates
       const handleConnect = () => {
         socket.emit('join-admin-room', user.id);
@@ -171,12 +173,12 @@ export default function CategoriesManagement() {
   });
 
   const handleDelete = async (id: string) => {
-    const confirmed = await confirm('Are you sure you want to delete this service?');
+    const confirmed = await confirm(t('admin.categories.deleteConfirm'));
     if (!confirmed) return;
     try {
       const response = await adminApi.deleteCategory(id);
       const result = response.data || response;
-      
+
       // Check if it was soft-deleted (deactivated) or hard-deleted
       if (result.deactivated) {
         // Soft delete - remove from UI but show message
@@ -234,7 +236,7 @@ export default function CategoriesManagement() {
   };
 
   const handleRemoveAgent = async (categoryId: string, agentId: string) => {
-    const confirmed = await confirm('Remove this agent from service?');
+    const confirmed = await confirm(t('admin.categories.removeAgentConfirm'));
     if (!confirmed) return;
     try {
       await adminApi.removeAgent(categoryId, agentId);
@@ -255,7 +257,7 @@ export default function CategoriesManagement() {
             className="flex flex-col items-center gap-4"
           >
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <div className="text-lg text-muted-foreground">Loading categories...</div>
+            <div className="text-lg text-muted-foreground">{t('admin.categories.loading')}</div>
           </motion.div>
         </div>
       </div>
@@ -273,21 +275,21 @@ export default function CategoriesManagement() {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <Link 
-            href="/admin/dashboard" 
+          <Link
+            href="/admin/dashboard"
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            {t('admin.users.backToDashboard')}
           </Link>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-chart-2/10 rounded-lg">
                 <FolderOpen className="w-6 h-6 text-chart-2" />
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Services Management</h1>
+              <h1 className="text-4xl font-bold text-foreground">{t('admin.categories.title')}</h1>
             </div>
-            
+
             {/* Search and Add Button - Combined in One Container */}
             <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1">
               <span className="pl-2 pr-1 text-xl text-primary/80">
@@ -295,7 +297,7 @@ export default function CategoriesManagement() {
               </span>
               <input
                 type="text"
-                placeholder="Search services..."
+                placeholder={t('admin.categories.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
@@ -307,7 +309,7 @@ export default function CategoriesManagement() {
                 onClick={() => setShowForm(true)}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-primary-foreground h-9 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-all shadow-none font-semibold text-base"
               >
-                <span className="hidden sm:inline">+ Add</span>
+                <span className="hidden sm:inline">{t('admin.users.add')}</span>
                 <span className="sm:hidden text-xl leading-none">+</span>
               </motion.button>
             </div>
@@ -316,11 +318,10 @@ export default function CategoriesManagement() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${
-              socketConnected 
-                ? 'bg-chart-2/10 border-chart-2/30 text-chart-2' 
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${socketConnected
+                ? 'bg-chart-2/10 border-chart-2/30 text-chart-2'
                 : 'bg-destructive/10 border-destructive/30 text-destructive'
-            }`}
+              }`}
           >
             {socketConnected ? (
               <Wifi className="w-4 h-4" />
@@ -328,7 +329,7 @@ export default function CategoriesManagement() {
               <WifiOff className="w-4 h-4" />
             )}
             <span className="text-sm font-medium">
-              {socketConnected ? 'Live Updates' : 'Disconnected'}
+              {socketConnected ? t('admin.categories.liveUpdates') : t('admin.categories.disconnected')}
             </span>
           </motion.div>
         </motion.div>
@@ -345,7 +346,7 @@ export default function CategoriesManagement() {
                 onClick={handleCloseModal}
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
               />
-              
+
               {/* Modal */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -358,8 +359,8 @@ export default function CategoriesManagement() {
                   {/* Modal Header */}
                   <div className="flex items-center justify-between p-6 border-b border-border">
                     <div>
-                      <h2 className="text-2xl font-bold text-foreground">Create New Service</h2>
-                      <p className="text-sm text-muted-foreground mt-1">Add a new service to the system</p>
+                      <h2 className="text-2xl font-bold text-foreground">{t('admin.categories.createTitle')}</h2>
+                      <p className="text-sm text-muted-foreground mt-1">{t('admin.categories.createDesc')}</p>
                     </div>
                     <button
                       onClick={handleCloseModal}
@@ -368,7 +369,7 @@ export default function CategoriesManagement() {
                       <X className="w-5 h-5 text-foreground" />
                     </button>
                   </div>
-                  
+
                   {/* Modal Body */}
                   <form onSubmit={handleCreate} className="p-6">
                     <div className="space-y-4">
@@ -377,7 +378,7 @@ export default function CategoriesManagement() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 }}
                         type="text"
-                        placeholder="Service Name"
+                        placeholder={t('admin.categories.serviceName')}
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
@@ -387,7 +388,7 @@ export default function CategoriesManagement() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 }}
-                        placeholder="Description"
+                        placeholder={t('admin.categories.description')}
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[100px]"
@@ -397,14 +398,14 @@ export default function CategoriesManagement() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
                         type="number"
-                        placeholder="Estimated Wait Time (minutes)"
+                        placeholder={t('admin.categories.estWaitTime')}
                         value={formData.estimatedWaitTime}
                         onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                         min="0"
                       />
                     </div>
-                    
+
                     {/* Modal Footer */}
                     <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-border">
                       <button
@@ -412,7 +413,7 @@ export default function CategoriesManagement() {
                         onClick={handleCloseModal}
                         className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -424,12 +425,12 @@ export default function CategoriesManagement() {
                         {creating ? (
                           <>
                             <Loader2 className="w-5 h-5 animate-spin" />
-                            Creating...
+                            {t('admin.users.creating')}
                           </>
                         ) : (
                           <>
                             <Plus className="w-5 h-5" />
-                            Create Service
+                            {t('admin.categories.create')}
                           </>
                         )}
                       </motion.button>
@@ -489,7 +490,7 @@ export default function CategoriesManagement() {
                         className="flex-1 bg-chart-2 text-white px-3 py-2 rounded-xl text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-1"
                       >
                         <Save className="w-4 h-4" />
-                        Save
+                        {t('common.save')}
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -502,7 +503,7 @@ export default function CategoriesManagement() {
                         className="flex-1 bg-secondary text-secondary-foreground px-3 py-2 rounded-xl text-sm hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-1"
                       >
                         <X className="w-4 h-4" />
-                        Cancel
+                        {t('common.cancel')}
                       </motion.button>
                     </div>
                   </motion.form>
@@ -541,14 +542,14 @@ export default function CategoriesManagement() {
                     )}
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                       <Clock className="w-4 h-4" />
-                      <span>Est. wait: {category.estimatedWaitTime} min</span>
+                      <span>{t('admin.categories.estWait')} {category.estimatedWaitTime} {t('customer.minutes')}</span>
                     </div>
 
                     <div className="border-t border-border pt-4 mt-4">
                       <div className="flex justify-between items-center mb-3">
                         <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                           <Users className="w-4 h-4" />
-                          Assigned Agents
+                          {t('admin.categories.assignedAgents')}
                         </h4>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -559,12 +560,12 @@ export default function CategoriesManagement() {
                           {assigningAgent === category.id ? (
                             <>
                               <X className="w-3 h-3" />
-                              Cancel
+                              {t('common.cancel')}
                             </>
                           ) : (
                             <>
                               <UserPlus className="w-3 h-3" />
-                              Assign
+                              {t('admin.categories.assign')}
                             </>
                           )}
                         </motion.button>
@@ -585,9 +586,9 @@ export default function CategoriesManagement() {
                                   handleAssignAgent(category.id, value);
                                 }
                               }}
-                              placeholder="Select agent..."
+                              placeholder={t('admin.categories.selectAgent')}
                               options={[
-                                { value: '', label: 'Select agent...' },
+                                { value: '', label: t('admin.categories.selectAgent') },
                                 ...agents
                                   .filter((agent) => {
                                     // Check if agent is assigned to ANY service (not just the current one)
@@ -631,12 +632,12 @@ export default function CategoriesManagement() {
                                   onClick={() => handleRemoveAgent(category.id, ac.agentId)}
                                   className="text-destructive hover:text-destructive/80 text-xs"
                                 >
-                                  Remove
+                                  {t('admin.categories.remove')}
                                 </motion.button>
                               </motion.div>
                             ))
                         ) : (
-                          <p className="text-xs text-muted-foreground text-center py-2">No agents assigned</p>
+                          <p className="text-xs text-muted-foreground text-center py-2">{t('admin.categories.noAgents')}</p>
                         )}
                       </div>
                     </div>

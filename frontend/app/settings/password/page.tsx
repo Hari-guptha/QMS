@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { authApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
+import { useI18n } from '@/lib/i18n';
 import { Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
 export default function UpdatePasswordPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,7 +40,7 @@ export default function UpdatePasswordPage() {
 
     // Validation
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('New passwords do not match');
+      setError(t('settings.password.mismatch'));
       setSaving(false);
       return;
     }
@@ -53,14 +55,14 @@ export default function UpdatePasswordPage() {
 
     try {
       await authApi.updatePassword(formData.currentPassword, formData.newPassword);
-      setSuccess('Password updated successfully!');
+      setSuccess(t('settings.password.success'));
       setFormData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update password');
+      setError(err.response?.data?.message || t('settings.password.failed'));
     } finally {
       setSaving(false);
     }
@@ -71,7 +73,7 @@ export default function UpdatePasswordPage() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="text-lg text-muted-foreground">Loading...</div>
+          <div className="text-lg text-muted-foreground">{t('common.loading')}</div>
         </div>
       </div>
     );
@@ -80,19 +82,19 @@ export default function UpdatePasswordPage() {
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
     if (password.length < 8) {
-      errors.push('At least 8 characters');
+      errors.push(t('settings.password.req.length'));
     }
     if (!/[a-z]/.test(password)) {
-      errors.push('One lowercase letter');
+      errors.push(t('settings.password.req.lowercase'));
     }
     if (!/[A-Z]/.test(password)) {
-      errors.push('One uppercase letter');
+      errors.push(t('settings.password.req.uppercase'));
     }
     if (!/[0-9]/.test(password)) {
-      errors.push('One number');
+      errors.push(t('settings.password.req.number'));
     }
     if (!/[^a-zA-Z0-9]/.test(password)) {
-      errors.push('One special character');
+      errors.push(t('settings.password.req.special'));
     }
     return errors;
   };
@@ -122,15 +124,15 @@ export default function UpdatePasswordPage() {
       <div className="max-w-2xl mx-auto p-6">
         {/* Header - Centered */}
         <div className="text-center space-y-2 mb-8">
-          <div 
+          <div
             className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
             style={{ backgroundColor: 'var(--primary-10)' }}
           >
             <Lock className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Update Password</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('settings.password.title')}</h1>
           <p className="text-muted-foreground text-lg">
-            Enter your current password and choose a new secure password
+            {t('settings.password.subtitle')}
           </p>
         </div>
 
@@ -152,7 +154,7 @@ export default function UpdatePasswordPage() {
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  Current Password
+                  {t('settings.password.currentPassword')}
                 </label>
                 <div className="relative">
                   <input
@@ -161,7 +163,7 @@ export default function UpdatePasswordPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, currentPassword: e.target.value })
                     }
-                    placeholder="Enter your current password"
+                    placeholder={t('settings.password.enterCurrent')}
                     className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition pr-10"
                     required
                   />
@@ -181,7 +183,7 @@ export default function UpdatePasswordPage() {
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  New Password
+                  {t('settings.password.newPassword')}
                 </label>
                 <div className="relative">
                   <input
@@ -190,7 +192,7 @@ export default function UpdatePasswordPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, newPassword: e.target.value })
                     }
-                    placeholder="Enter your new password"
+                    placeholder={t('settings.password.enterNew')}
                     className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition pr-10"
                     required
                     minLength={8}
@@ -211,7 +213,7 @@ export default function UpdatePasswordPage() {
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  Confirm New Password
+                  {t('settings.password.confirmPassword')}
                 </label>
                 <div className="relative">
                   <input
@@ -220,7 +222,7 @@ export default function UpdatePasswordPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, confirmPassword: e.target.value })
                     }
-                    placeholder="Confirm your new password"
+                    placeholder={t('settings.password.confirmNew')}
                     className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition pr-10"
                     required
                     minLength={8}
@@ -240,49 +242,49 @@ export default function UpdatePasswordPage() {
               </div>
 
               {/* Update Password Button - Centered */}
-                <button
-                  type="submit"
-                  disabled={saving}
+              <button
+                type="submit"
+                disabled={saving}
                 className="w-full h-11 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-sm font-medium text-base"
-                >
-                  {saving ? 'Updating...' : 'Update Password'}
-                </button>
+              >
+                {saving ? t('settings.password.updating') : t('settings.password.update')}
+              </button>
             </form>
           </div>
         </div>
 
         {/* Password Requirements Card */}
         <div className="bg-muted/30 border border-border rounded-lg p-6">
-          <h3 className="text-sm font-medium mb-4 text-center">Password Requirements</h3>
+          <h3 className="text-sm font-medium mb-4 text-center">{t('settings.password.requirements')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="flex items-center gap-3 text-sm">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.minLength ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
               <span className={passwordRequirements.minLength ? 'text-foreground' : 'text-muted-foreground'}>
-                At least 8 characters
+                {t('settings.password.req.length')}
               </span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasUppercase ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
               <span className={passwordRequirements.hasUppercase ? 'text-foreground' : 'text-muted-foreground'}>
-                One uppercase letter
+                {t('settings.password.req.uppercase')}
               </span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasLowercase ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
               <span className={passwordRequirements.hasLowercase ? 'text-foreground' : 'text-muted-foreground'}>
-                One lowercase letter
+                {t('settings.password.req.lowercase')}
               </span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasNumber ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
               <span className={passwordRequirements.hasNumber ? 'text-foreground' : 'text-muted-foreground'}>
-                One number
+                {t('settings.password.req.number')}
               </span>
             </div>
             <div className="flex items-center gap-3 text-sm md:col-span-2 justify-center">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${passwordRequirements.hasSpecial ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
               <span className={passwordRequirements.hasSpecial ? 'text-foreground' : 'text-muted-foreground'}>
-                One special character
+                {t('settings.password.req.special')}
               </span>
             </div>
           </div>

@@ -24,17 +24,17 @@ import { Ticket } from './queue/entities/ticket.entity';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'mssql',
-        host: configService.get<string>('DB_HOST'),
-        port: parseInt(configService.get<string>('DB_PORT', '1433'), 10),
-        username: configService.get<string>('DB_USER'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
+        host: '160.25.62.77',
+        port: 1433,
+        username: 'Cognicoders',
+        password: 'BackendTeam@1234',
+        database: 'queuemanagement',
         entities: [User, Category, AgentCategory, Ticket],
         synchronize: false, // Disabled - use DBsetup/setup-database.ts for schema changes
         logging: configService.get('NODE_ENV') === 'development',
         options: {
-          encrypt: configService.get('DB_ENCRYPT', 'false') === 'true',
-          trustServerCertificate: configService.get('TrustServerCertificate', 'true') === 'true',
+          encrypt: false,
+          trustServerCertificate: true,
         },
       }),
       inject: [ConfigService],
@@ -49,5 +49,5 @@ import { Ticket } from './queue/entities/ticket.entity';
     NotificationModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
 

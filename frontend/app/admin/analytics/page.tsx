@@ -6,11 +6,12 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
+import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
-import { 
-  BarChart3, 
-  Clock, 
-  TrendingUp, 
+import {
+  BarChart3,
+  Clock,
+  TrendingUp,
   AlertCircle,
   ArrowLeft,
   RefreshCw,
@@ -37,6 +38,7 @@ import { HeatmapChart } from '@/components/charts/HeatmapChart';
 
 export default function Analytics() {
   const router = useRouter();
+  const { t } = useI18n();
   const [stats, setStats] = useState<any>({});
   const [agentPerformance, setAgentPerformance] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -107,14 +109,14 @@ export default function Analytics() {
       a.download = `analytics-${new Date().toISOString().split('T')[0]}.xlsx`;
       a.click();
     } catch (error) {
-      alert('Failed to export');
+      alert(t('error.exportFailed'));
     }
   };
 
   // Filter agents based on search query
   const filteredAgents = agentPerformance.filter((agent) => {
     const query = searchQuery.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       agent.agentName?.toLowerCase().includes(query) ||
       agent.agentEmail?.toLowerCase().includes(query);
     return matchesSearch;
@@ -131,7 +133,7 @@ export default function Analytics() {
             className="flex flex-col items-center gap-4"
           >
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <div className="text-lg text-muted-foreground">Loading analytics...</div>
+            <div className="text-lg text-muted-foreground">{t('admin.analytics.loading')}</div>
           </motion.div>
         </div>
       </div>
@@ -150,18 +152,18 @@ export default function Analytics() {
           className="flex justify-between items-center mb-8"
         >
           <div>
-            <Link 
-              href="/admin/dashboard" 
+            <Link
+              href="/admin/dashboard"
               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
+              {t('admin.users.backToDashboard')}
             </Link>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-chart-4/10 rounded-lg">
                 <BarChart3 className="w-6 h-6 text-chart-4" />
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Analytics Dashboard</h1>
+              <h1 className="text-4xl font-bold text-foreground">{t('admin.analytics.title')}</h1>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -173,7 +175,7 @@ export default function Analytics() {
               className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg disabled:opacity-50"
             >
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              {t('admin.analytics.refresh')}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -182,7 +184,7 @@ export default function Analytics() {
               className="flex items-center gap-2 bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
             >
               <Download className="w-5 h-5" />
-              Export Excel
+              {t('admin.analytics.export')}
             </motion.button>
           </div>
         </motion.div>
@@ -197,7 +199,7 @@ export default function Analytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <Ticket className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-muted-foreground">Total Tickets</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.analytics.totalTickets')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {stats.ticketCounts?.total || 0}
@@ -206,7 +208,7 @@ export default function Analytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <Clock className="w-5 h-5 text-yellow-600" />
-              <span className="text-sm font-medium text-muted-foreground">Pending</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.total')} {t('common.pending')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {stats.ticketCounts?.pending || 0}
@@ -215,7 +217,7 @@ export default function Analytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <UserCheck className="w-5 h-5 text-green-600" />
-              <span className="text-sm font-medium text-muted-foreground">Serving</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.total')} {t('common.serving')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {stats.ticketCounts?.serving || 0}
@@ -224,7 +226,7 @@ export default function Analytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle2 className="w-5 h-5 text-chart-3" />
-              <span className="text-sm font-medium text-muted-foreground">Completed</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.analytics.completed')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {stats.ticketCounts?.completed || 0}
@@ -245,7 +247,7 @@ export default function Analytics() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <UserCheck className="w-6 h-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">Agent Performance</h2>
+                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.agentPerformance')}</h2>
               </div>
             </div>
 
@@ -257,7 +259,7 @@ export default function Analytics() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search agents by name or email..."
+                  placeholder={t('admin.analytics.searchAgents')}
                   className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
@@ -268,7 +270,7 @@ export default function Analytics() {
                   onChange={(e) => setSelectedCategoryId(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 appearance-none"
                 >
-                  <option value="">All Services</option>
+                  <option value="">{t('admin.analytics.allServices')}</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
@@ -281,31 +283,31 @@ export default function Analytics() {
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Total Agents</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.totalAgents')}</p>
                 <p className="text-2xl font-bold text-foreground">{filteredAgents.length}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Total Tickets</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.totalTickets')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {filteredAgents.reduce((sum, a) => sum + (a.totalTickets || 0), 0)}
                 </p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Completed</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.completed')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {filteredAgents.reduce((sum, a) => sum + (a.completedTickets || 0), 0)}
                 </p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Avg Service Time</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.avgServiceTime')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {filteredAgents.length > 0
                     ? Math.round(
-                        filteredAgents.reduce((sum, a) => sum + (a.avgServiceTime || 0), 0) /
-                          filteredAgents.length
-                      )
+                      filteredAgents.reduce((sum, a) => sum + (a.avgServiceTime || 0), 0) /
+                      filteredAgents.length
+                    )
                     : 0}{' '}
-                  min
+                  {t('customer.minutes')}
                 </p>
               </div>
             </div>
@@ -317,19 +319,19 @@ export default function Analytics() {
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Agent
+                    {t('admin.analytics.table.agent')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Totals
+                    {t('admin.analytics.table.totals')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Status Breakdown
+                    {t('admin.analytics.table.statusBreakdown')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Time Metrics
+                    {t('admin.analytics.table.timeMetrics')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Performance
+                    {t('admin.analytics.table.performance')}
                   </th>
                 </tr>
               </thead>
@@ -365,14 +367,14 @@ export default function Analytics() {
                           <span className="text-foreground font-semibold">
                             {agent.totalTickets || 0}
                           </span>
-                          <span className="text-xs text-muted-foreground">Total</span>
+                          <span className="text-xs text-muted-foreground">{t('admin.analytics.total')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-chart-3" />
                           <span className="text-foreground">
                             {agent.completedTickets || 0}
                           </span>
-                          <span className="text-xs text-muted-foreground">Completed</span>
+                          <span className="text-xs text-muted-foreground">{t('admin.analytics.completed')}</span>
                         </div>
                       </div>
                     </td>
@@ -381,19 +383,19 @@ export default function Analytics() {
                         <div className="flex items-center gap-2">
                           <Clock className="w-3 h-3 text-yellow-600" />
                           <span className="text-foreground">
-                            Pending: {agent.pendingTickets || 0}
+                            {t('common.pending')}: {agent.pendingTickets || 0}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <UserCheck className="w-3 h-3 text-green-600" />
                           <span className="text-foreground">
-                            Serving: {agent.servingTickets || 0}
+                            {t('common.serving')}: {agent.servingTickets || 0}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Pause className="w-3 h-3 text-red-600" />
                           <span className="text-foreground">
-                            Hold: {agent.holdTickets || 0}
+                            {t('common.hold')}: {agent.holdTickets || 0}
                           </span>
                         </div>
                       </div>
@@ -403,26 +405,26 @@ export default function Analytics() {
                         <div className="flex items-center gap-2">
                           <Clock className="w-3 h-3 text-blue-600" />
                           <span className="text-foreground">
-                            Wait: {agent.avgWaitTime || 0} min
+                            {t('admin.analytics.wait')}: {agent.avgWaitTime || 0} {t('customer.minutes')}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <TrendingUp className="w-3 h-3 text-green-600" />
                           <span className="text-foreground">
-                            Service: {agent.avgServiceTime || 0} min
+                            {t('admin.analytics.service')}: {agent.avgServiceTime || 0} {t('customer.minutes')}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <BarChart3 className="w-3 h-3 text-purple-600" />
                           <span className="text-foreground">
-                            Total: {agent.avgTotalTime || 0} min
+                            {t('admin.analytics.total')}: {agent.avgTotalTime || 0} {t('customer.minutes')}
                           </span>
                         </div>
                         {agent.avgCalledToServingTime !== undefined && (
                           <div className="flex items-center gap-2">
                             <AlertCircle className="w-3 h-3 text-orange-600" />
                             <span className="text-foreground">
-                              Called→Serving: {agent.avgCalledToServingTime || 0} min
+                              {t('admin.analytics.calledToServing')}: {agent.avgCalledToServingTime || 0} {t('customer.minutes')}
                             </span>
                           </div>
                         )}
@@ -431,14 +433,14 @@ export default function Analytics() {
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">Completion Rate:</span>
+                          <span className="text-xs text-muted-foreground">{t('admin.completionRate')}</span>
                           <span className="text-sm font-semibold text-foreground">
                             {agent.completionRate?.toFixed(1) || 0}%
                           </span>
                         </div>
                         {agent.serviceBreakdown && agent.serviceBreakdown.length > 0 && (
                           <div className="mt-2">
-                            <p className="text-xs text-muted-foreground mb-1">Services:</p>
+                            <p className="text-xs text-muted-foreground mb-1">{t('admin.analytics.services')}:</p>
                             <div className="flex flex-wrap gap-1">
                               {agent.serviceBreakdown.slice(0, 3).map((service: any, sIdx: number) => (
                                 <span
@@ -464,8 +466,8 @@ export default function Analytics() {
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
                       {searchQuery || selectedCategoryId
-                        ? 'No agents found matching your filters'
-                        : 'No agent performance data available'}
+                        ? t('admin.analytics.noAgentsFound')
+                        : t('admin.analytics.noData')}
                     </td>
                   </tr>
                 )}
@@ -488,18 +490,18 @@ export default function Analytics() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Activity className="w-6 h-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">Ticket Status Distribution</h2>
+                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.statusDistribution')}</h2>
               </div>
               <PieChart
                 data={stats.statusDistribution.map((s: any) => ({
                   label: s.label,
                   value: s.value,
                   color: s.status === 'completed' ? 'var(--chart-3)' :
-                         s.status === 'pending' ? '#f59e0b' :
-                         s.status === 'serving' ? '#10b981' :
-                         s.status === 'hold' ? '#ef4444' :
-                         s.status === 'no_show' ? '#8b5cf6' :
-                         'var(--muted-foreground)',
+                    s.status === 'pending' ? '#f59e0b' :
+                      s.status === 'serving' ? '#10b981' :
+                        s.status === 'hold' ? '#ef4444' :
+                          s.status === 'no_show' ? '#8b5cf6' :
+                            'var(--muted-foreground)',
                 }))}
                 title=""
                 size={250}
@@ -519,7 +521,7 @@ export default function Analytics() {
                 <div className="p-2 bg-chart-2/10 rounded-lg">
                   <Calendar className="w-6 h-6 text-chart-2" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">Daily Ticket Trends</h2>
+                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.dailyTrends')}</h2>
               </div>
               <AreaChart
                 data={stats.dailyTrends.map((d: any) => ({
@@ -533,11 +535,11 @@ export default function Analytics() {
               <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded bg-chart-2"></div>
-                  <span className="text-muted-foreground">Total Tickets</span>
+                  <span className="text-muted-foreground">{t('admin.analytics.totalTickets')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded bg-chart-3"></div>
-                  <span className="text-muted-foreground">Completed</span>
+                  <span className="text-muted-foreground">{t('admin.analytics.completed')}</span>
                 </div>
               </div>
             </motion.div>
@@ -557,7 +559,7 @@ export default function Analytics() {
                   <div className="p-2 bg-chart-1/10 rounded-lg">
                     <Clock className="w-6 h-6 text-chart-1" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Hourly Ticket Distribution</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.hourlyDistribution')}</h2>
                 </div>
                 <BarChart
                   data={stats.hourlyDistribution.map((h: any) => ({
@@ -582,7 +584,7 @@ export default function Analytics() {
                   <div className="p-2 bg-chart-4/10 rounded-lg">
                     <Calendar className="w-6 h-6 text-chart-4" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Day of Week Distribution</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.dayOfWeekDistribution')}</h2>
                 </div>
                 <BarChart
                   data={stats.dayOfWeekDistribution.map((d: any) => ({
@@ -607,7 +609,7 @@ export default function Analytics() {
                   <div className="p-2 bg-chart-2/10 rounded-lg">
                     <FolderOpen className="w-6 h-6 text-chart-2" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Service Category Performance</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.servicePerformance')}</h2>
                 </div>
                 <BarChart
                   data={stats.servicePerformance.map((s: any) => ({
@@ -632,7 +634,7 @@ export default function Analytics() {
                   <div className="p-2 bg-chart-3/10 rounded-lg">
                     <UserCheck className="w-6 h-6 text-chart-3" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Agent Performance (Top 10)</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.agentPerformanceComparison')}</h2>
                 </div>
                 <BarChart
                   data={stats.agentPerformance.slice(0, 10).map((a: any) => ({
@@ -658,7 +660,7 @@ export default function Analytics() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <BarChart3 className="w-6 h-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">Peak Hours Heatmap</h2>
+                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.peakHours')}</h2>
               </div>
               <div className="space-y-4">
                 <div className="flex items-end justify-between gap-1 h-64">
@@ -669,7 +671,7 @@ export default function Analytics() {
                     const height = (count / maxCount) * 100;
                     return (
                       <div key={hour} className="flex-1 flex flex-col items-center gap-1">
-                        <div 
+                        <div
                           className="w-full bg-primary rounded-t"
                           style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
                           title={`${hour}:00 - ${count} tickets`}
@@ -685,7 +687,7 @@ export default function Analytics() {
                   <p className="text-2xl font-bold text-foreground">
                     {stats.peakHours.reduce((sum: number, h: any) => sum + h.count, 0)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Total Tickets</p>
+                  <p className="text-xs text-muted-foreground">{t('admin.analytics.totalTickets')}</p>
                 </div>
               </div>
             </motion.div>
@@ -702,27 +704,27 @@ export default function Analytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <Clock className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-medium text-muted-foreground">Avg Wait Time</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.avgWaitTime')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {stats.avgWaitTime || 0}
-              <span className="text-xl text-muted-foreground ml-2">min</span>
+              <span className="text-xl text-muted-foreground ml-2">{t('customer.minutes')}</span>
             </p>
           </div>
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <TrendingUp className="w-5 h-5 text-green-600" />
-              <span className="text-sm font-medium text-muted-foreground">Avg Service Time</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.avgServiceTime')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {stats.avgServiceTime || 0}
-              <span className="text-xl text-muted-foreground ml-2">min</span>
+              <span className="text-xl text-muted-foreground ml-2">{t('customer.minutes')}</span>
             </p>
           </div>
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <AlertCircle className="w-5 h-5 text-red-600" />
-              <span className="text-sm font-medium text-muted-foreground">Abandonment Rate</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.abandonmentRate')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {stats.abandonmentRate?.toFixed(1) || 0}

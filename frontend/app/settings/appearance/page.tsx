@@ -9,8 +9,10 @@ import { Sun, Moon, Monitor, Eye, Paintbrush, Palette, Check, ArrowLeft } from '
 import { motion } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import { auth } from '@/lib/auth';
+import { useI18n } from '@/lib/i18n';
 
 export default function AppearanceSettings() {
+  const { t } = useI18n();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { primaryColor, setPrimaryColor, mounted } = useThemeStore();
@@ -37,7 +39,7 @@ export default function AppearanceSettings() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="text-lg text-muted-foreground">Loading...</div>
+          <div className="text-lg text-muted-foreground">{t('common.loading')}</div>
         </div>
       </div>
     );
@@ -53,20 +55,20 @@ export default function AppearanceSettings() {
   const themeOptions = [
     {
       value: 'light' as const,
-      label: 'Light',
-      description: 'Always use light theme',
+      label: t('settings.appearance.light'),
+      description: t('settings.appearance.lightDesc'),
       icon: Sun,
     },
     {
       value: 'dark' as const,
-      label: 'Dark',
-      description: 'Always use dark theme',
+      label: t('settings.appearance.dark'),
+      description: t('settings.appearance.darkDesc'),
       icon: Moon,
     },
     {
       value: 'system' as const,
-      label: 'System',
-      description: 'Follow system preference',
+      label: t('settings.appearance.system'),
+      description: t('settings.appearance.systemDesc'),
       icon: Monitor,
     },
   ];
@@ -82,16 +84,16 @@ export default function AppearanceSettings() {
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            {t('settings.account.backToDashboard')}
           </a>
           <div className="flex items-center gap-3 mb-2">
             <Palette className="w-8 h-8 text-primary" />
             <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight leading-tight">
-              Themes and Layout
+              {t('settings.appearance.title')}
             </h1>
           </div>
           <p className="text-muted-foreground text-lg">
-            Customize the theme and colors of your interface
+            {t('settings.appearance.subtitle')}
           </p>
         </div>
 
@@ -101,9 +103,9 @@ export default function AppearanceSettings() {
             <div className="flex items-center gap-3">
               <Eye className="w-5 h-5 text-primary" />
               <div>
-                <h2 className="text-xl font-semibold">Theme Mode</h2>
+                <h2 className="text-xl font-semibold">{t('settings.appearance.themeMode')}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Choose how the theme should be applied
+                  {t('settings.appearance.themeModeDesc')}
                 </p>
               </div>
             </div>
@@ -172,9 +174,9 @@ export default function AppearanceSettings() {
             <div className="flex items-center gap-3">
               <Paintbrush className="w-5 h-5 text-primary" />
               <div>
-                <h2 className="text-xl font-semibold">Primary Color</h2>
+                <h2 className="text-xl font-semibold">{t('settings.appearance.primaryColor')}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Choose your preferred primary color
+                  {t('settings.appearance.primaryColorDesc')}
                 </p>
               </div>
             </div>
@@ -187,7 +189,7 @@ export default function AppearanceSettings() {
                 style={{ backgroundColor: currentColor }}
               />
               <div>
-                <div className="font-medium">Current Color</div>
+                <div className="font-medium">{t('settings.appearance.currentColor')}</div>
                 <div className="text-sm text-muted-foreground font-mono">
                   {currentColor}
                 </div>
@@ -221,7 +223,7 @@ export default function AppearanceSettings() {
                       className="h-20 w-full"
                       style={{ backgroundColor: preset.value }}
                     />
-                    
+
                     {/* Selected Overlay */}
                     {isSelected && (
                       <motion.div
@@ -257,9 +259,9 @@ export default function AppearanceSettings() {
             <div className="flex items-center gap-3">
               <Palette className="w-5 h-5 text-primary" />
               <div>
-                <h2 className="text-xl font-semibold">Preview</h2>
+                <h2 className="text-xl font-semibold">{t('settings.appearance.preview')}</h2>
                 <p className="text-sm text-muted-foreground">
-                  See how your theme looks
+                  {t('settings.appearance.previewDesc')}
                 </p>
               </div>
             </div>
@@ -270,14 +272,14 @@ export default function AppearanceSettings() {
               <button
                 className="h-9 px-4 py-2 bg-primary text-primary-foreground rounded-md shadow-xs hover:bg-primary/90 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-opacity-50 transition-colors"
               >
-                Primary Button
+                {t('settings.appearance.primaryButton')}
               </button>
 
               {/* Secondary Button */}
               <button
                 className="h-9 px-4 py-2 bg-secondary text-secondary-foreground rounded-md border hover:bg-secondary/80 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-opacity-50 transition-colors"
               >
-                Secondary Button
+                {t('settings.appearance.secondaryButton')}
               </button>
 
               {/* Badge */}
@@ -289,7 +291,7 @@ export default function AppearanceSettings() {
                     color: currentColor,
                   }}
                 >
-                  Badge Component
+                  {t('settings.appearance.badgeComponent')}
                 </span>
               </div>
 
@@ -299,7 +301,7 @@ export default function AppearanceSettings() {
                   className="h-2 bg-primary rounded-full"
                   style={{ width: '60%' }}
                 />
-                <p className="text-sm text-muted-foreground">Progress: 60%</p>
+                <p className="text-sm text-muted-foreground">{t('settings.appearance.progress')}: 60%</p>
               </div>
             </div>
           </div>

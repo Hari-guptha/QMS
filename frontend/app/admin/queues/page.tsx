@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
+import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
@@ -46,6 +47,7 @@ import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function AllQueues() {
   const router = useRouter();
+  const { t } = useI18n();
   const { confirm } = useConfirm();
   const [agents, setAgents] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -103,7 +105,7 @@ export default function AllQueues() {
       setQueue(response.data);
     } catch (error) {
       console.error('Failed to load queue:', error);
-      alert('Failed to load queue');
+      alert(t('admin.queues.alert.loadQueue'));
     } finally {
       setLoading(false);
     }
@@ -146,7 +148,7 @@ export default function AllQueues() {
     } catch (error: any) {
       // Revert on error
       loadAgentQueue(selectedAgentId);
-      alert(error.response?.data?.message || 'Failed to reorder queue');
+      alert(error.response?.data?.message || t('admin.queues.alert.reorderQueue'));
     }
   };
 
@@ -155,52 +157,52 @@ export default function AllQueues() {
       await adminApi.adminCallNext(agentId);
       loadAgentQueue(agentId);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to call next');
+      alert(error.response?.data?.message || t('admin.queues.alert.callNext'));
     }
   };
 
   const handleAdminComplete = async (ticketId: string) => {
-    const confirmed = await confirm('Mark this ticket as completed?');
+    const confirmed = await confirm(t('admin.queues.confirmComplete'));
     if (!confirmed) return;
     try {
       await adminApi.adminMarkAsCompleted(ticketId);
       loadAgentQueue(selectedAgentId);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to complete ticket');
+      alert(error.response?.data?.message || t('admin.queues.alert.completeTicket'));
     }
   };
 
   const handleAdminHold = async (ticketId: string) => {
-    const confirmed = await confirm('Put this ticket on hold?');
+    const confirmed = await confirm(t('admin.queues.confirmHold'));
     if (!confirmed) return;
     try {
       await adminApi.adminMarkAsNoShow(ticketId);
       loadAgentQueue(selectedAgentId);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to put ticket on hold');
+      alert(error.response?.data?.message || t('admin.queues.alert.holdTicket'));
     }
   };
 
 
   const handleDeleteTicket = async (ticketId: string) => {
-    const confirmed = await confirm('Are you sure you want to delete this ticket? This action cannot be undone.');
+    const confirmed = await confirm(t('admin.queues.confirmDelete'));
     if (!confirmed) return;
     try {
       await adminApi.deleteTicket(ticketId);
       loadAgentQueue(selectedAgentId);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete ticket');
+      alert(error.response?.data?.message || t('admin.queues.alert.deleteTicket'));
     }
   };
 
   const handleReopenTicket = async (ticketId: string) => {
-    const confirmed = await confirm('Reopen this ticket? It will be added back to the queue.');
+    const confirmed = await confirm(t('admin.queues.confirmReopen'));
     if (!confirmed) return;
     try {
       await adminApi.adminReopenTicket(ticketId);
       loadAgentQueue(selectedAgentId);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to reopen ticket');
+      alert(error.response?.data?.message || t('admin.queues.alert.reopenTicket'));
     }
   };
 
@@ -220,7 +222,7 @@ export default function AllQueues() {
       setEditingTicket(null);
       loadAgentQueue(selectedAgentId);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update ticket');
+      alert(error.response?.data?.message || t('admin.queues.alert.updateTicket'));
     }
   };
 
@@ -290,18 +292,18 @@ export default function AllQueues() {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <Link 
-            href="/admin/dashboard" 
+          <Link
+            href="/admin/dashboard"
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            {t('admin.users.backToDashboard')}
           </Link>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-chart-1/10 rounded-lg">
               <List className="w-6 h-6 text-chart-1" />
             </div>
-            <h1 className="text-4xl font-bold text-foreground">Queue Management</h1>
+            <h1 className="text-4xl font-bold text-foreground">{t('admin.queues.title')}</h1>
           </div>
         </motion.div>
 
@@ -314,13 +316,13 @@ export default function AllQueues() {
         >
           <h2 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
             <FolderOpen className="w-5 h-5" />
-            Select Agent or Category
+            {t('admin.queues.selectAgentOrCategory')}
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Filter by Agent
+                {t('admin.queues.filterByAgent')}
               </label>
               {/* Search Input for Agents - Only show when agent dropdown is enabled */}
               {!selectedCategoryId && (
@@ -331,7 +333,7 @@ export default function AllQueues() {
                     </span>
                     <input
                       type="text"
-                      placeholder="Search agents..."
+                      placeholder={t('admin.queues.searchAgents')}
                       value={agentSearchQuery}
                       onChange={(e) => setAgentSearchQuery(e.target.value)}
                       className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
@@ -371,7 +373,7 @@ export default function AllQueues() {
                       animate={{ opacity: 1, y: 0 }}
                       className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-lg p-4 text-center text-muted-foreground"
                     >
-                      No agents found
+                      {t('admin.queues.noAgentsFound')}
                     </motion.div>
                   )}
                 </div>
@@ -385,9 +387,9 @@ export default function AllQueues() {
                     setAgentSearchQuery('');
                   }}
                   disabled={!!selectedCategoryId}
-                  placeholder="Select an agent..."
+                  placeholder={t('admin.queues.selectAgent')}
                   options={[
-                    { value: '', label: 'Select an agent...' },
+                    { value: '', label: t('admin.queues.selectAgent') },
                     ...agents.map((agent) => ({
                       value: agent.id,
                       label: `${agent.firstName} ${agent.lastName}`,
@@ -397,14 +399,14 @@ export default function AllQueues() {
               )}
               {agentSearchQuery.trim() && !selectedAgentId && (
                 <div className="text-sm text-muted-foreground mt-2">
-                  {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''} found. Click on one to select.
+                  {filteredAgents.length} {t('admin.queues.agentsFound')}
                 </div>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                 <FolderOpen className="w-4 h-4" />
-                Filter by Category
+                {t('admin.queues.filterByCategory')}
               </label>
               <Select
                 value={selectedCategoryId}
@@ -414,9 +416,9 @@ export default function AllQueues() {
                   setAgentSearchQuery('');
                 }}
                 disabled={!!selectedAgentId}
-                placeholder="Select a category..."
+                placeholder={t('admin.queues.selectCategory')}
                 options={[
-                  { value: '', label: 'Select a category...' },
+                  { value: '', label: t('admin.queues.selectCategory') },
                   ...categories.map((category) => ({
                     value: category.id,
                     label: category.name,
@@ -438,7 +440,7 @@ export default function AllQueues() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
                 <User className="w-6 h-6 text-primary" />
-                Queue for {agents.find((a) => a.id === selectedAgentId)?.firstName}{' '}
+                {t('admin.queues.queueFor')} {agents.find((a) => a.id === selectedAgentId)?.firstName}{' '}
                 {agents.find((a) => a.id === selectedAgentId)?.lastName}
               </h2>
               {pendingTickets.length > 0 && (
@@ -449,7 +451,7 @@ export default function AllQueues() {
                   className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg"
                 >
                   <Phone className="w-5 h-5" />
-                  Call Next
+                  {t('admin.queues.callNext')}
                 </motion.button>
               )}
             </div>
@@ -460,7 +462,7 @@ export default function AllQueues() {
               </div>
             ) : queue.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                No tickets in queue
+                {t('admin.queues.noTickets')}
               </div>
             ) : (
               <>
@@ -469,7 +471,7 @@ export default function AllQueues() {
                   <div className="mb-6">
                     <h3 className="font-semibold mb-4 text-foreground flex items-center gap-2">
                       <X className="w-5 h-5 text-destructive" />
-                      Hold ({holdTickets.length})
+                      {t('common.hold')} ({holdTickets.length})
                     </h3>
                     <div className="space-y-3">
                       {holdTickets.map((ticket: any, index: number) => (
@@ -490,7 +492,7 @@ export default function AllQueues() {
                                   {ticket.tokenNumber}
                                 </span>
                                 <span className="px-3 py-1 rounded-full text-xs font-medium border bg-destructive/20 text-destructive border-destructive/30">
-                                  hold
+                                  {t('common.hold')}
                                 </span>
                               </div>
                               {ticket.customerName && (
@@ -508,7 +510,7 @@ export default function AllQueues() {
                               className="bg-chart-4 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                             >
                               <RotateCcw className="w-4 h-4" />
-                              Reopen
+                              {t('admin.queues.reopen')}
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -517,7 +519,7 @@ export default function AllQueues() {
                               className="bg-chart-4 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                             >
                               <Edit2 className="w-4 h-4" />
-                              Edit
+                              {t('common.edit')}
                             </motion.button>
                           </div>
                         </motion.div>
@@ -531,7 +533,7 @@ export default function AllQueues() {
                   <div className="mb-6">
                     <h3 className="font-semibold mb-4 text-foreground flex items-center gap-2">
                       <UserCheck className="w-5 h-5 text-chart-2" />
-                      Active Tickets ({otherTickets.length})
+                      {t('admin.queues.activeTickets')} ({otherTickets.length})
                     </h3>
                     <div className="space-y-3">
                       {otherTickets.map((ticket: any, index: number) => (
@@ -571,7 +573,7 @@ export default function AllQueues() {
                                 className="bg-chart-4 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                               >
                                 <RotateCcw className="w-4 h-4" />
-                                Reopen
+                                {t('admin.queues.reopen')}
                               </motion.button>
                             )}
                             {ticket.status !== 'completed' && ticket.status !== 'no_show' && ticket.status !== 'hold' && (
@@ -583,7 +585,7 @@ export default function AllQueues() {
                                   className="bg-chart-2 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                                 >
                                   <CheckCircle2 className="w-4 h-4" />
-                                  Complete
+                                  {t('admin.queues.complete')}
                                 </motion.button>
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
@@ -592,7 +594,7 @@ export default function AllQueues() {
                                   className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
                                 >
                                   <X className="w-4 h-4" />
-                                  Hold
+                                  {t('common.hold')}
                                 </motion.button>
                               </>
                             )}
@@ -603,7 +605,7 @@ export default function AllQueues() {
                               className="bg-chart-4 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                             >
                               <Edit2 className="w-4 h-4" />
-                              Edit
+                              {t('common.edit')}
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -612,7 +614,7 @@ export default function AllQueues() {
                               className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
                             >
                               <Trash2 className="w-4 h-4" />
-                              Delete
+                              {t('admin.queues.delete')}
                             </motion.button>
                           </div>
                         </motion.div>
@@ -625,10 +627,10 @@ export default function AllQueues() {
                 <div>
                   <h3 className="font-bold text-xl mb-4 text-foreground flex items-center gap-2">
                     <List className="w-5 h-5 text-primary" />
-                    Pending Tickets ({pendingTickets.length})
+                    {t('admin.queues.pendingTickets')} ({pendingTickets.length})
                   </h3>
                   {pendingTickets.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No pending tickets</p>
+                    <p className="text-muted-foreground text-center py-8">{t('admin.queues.noPendingTickets')}</p>
                   ) : (
                     <DndContext
                       sensors={sensors}
@@ -670,10 +672,10 @@ export default function AllQueues() {
           >
             <h2 className="text-2xl font-bold mb-4 text-foreground flex items-center gap-2">
               <FolderOpen className="w-6 h-6 text-chart-2" />
-              Queues for Category: {categories.find((c) => c.id === selectedCategoryId)?.name}
+              {t('admin.queues.queuesForCategory')}: {categories.find((c) => c.id === selectedCategoryId)?.name}
             </h2>
             <p className="text-muted-foreground mb-6">
-              Select an agent from the list above to manage their queue
+              {t('admin.queues.selectAgentToManage')}
             </p>
             {/* Search Input for Category Agents */}
             <div className="mb-4">
@@ -683,7 +685,7 @@ export default function AllQueues() {
                 </span>
                 <input
                   type="text"
-                  placeholder="Search agents..."
+                  placeholder={t('admin.queues.searchAgents')}
                   value={agentSearchQuery}
                   onChange={(e) => setAgentSearchQuery(e.target.value)}
                   className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
@@ -698,7 +700,7 @@ export default function AllQueues() {
                     (ac: any) => ac.categoryId === selectedCategoryId && (ac.isActive === true || ac.isActive === 1)
                   );
                   if (!matchesCategory) return false;
-                  
+
                   const query = agentSearchQuery.toLowerCase();
                   return (
                     !agentSearchQuery ||
@@ -731,7 +733,7 @@ export default function AllQueues() {
                           {agent.firstName} {agent.lastName}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Click to manage queue
+                          {t('admin.queues.clickToManage')}
                         </div>
                       </div>
                     </div>
@@ -761,43 +763,43 @@ export default function AllQueues() {
                 >
                   <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2">
                     <Edit2 className="w-6 h-6 text-primary" />
-                    Edit Ticket: {editingTicket.tokenNumber}
+                    {t('admin.queues.editTicket')}: {editingTicket.tokenNumber}
                   </h2>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Customer Name
+                        {t('admin.queues.customerName')}
                       </label>
                       <input
                         type="text"
                         value={editFormData.customerName}
                         onChange={(e) => setEditFormData({ ...editFormData, customerName: e.target.value })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                        placeholder="Enter customer name"
+                        placeholder={t('admin.queues.enterName')}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Customer Phone
+                        {t('admin.queues.customerPhone')}
                       </label>
                       <input
                         type="tel"
                         value={editFormData.customerPhone}
                         onChange={(e) => setEditFormData({ ...editFormData, customerPhone: e.target.value })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                        placeholder="Enter phone number"
+                        placeholder={t('admin.queues.enterPhone')}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Customer Email
+                        {t('admin.queues.customerEmail')}
                       </label>
                       <input
                         type="email"
                         value={editFormData.customerEmail}
                         onChange={(e) => setEditFormData({ ...editFormData, customerEmail: e.target.value })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                        placeholder="Enter email address"
+                        placeholder={t('admin.queues.enterEmail')}
                       />
                     </div>
                     <div className="flex gap-3 mt-6">
@@ -832,15 +834,15 @@ export default function AllQueues() {
 }
 
 // Sortable Ticket Item Component
-function SortableTicketItem({ 
-  ticket, 
-  onComplete, 
+function SortableTicketItem({
+  ticket,
+  onComplete,
   onHold,
   onDelete,
-  index 
-}: { 
-  ticket: any; 
-  onComplete: (id: string) => void; 
+  index
+}: {
+  ticket: any;
+  onComplete: (id: string) => void;
   onHold: (id: string) => void;
   onDelete: (id: string) => void;
   index: number;
@@ -869,13 +871,12 @@ function SortableTicketItem({
       <div
         ref={setNodeRef}
         style={style}
-        className={`p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 rounded-xl flex justify-between items-center hover:shadow-md transition-all ${
-          isDragging ? 'cursor-grabbing shadow-xl z-50' : 'cursor-grab'
-        }`}
+        className={`p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 rounded-xl flex justify-between items-center hover:shadow-md transition-all ${isDragging ? 'cursor-grabbing shadow-xl z-50' : 'cursor-grab'
+          }`}
       >
-        <div 
-          className="flex items-center gap-3 flex-1" 
-          {...attributes} 
+        <div
+          className="flex items-center gap-3 flex-1"
+          {...attributes}
           {...listeners}
           style={{ touchAction: 'none' }}
         >

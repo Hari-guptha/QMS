@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { auth, User } from '@/lib/auth';
 import { authApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
+import { useI18n } from '@/lib/i18n';
 import { UserCircle, Save, ArrowLeft } from 'lucide-react';
 
 export default function MyAccountPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,9 +52,9 @@ export default function MyAccountPage() {
       const updatedUser = { ...user!, ...formData };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
-      setSuccess('Profile updated successfully!');
+      setSuccess(t('settings.account.success'));
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      setError(err.response?.data?.message || t('settings.account.failed'));
     } finally {
       setSaving(false);
     }
@@ -63,7 +65,7 @@ export default function MyAccountPage() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="text-lg text-muted-foreground">Loading...</div>
+          <div className="text-lg text-muted-foreground">{t('common.loading')}</div>
         </div>
       </div>
     );
@@ -89,16 +91,16 @@ export default function MyAccountPage() {
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            {t('settings.account.backToDashboard')}
           </a>
           <div className="flex items-center gap-3 mb-2">
             <UserCircle className="w-8 h-8 text-primary" />
             <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight leading-tight">
-              My Account
+              {t('settings.account.title')}
             </h1>
           </div>
           <p className="text-muted-foreground text-lg">
-            Manage your account information and preferences
+            {t('settings.account.subtitle')}
           </p>
         </div>
 
@@ -120,7 +122,7 @@ export default function MyAccountPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                    First Name
+                    {t('admin.users.firstName')}
                   </label>
                   <input
                     type="text"
@@ -135,7 +137,7 @@ export default function MyAccountPage() {
 
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                    Last Name
+                    {t('admin.users.lastName')}
                   </label>
                   <input
                     type="text"
@@ -151,7 +153,7 @@ export default function MyAccountPage() {
 
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                  Email
+                  {t('customer.email')}
                 </label>
                 <input
                   type="email"
@@ -166,24 +168,24 @@ export default function MyAccountPage() {
 
               <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Account Type:</span>
+                  <span className="text-muted-foreground">{t('settings.account.accountType')}:</span>
                   <span className="font-medium text-foreground">
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">User ID:</span>
+                  <span className="text-muted-foreground">{t('settings.account.userId')}:</span>
                   <span className="font-mono text-foreground text-xs">{user.id}</span>
                 </div>
                 {user.employeeId && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Employee ID:</span>
+                    <span className="text-muted-foreground">{t('admin.users.employeeId')}:</span>
                     <span className="font-medium text-foreground">{user.employeeId}</span>
                   </div>
                 )}
                 {user.counterNumber && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Counter Number:</span>
+                    <span className="text-muted-foreground">{t('admin.users.counterNumber')}:</span>
                     <span className="font-medium text-foreground">{user.counterNumber}</span>
                   </div>
                 )}
@@ -195,7 +197,7 @@ export default function MyAccountPage() {
                   onClick={() => router.push(getDashboardPath())}
                   className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors border"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -203,7 +205,7 @@ export default function MyAccountPage() {
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-xs flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? t('settings.account.saving') : t('settings.account.saveChanges')}
                 </button>
               </div>
             </form>
