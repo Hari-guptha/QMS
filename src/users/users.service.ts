@@ -3,25 +3,37 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User, UserRole } from './entities/user.entity';
-import { Ticket } from '../queue/entities/ticket.entity';
+import { UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AuthService } from '../auth/auth.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { EncryptionService } from '../encryption/encryption.service';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Ticket)
-    private ticketRepository: Repository<Ticket>,
+    private prisma: PrismaService,
     private authService: AuthService,
-  ) {}
+    private encryptionService: EncryptionService,
+  ) { }
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.userRepository.findOne({
+  private encryptUser(data: any) {
+    if (data.phone) data.phone = this.encryptionService.encrypt(data.phone);
+    if (data.firstName) data.firstName = this.encryptionService.encrypt(data.firstName);
+    if (data.lastName) data.lastName = this.encryptionService.encrypt(data.lastName);
+    return data;
+  }
+
+  private decryptUser(user: any) {
+    if (!user) return user;
+    if (user.phone) user.phone = this.encryptionService.decrypt(user.phone);
+    if (user.firstName) user.firstName = this.encryptionService.decrypt(user.firstName);
+    if (user.lastName) user.lastName = this.encryptionService.decrypt(user.lastName);
+    return user;
+  }
+
+  async create(createUserDto: CreateUserDto) {
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
 
@@ -33,76 +45,99 @@ export class UsersService {
       createUserDto.password,
     );
 
-    const user = this.userRepository.create({
+    const data = this.encryptUser({
       ...createUserDto,
       password: hashedPassword,
     });
 
-    return this.userRepository.save(user);
+    const user = await this.prisma.user.create({ data });
+    return this.decryptUser(user);
   }
 
-  async findAll(role?: UserRole): Promise<User[]> {
+  async findAll(role?: UserRole) {
     const where: any = {};
     if (role) {
       where.role = role;
     }
-    return this.userRepository.find({
+    const users = await this.prisma.user.findMany({
       where,
-      relations: ['agentCategories', 'agentCategories.category'],
+      include: {
+        agentCategories: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
+    return users.map((u) => this.decryptUser(u));
   }
 
-  async findOne(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({
+  async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({
       where: { id },
-      relations: ['agentCategories', 'agentCategories.category'],
+      include: {
+        agentCategories: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return this.decryptUser(user);
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+  async findByEmail(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    return this.decryptUser(user);
   }
 
-  async update(id: string, updateData: Partial<User>): Promise<User> {
-    const user = await this.findOne(id);
+  async update(id: string, updateData: any) {
+    await this.findOne(id);
 
-    if (updateData.password) {
-      updateData.password = await this.authService.hashPassword(
-        updateData.password,
-      );
+    const data = { ...updateData };
+    if (data.password) {
+      data.password = await this.authService.hashPassword(data.password);
     }
 
-    Object.assign(user, updateData);
-    return this.userRepository.save(user);
+    this.encryptUser(data);
+
+    const user = await this.prisma.user.update({
+      where: { id },
+      data,
+    });
+    return this.decryptUser(user);
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.findOne(id);
-    
-    // Handle foreign key constraint: Set agentId to null for all tickets associated with this user
-    await this.ticketRepository.update(
-      { agentId: id },
-      { agentId: null },
-    );
-    
-    await this.userRepository.remove(user);
+    await this.findOne(id);
+
+    await this.prisma.ticket.updateMany({
+      where: { agentId: id },
+      data: { agentId: null },
+    });
+
+    await this.prisma.user.delete({ where: { id } });
   }
 
-  async getAgentsByCategory(categoryId: string): Promise<User[]> {
-    return this.userRepository
-      .createQueryBuilder('user')
-      .innerJoin('user.agentCategories', 'ac')
-      .where('user.role = :role', { role: UserRole.AGENT })
-      .andWhere('ac.categoryId = :categoryId', { categoryId })
-      .andWhere('ac.isActive = :isActive', { isActive: true })
-      .andWhere('user.isActive = :userActive', { userActive: true })
-      .getMany();
+  async getAgentsByCategory(categoryId: string) {
+    const agents = await this.prisma.user.findMany({
+      where: {
+        role: UserRole.AGENT,
+        isActive: true,
+        agentCategories: {
+          some: {
+            categoryId,
+            isActive: true,
+          },
+        },
+      },
+    });
+    return agents.map((a) => this.decryptUser(a));
   }
 }
 

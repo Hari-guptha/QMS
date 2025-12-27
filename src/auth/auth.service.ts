@@ -5,33 +5,40 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User, UserRole } from '../users/entities/user.entity';
+import { UserRole } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { EncryptionService } from '../encryption/encryption.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+    private encryptionService: EncryptionService,
+  ) { }
 
-  async validateUser(email: string, password: string): Promise<User | null> {
-    const user = await this.userRepository.findOne({
-      where: { email, isActive: true },
+  private decryptUser(user: any) {
+    if (!user) return user;
+    if (user.phone) user.phone = this.encryptionService.decrypt(user.phone);
+    if (user.firstName) user.firstName = this.encryptionService.decrypt(user.firstName);
+    if (user.lastName) user.lastName = this.encryptionService.decrypt(user.lastName);
+    return user;
+  }
+
+  async validateUser(email: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
     });
 
-    if (!user) {
+    if (!user || !user.isActive) {
       return null;
     }
 
-    // If user has no password (OAuth user), they can't login with email/password
     if (!user.password) {
       return null;
     }
@@ -43,11 +50,13 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
+    const userRaw = await this.validateUser(loginDto.email, loginDto.password);
 
-    if (!user) {
+    if (!userRaw) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    const user = this.decryptUser(userRaw);
 
     const payload = {
       sub: user.id,
@@ -86,11 +95,11 @@ export class AuthService {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
-      const user = await this.userRepository.findOne({
-        where: { id: payload.sub, isActive: true },
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
       });
 
-      if (!user) {
+      if (!user || !user.isActive) {
         throw new UnauthorizedException('User not found');
       }
 
@@ -117,10 +126,12 @@ export class AuthService {
     return bcrypt.hash(password, 10);
   }
 
-  async loginWithMicrosoft(user: User) {
-    if (!user.isActive) {
+  async loginWithMicrosoft(userRaw: any) {
+    if (!userRaw.isActive) {
       throw new UnauthorizedException('Account is inactive');
     }
+
+    const user = this.decryptUser(userRaw);
 
     const payload = {
       sub: user.id,
@@ -154,20 +165,18 @@ export class AuthService {
   }
 
   async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDto): Promise<void> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId, isActive: true },
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
     });
 
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found');
     }
 
-    // If user has no password (OAuth user), they can't update password this way
     if (!user.password) {
       throw new BadRequestException('Password update not available for OAuth users');
     }
 
-    // Verify current password
     const isCurrentPasswordValid = await bcrypt.compare(
       updatePasswordDto.currentPassword,
       user.password,
@@ -177,10 +186,11 @@ export class AuthService {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
-    // Hash and update new password
     const hashedNewPassword = await this.hashPassword(updatePasswordDto.newPassword);
-    user.password = hashedNewPassword;
-    await this.userRepository.save(user);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
   }
 }
 

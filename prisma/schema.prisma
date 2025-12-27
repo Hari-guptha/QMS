@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.UniqueIdentifier
+  email           String   @unique @db.NVarChar(255)
+  phone           String?  @db.NVarChar(500)
+  password        String?  @db.NVarChar(255)
+  firstName       String   @db.NVarChar(500)
+  lastName        String   @db.NVarChar(500)
+  role            String   @default("customer") @db.VarChar(20)
+  isActive        Boolean  @default(true) @db.Bit
+  employeeId      String?  @db.NVarChar(100)
+  counterNumber   String?  @db.NVarChar(50)
+  microsoftId     String?  @db.NVarChar(255)
+  createdAt       DateTime @default(now()) @db.DateTime2
+  updatedAt       DateTime @updatedAt @db.DateTime2
+
+  tickets         Ticket[]
+  agentCategories AgentCategory[]
+
+  @@index([microsoftId])
+  @@map("users")
+}
+
+model Category {
+  id                  String   @id @default(uuid()) @db.UniqueIdentifier
+  name                String   @unique @db.NVarChar(100)
+  description         String?  @db.NVarChar(500)
+  isActive            Boolean  @default(true) @db.Bit
+  estimatedWaitTime   Int      @default(0) @db.Int
+  createdAt           DateTime @default(now()) @db.DateTime2
+  updatedAt           DateTime @updatedAt @db.DateTime2
+
+  agentCategories     AgentCategory[]
+  tickets             Ticket[]
+
+  @@map("categories")
+}
+
+model AgentCategory {
+  id         String   @id @default(uuid()) @db.UniqueIdentifier
+  agentId    String   @db.UniqueIdentifier
+  categoryId String   @db.UniqueIdentifier
+  isActive   Boolean  @default(true) @db.Bit
+  assignedAt DateTime @default(now()) @db.DateTime2
+
+  agent      User     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("agent_categories")
+}
+
+model Ticket {
+  id               String       @id @default(uuid()) @db.UniqueIdentifier
+  tokenNumber      String       @unique @db.NVarChar(50)
+  categoryId       String       @db.UniqueIdentifier
+  agentId          String?      @db.UniqueIdentifier
+  status           String       @default("pending") @db.VarChar(20)
+  customerName     String?      @db.NVarChar(500)
+  customerPhone    String?      @db.NVarChar(500)
+  customerEmail    String?      @db.NVarChar(500)
+  formData         String?      @db.NVarChar(Max)
+  calledAt         DateTime?    @db.DateTime2
+  servingStartedAt DateTime?    @db.DateTime2
+  completedAt      DateTime?    @db.DateTime2
+  noShowAt         DateTime?    @db.DateTime2
+  positionInQueue  Int          @default(0) @db.Int
+  createdAt        DateTime     @default(now()) @db.DateTime2
+  updatedAt        DateTime     @updatedAt @db.DateTime2
+
+  category         Category     @relation(fields: [categoryId], references: [id])
+  agent            User?        @relation(fields: [agentId], references: [id])
+
+  @@index([agentId, status, createdAt])
+  @@index([categoryId, status, createdAt])
+  @@map("tickets")
+}

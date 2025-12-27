@@ -1,16 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { RealtimeGateway } from './realtime.gateway';
-import { Ticket } from '../queue/entities/ticket.entity';
+import { Ticket } from '@prisma/client';
 
 @Injectable()
 export class RealtimeService {
-  constructor(
-    private gateway: RealtimeGateway,
-    @InjectRepository(Ticket)
-    private ticketRepository: Repository<Ticket>,
-  ) {}
+  constructor(private gateway: RealtimeGateway) { }
 
   emitTicketCreated(ticket: Ticket) {
     this.gateway.server.emit('ticket:created', ticket);
@@ -93,4 +87,3 @@ export class RealtimeService {
     this.gateway.server.to('public').emit('status:updated');
   }
 }
-

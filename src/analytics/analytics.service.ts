@@ -1,109 +1,98 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
-import { Ticket, TicketStatus } from '../queue/entities/ticket.entity';
-import { User } from '../users/entities/user.entity';
-import { Category } from '../categories/entities/category.entity';
+import { PrismaService } from '../prisma/prisma.service';
+import { TicketStatus } from '../queue/entities/ticket.entity';
+import { EncryptionService } from '../encryption/encryption.service';
 
 @Injectable()
 export class AnalyticsService {
   constructor(
-    @InjectRepository(Ticket)
-    private ticketRepository: Repository<Ticket>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
-  ) {}
+    private prisma: PrismaService,
+    private encryptionService: EncryptionService,
+  ) { }
 
-  async getAverageWaitTime(
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<number> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .where('ticket.status = :status', { status: TicketStatus.COMPLETED })
-      .andWhere('ticket.calledAt IS NOT NULL')
-      .andWhere('ticket.servingStartedAt IS NOT NULL');
+  private decryptUser(user: any) {
+    if (!user) return user;
+    if (user.phone) user.phone = this.encryptionService.decrypt(user.phone);
+    if (user.firstName) user.firstName = this.encryptionService.decrypt(user.firstName);
+    if (user.lastName) user.lastName = this.encryptionService.decrypt(user.lastName);
+    return user;
+  }
+
+  async getAverageWaitTime(startDate?: Date, endDate?: Date): Promise<number> {
+    const where: any = {
+      status: TicketStatus.COMPLETED,
+      calledAt: { not: null },
+      servingStartedAt: { not: null },
+    };
 
     if (startDate && endDate) {
-      query.andWhere('ticket.completedAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      where.completedAt = {
+        gte: startDate,
+        lte: endDate,
+      };
     }
 
-    const tickets = await query.getMany();
+    const tickets = await this.prisma.ticket.findMany({
+      where,
+      select: {
+        calledAt: true,
+        servingStartedAt: true,
+      },
+    });
 
     if (tickets.length === 0) return 0;
 
     const totalWaitTime = tickets.reduce((sum, ticket) => {
       if (!ticket.servingStartedAt || !ticket.calledAt) return sum;
-      const servingStart = ticket.servingStartedAt instanceof Date 
-        ? ticket.servingStartedAt 
-        : new Date(ticket.servingStartedAt);
-      const called = ticket.calledAt instanceof Date 
-        ? ticket.calledAt 
-        : new Date(ticket.calledAt);
-      const waitTime = servingStart.getTime() - called.getTime();
-      return sum + waitTime;
+      return sum + (ticket.servingStartedAt.getTime() - ticket.calledAt.getTime());
     }, 0);
 
-    return Math.round(totalWaitTime / tickets.length / 1000 / 60); // Convert to minutes
+    return Math.round(totalWaitTime / tickets.length / 1000 / 60);
   }
 
-  async getAverageServiceTime(
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<number> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .where('ticket.status = :status', { status: TicketStatus.COMPLETED })
-      .andWhere('ticket.servingStartedAt IS NOT NULL')
-      .andWhere('ticket.completedAt IS NOT NULL');
+  async getAverageServiceTime(startDate?: Date, endDate?: Date): Promise<number> {
+    const where: any = {
+      status: TicketStatus.COMPLETED,
+      servingStartedAt: { not: null },
+      completedAt: { not: null },
+    };
 
     if (startDate && endDate) {
-      query.andWhere('ticket.completedAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      where.completedAt = {
+        gte: startDate,
+        lte: endDate,
+      };
     }
 
-    const tickets = await query.getMany();
+    const tickets = await this.prisma.ticket.findMany({
+      where,
+      select: {
+        servingStartedAt: true,
+        completedAt: true,
+      },
+    });
 
     if (tickets.length === 0) return 0;
 
     const totalServiceTime = tickets.reduce((sum, ticket) => {
       if (!ticket.completedAt || !ticket.servingStartedAt) return sum;
-      const completed = ticket.completedAt instanceof Date 
-        ? ticket.completedAt 
-        : new Date(ticket.completedAt);
-      const servingStart = ticket.servingStartedAt instanceof Date 
-        ? ticket.servingStartedAt 
-        : new Date(ticket.servingStartedAt);
-      const serviceTime = completed.getTime() - servingStart.getTime();
-      return sum + serviceTime;
+      return sum + (ticket.completedAt.getTime() - ticket.servingStartedAt.getTime());
     }, 0);
 
-    return Math.round(totalServiceTime / tickets.length / 1000 / 60); // Convert to minutes
+    return Math.round(totalServiceTime / tickets.length / 1000 / 60);
   }
 
   async getPeakHours(startDate?: Date, endDate?: Date): Promise<any> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .select('DATEPART(HOUR, ticket.createdAt)', 'hour')
-      .addSelect('COUNT(ticket.id)', 'count')
-      .groupBy('DATEPART(HOUR, ticket.createdAt)')
-      .orderBy('count', 'DESC');
+    const start = startDate ? startDate.toISOString() : '1970-01-01';
+    const end = endDate ? endDate.toISOString() : '9999-12-31';
 
-    if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
-
-    const results = await query.getRawMany();
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT DATEPART(HOUR, createdAt) as hour, COUNT(id) as count
+      FROM tickets
+      WHERE createdAt BETWEEN ${start} AND ${end}
+      GROUP BY DATEPART(HOUR, createdAt)
+      ORDER BY count DESC
+    `;
 
     return results.map((r) => ({
       hour: parseInt(r.hour),
@@ -111,112 +100,78 @@ export class AnalyticsService {
     }));
   }
 
-  async getAbandonmentRate(
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<number> {
-    const query = this.ticketRepository.createQueryBuilder('ticket');
-
+  async getAbandonmentRate(startDate?: Date, endDate?: Date): Promise<number> {
+    const where: any = {};
     if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      where.createdAt = {
+        gte: startDate,
+        lte: endDate,
+      };
     }
 
-    const allTickets = await query.getMany();
-    const noShowTickets = allTickets.filter(
-      (t) => t.status === TicketStatus.NO_SHOW,
-    );
+    const allTickets = await this.prisma.ticket.findMany({
+      where,
+      select: { status: true },
+    });
 
     if (allTickets.length === 0) return 0;
 
+    const noShowTickets = allTickets.filter((t) => t.status === TicketStatus.NO_SHOW);
     return (noShowTickets.length / allTickets.length) * 100;
   }
 
-  async getAgentPerformance(
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<any[]> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .select('ticket.agentId', 'agentId')
-      .addSelect('COUNT(ticket.id)', 'totalTickets')
-      .addSelect(
-        'SUM(CASE WHEN ticket.status = :completed THEN 1 ELSE 0 END)',
-        'completedTickets',
-      )
-      .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.servingStartedAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.servingStartedAt, ticket.completedAt) ELSE NULL END)',
-        'avgServiceTime',
-      )
-      .where('ticket.agentId IS NOT NULL')
-      .setParameter('completed', TicketStatus.COMPLETED)
-      .groupBy('ticket.agentId')
-      .orderBy('SUM(CASE WHEN ticket.status = :completed THEN 1 ELSE 0 END)', 'DESC');
+  async getAgentPerformance(startDate?: Date, endDate?: Date): Promise<any[]> {
+    const start = startDate ? startDate.toISOString() : '1970-01-01';
+    const end = endDate ? endDate.toISOString() : '9999-12-31';
 
-    if (startDate && endDate) {
-      query.andWhere('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT 
+        agentId,
+        COUNT(id) as totalTickets,
+        SUM(CASE WHEN status = ${TicketStatus.COMPLETED} THEN 1 ELSE 0 END) as completedTickets,
+        AVG(CASE WHEN completedAt IS NOT NULL AND servingStartedAt IS NOT NULL THEN DATEDIFF(MINUTE, servingStartedAt, completedAt) ELSE NULL END) as avgServiceTime
+      FROM tickets
+      WHERE agentId IS NOT NULL AND createdAt BETWEEN ${start} AND ${end}
+      GROUP BY agentId
+      ORDER BY completedTickets DESC
+    `;
 
-    const results = await query.getRawMany();
-
-    // Enrich with agent details
     const agentIds = results.map((r) => r.agentId);
-    const agents = await this.userRepository.find({
-      where: { id: In(agentIds) },
+    const rawAgents = await this.prisma.user.findMany({
+      where: { id: { in: agentIds } },
     });
+    const agents = rawAgents.map(a => this.decryptUser(a));
 
     return results.map((r) => {
       const agent = agents.find((a) => a.id === r.agentId);
       return {
         agentId: r.agentId,
-        agentName: agent
-          ? `${agent.firstName} ${agent.lastName}`
-          : 'Unknown',
+        agentName: agent ? `${agent.firstName} ${agent.lastName}` : 'Unknown',
         totalTickets: parseInt(r.totalTickets),
         completedTickets: parseInt(r.completedTickets),
-        avgServiceTime: r.avgServiceTime
-          ? Math.round(parseFloat(r.avgServiceTime))
-          : 0,
-        completionRate:
-          r.totalTickets > 0
-            ? (parseInt(r.completedTickets) / parseInt(r.totalTickets)) * 100
-            : 0,
+        avgServiceTime: r.avgServiceTime ? Math.round(parseFloat(r.avgServiceTime)) : 0,
+        completionRate: r.totalTickets > 0 ? (parseInt(r.completedTickets) / parseInt(r.totalTickets)) * 100 : 0,
       };
     });
   }
 
-  async getCategoryStats(
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<any[]> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .select('ticket.categoryId', 'categoryId')
-      .addSelect('COUNT(ticket.id)', 'totalTickets')
-      .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.createdAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.createdAt, ticket.completedAt) ELSE NULL END)',
-        'avgTotalTime',
-      )
-      .groupBy('ticket.categoryId');
+  async getCategoryStats(startDate?: Date, endDate?: Date): Promise<any[]> {
+    const start = startDate ? startDate.toISOString() : '1970-01-01';
+    const end = endDate ? endDate.toISOString() : '9999-12-31';
 
-    if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT 
+        categoryId,
+        COUNT(id) as totalTickets,
+        AVG(CASE WHEN completedAt IS NOT NULL AND createdAt IS NOT NULL THEN DATEDIFF(MINUTE, createdAt, completedAt) ELSE NULL END) as avgTotalTime
+      FROM tickets
+      WHERE createdAt BETWEEN ${start} AND ${end}
+      GROUP BY categoryId
+    `;
 
-    const results = await query.getRawMany();
-
-    // Enrich with category details
     const categoryIds = results.map((r) => r.categoryId);
-    const categories = await this.categoryRepository.find({
-      where: { id: In(categoryIds) },
+    const categories = await this.prisma.category.findMany({
+      where: { id: { in: categoryIds } },
     });
 
     return results.map((r) => {
@@ -225,84 +180,72 @@ export class AnalyticsService {
         categoryId: r.categoryId,
         categoryName: category ? category.name : 'Unknown',
         totalTickets: parseInt(r.totalTickets),
-        avgTotalTime: r.avgTotalTime
-          ? Math.round(parseFloat(r.avgTotalTime))
-          : 0,
+        avgTotalTime: r.avgTotalTime ? Math.round(parseFloat(r.avgTotalTime)) : 0,
       };
     });
   }
 
   async getTicketCounts(startDate?: Date, endDate?: Date): Promise<any> {
-    const query = this.ticketRepository.createQueryBuilder('ticket');
-
+    const where: any = {};
     if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      where.createdAt = {
+        gte: startDate,
+        lte: endDate,
+      };
     }
 
-    const allTickets = await query.getMany();
+    const counts = await this.prisma.ticket.groupBy({
+      by: ['status'],
+      where,
+      _count: { id: true },
+    });
 
-    return {
-      total: allTickets.length,
-      pending: allTickets.filter((t) => t.status === TicketStatus.PENDING).length,
-      serving: allTickets.filter((t) => t.status === TicketStatus.SERVING).length,
-      hold: allTickets.filter((t) => t.status === TicketStatus.HOLD).length,
-      completed: allTickets.filter((t) => t.status === TicketStatus.COMPLETED).length,
-      noShow: allTickets.filter((t) => t.status === TicketStatus.NO_SHOW).length,
-      cancelled: allTickets.filter((t) => t.status === TicketStatus.CANCELLED).length,
+    const result = {
+      total: 0,
+      pending: 0,
+      serving: 0,
+      hold: 0,
+      completed: 0,
+      noShow: 0,
+      cancelled: 0,
     };
+
+    counts.forEach((c) => {
+      const count = c._count.id;
+      result.total += count;
+      if (c.status === TicketStatus.PENDING) result.pending = count;
+      if (c.status === TicketStatus.SERVING) result.serving = count;
+      if (c.status === TicketStatus.HOLD) result.hold = count;
+      if (c.status === TicketStatus.COMPLETED) result.completed = count;
+      if (c.status === TicketStatus.NO_SHOW) result.noShow = count;
+      if (c.status === TicketStatus.CANCELLED) result.cancelled = count;
+    });
+
+    return result;
   }
 
   async getServicePerformance(startDate?: Date, endDate?: Date): Promise<any[]> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .leftJoinAndSelect('ticket.category', 'category')
-      .select('ticket.categoryId', 'categoryId')
-      .addSelect('COUNT(ticket.id)', 'totalTickets')
-      .addSelect(
-        'SUM(CASE WHEN ticket.status = :pending THEN 1 ELSE 0 END)',
-        'pendingTickets',
-      )
-      .addSelect(
-        'SUM(CASE WHEN ticket.status = :serving THEN 1 ELSE 0 END)',
-        'servingTickets',
-      )
-      .addSelect(
-        'SUM(CASE WHEN ticket.status = :hold THEN 1 ELSE 0 END)',
-        'holdTickets',
-      )
-      .addSelect(
-        'SUM(CASE WHEN ticket.status = :completed THEN 1 ELSE 0 END)',
-        'completedTickets',
-      )
-      .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.createdAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.createdAt, ticket.completedAt) ELSE NULL END)',
-        'avgTotalTime',
-      )
-      .addSelect(
-        'AVG(CASE WHEN ticket.completedAt IS NOT NULL AND ticket.servingStartedAt IS NOT NULL THEN DATEDIFF(MINUTE, ticket.servingStartedAt, ticket.completedAt) ELSE NULL END)',
-        'avgServiceTime',
-      )
-      .setParameter('pending', TicketStatus.PENDING)
-      .setParameter('serving', TicketStatus.SERVING)
-      .setParameter('hold', TicketStatus.HOLD)
-      .setParameter('completed', TicketStatus.COMPLETED)
-      .groupBy('ticket.categoryId');
+    const start = startDate ? startDate.toISOString() : '1970-01-01';
+    const end = endDate ? endDate.toISOString() : '9999-12-31';
 
-    if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
-
-    const results = await query.getRawMany();
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT 
+        categoryId,
+        COUNT(id) as totalTickets,
+        SUM(CASE WHEN status = ${TicketStatus.PENDING} THEN 1 ELSE 0 END) as pendingTickets,
+        SUM(CASE WHEN status = ${TicketStatus.SERVING} THEN 1 ELSE 0 END) as servingTickets,
+        SUM(CASE WHEN status = ${TicketStatus.HOLD} THEN 1 ELSE 0 END) as holdTickets,
+        SUM(CASE WHEN status = ${TicketStatus.COMPLETED} THEN 1 ELSE 0 END) as completedTickets,
+        AVG(CASE WHEN completedAt IS NOT NULL AND createdAt IS NOT NULL THEN DATEDIFF(MINUTE, createdAt, completedAt) ELSE NULL END) as avgTotalTime,
+        AVG(CASE WHEN completedAt IS NOT NULL AND servingStartedAt IS NOT NULL THEN DATEDIFF(MINUTE, servingStartedAt, completedAt) ELSE NULL END) as avgServiceTime
+      FROM tickets
+      WHERE createdAt BETWEEN ${start} AND ${end}
+      GROUP BY categoryId
+    `;
 
     const categoryIds = results.map((r) => r.categoryId);
-    const categories = await this.categoryRepository.find({
-      where: { id: In(categoryIds) },
+    const categories = await this.prisma.category.findMany({
+      where: { id: { in: categoryIds } },
     });
 
     return results.map((r) => {
@@ -317,39 +260,28 @@ export class AnalyticsService {
         completedTickets: parseInt(r.completedTickets) || 0,
         avgTotalTime: r.avgTotalTime ? Math.round(parseFloat(r.avgTotalTime)) : 0,
         avgServiceTime: r.avgServiceTime ? Math.round(parseFloat(r.avgServiceTime)) : 0,
-        completionRate:
-          parseInt(r.totalTickets) > 0
-            ? (parseInt(r.completedTickets) / parseInt(r.totalTickets)) * 100
-            : 0,
+        completionRate: parseInt(r.totalTickets) > 0 ? (parseInt(r.completedTickets) / parseInt(r.totalTickets)) * 100 : 0,
       };
     });
   }
 
-  async getDetailedAgentPerformance(
-    startDate?: Date,
-    endDate?: Date,
-    categoryId?: string,
-  ): Promise<any[]> {
-    // First, get all tickets for the agents
-    const ticketQuery = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .leftJoinAndSelect('ticket.category', 'category')
-      .where('ticket.agentId IS NOT NULL');
-
+  async getDetailedAgentPerformance(startDate?: Date, endDate?: Date, categoryId?: string): Promise<any[]> {
+    const where: any = { agentId: { not: null } };
     if (startDate && endDate) {
-      ticketQuery.andWhere('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      where.createdAt = {
+        gte: startDate,
+        lte: endDate,
+      };
     }
-
     if (categoryId) {
-      ticketQuery.andWhere('ticket.categoryId = :categoryId', { categoryId });
+      where.categoryId = categoryId;
     }
 
-    const allTickets = await ticketQuery.getMany();
+    const allTickets = await this.prisma.ticket.findMany({
+      where,
+      include: { category: true },
+    });
 
-    // Group tickets by agent
     const agentMap = new Map<string, any>();
 
     allTickets.forEach((ticket) => {
@@ -374,51 +306,29 @@ export class AnalyticsService {
       const agentData = agentMap.get(ticket.agentId)!;
       agentData.totalTickets++;
 
-      // Count by status
       if (ticket.status === TicketStatus.PENDING) agentData.pendingTickets++;
       if (ticket.status === TicketStatus.SERVING) agentData.servingTickets++;
       if (ticket.status === TicketStatus.HOLD) agentData.holdTickets++;
       if (ticket.status === TicketStatus.COMPLETED) agentData.completedTickets++;
 
-      // Calculate times
       if (ticket.calledAt && ticket.createdAt) {
-        const waitTime = Math.round(
-          (new Date(ticket.calledAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000
-        );
-        agentData.waitTimes.push(waitTime);
+        agentData.waitTimes.push(Math.round((ticket.calledAt.getTime() - ticket.createdAt.getTime()) / 60000));
       }
-
       if (ticket.servingStartedAt && ticket.calledAt) {
-        const calledToServing = Math.round(
-          (new Date(ticket.servingStartedAt).getTime() - new Date(ticket.calledAt).getTime()) / 60000
-        );
-        agentData.calledToServingTimes.push(calledToServing);
+        agentData.calledToServingTimes.push(Math.round((ticket.servingStartedAt.getTime() - ticket.calledAt.getTime()) / 60000));
       }
-
       if (ticket.completedAt && ticket.servingStartedAt) {
-        const serviceTime = Math.round(
-          (new Date(ticket.completedAt).getTime() - new Date(ticket.servingStartedAt).getTime()) / 60000
-        );
-        agentData.serviceTimes.push(serviceTime);
+        agentData.serviceTimes.push(Math.round((ticket.completedAt.getTime() - ticket.servingStartedAt.getTime()) / 60000));
       }
-
       if (ticket.completedAt && ticket.createdAt) {
-        const totalTime = Math.round(
-          (new Date(ticket.completedAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000
-        );
-        agentData.totalTimes.push(totalTime);
+        agentData.totalTimes.push(Math.round((ticket.completedAt.getTime() - ticket.createdAt.getTime()) / 60000));
       }
 
-      // Service breakdown
       if (ticket.category) {
-        const existingService = agentData.serviceBreakdown.find(
-          (s: any) => s.categoryId === ticket.categoryId
-        );
+        const existingService = agentData.serviceBreakdown.find((s: any) => s.categoryId === ticket.categoryId);
         if (existingService) {
           existingService.totalTickets++;
-          if (ticket.status === TicketStatus.COMPLETED) {
-            existingService.completedTickets++;
-          }
+          if (ticket.status === TicketStatus.COMPLETED) existingService.completedTickets++;
         } else {
           agentData.serviceBreakdown.push({
             categoryId: ticket.categoryId,
@@ -430,16 +340,14 @@ export class AnalyticsService {
       }
     });
 
-    // Get agent details
     const agentIds = Array.from(agentMap.keys());
-    const agents = await this.userRepository.find({
-      where: { id: In(agentIds) },
+    const rawAgents = await this.prisma.user.findMany({
+      where: { id: { in: agentIds } },
     });
+    const agents = rawAgents.map(a => this.decryptUser(a));
 
-    // Calculate averages and enrich with agent info
-    return Array.from(agentMap.entries()).map(([agentId, agentData]: [string, any]) => {
+    return Array.from(agentMap.entries()).map(([agentId, agentData]) => {
       const agent = agents.find((a) => a.id === agentId);
-      
       return {
         agentId,
         agentName: agent ? `${agent.firstName} ${agent.lastName}` : 'Unknown',
@@ -449,78 +357,41 @@ export class AnalyticsService {
         servingTickets: agentData.servingTickets,
         holdTickets: agentData.holdTickets,
         completedTickets: agentData.completedTickets,
-        avgWaitTime:
-          agentData.waitTimes.length > 0
-            ? Math.round(
-                agentData.waitTimes.reduce((a: number, b: number) => a + b, 0) /
-                  agentData.waitTimes.length
-              )
-            : 0,
-        avgCalledToServingTime:
-          agentData.calledToServingTimes.length > 0
-            ? Math.round(
-                agentData.calledToServingTimes.reduce((a: number, b: number) => a + b, 0) /
-                  agentData.calledToServingTimes.length
-              )
-            : 0,
-        avgServiceTime:
-          agentData.serviceTimes.length > 0
-            ? Math.round(
-                agentData.serviceTimes.reduce((a: number, b: number) => a + b, 0) /
-                  agentData.serviceTimes.length
-              )
-            : 0,
-        avgTotalTime:
-          agentData.totalTimes.length > 0
-            ? Math.round(
-                agentData.totalTimes.reduce((a: number, b: number) => a + b, 0) /
-                  agentData.totalTimes.length
-              )
-            : 0,
-        completionRate:
-          agentData.totalTickets > 0
-            ? (agentData.completedTickets / agentData.totalTickets) * 100
-            : 0,
+        avgWaitTime: agentData.waitTimes.length > 0 ? Math.round(agentData.waitTimes.reduce((a: any, b: any) => a + b, 0) / agentData.waitTimes.length) : 0,
+        avgCalledToServingTime: agentData.calledToServingTimes.length > 0 ? Math.round(agentData.calledToServingTimes.reduce((a: any, b: any) => a + b, 0) / agentData.calledToServingTimes.length) : 0,
+        avgServiceTime: agentData.serviceTimes.length > 0 ? Math.round(agentData.serviceTimes.reduce((a: any, b: any) => a + b, 0) / agentData.serviceTimes.length) : 0,
+        avgTotalTime: agentData.totalTimes.length > 0 ? Math.round(agentData.totalTimes.reduce((a: any, b: any) => a + b, 0) / agentData.totalTimes.length) : 0,
+        completionRate: agentData.totalTickets > 0 ? (agentData.completedTickets / agentData.totalTickets) * 100 : 0,
         serviceBreakdown: agentData.serviceBreakdown,
       };
     });
   }
 
   async getDailyTicketTrends(startDate?: Date, endDate?: Date): Promise<any[]> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .select('CAST(ticket.createdAt AS DATE)', 'date')
-      .addSelect('COUNT(ticket.id)', 'count')
-      .addSelect(
-        'SUM(CASE WHEN ticket.status = :completed THEN 1 ELSE 0 END)',
-        'completed',
-      )
-      .addSelect(
-        'SUM(CASE WHEN ticket.status = :pending THEN 1 ELSE 0 END)',
-        'pending',
-      )
-      .setParameter('completed', TicketStatus.COMPLETED)
-      .setParameter('pending', TicketStatus.PENDING)
-      .groupBy('CAST(ticket.createdAt AS DATE)')
-      .orderBy('CAST(ticket.createdAt AS DATE)', 'ASC');
+    let finalStart = startDate;
+    let finalEnd = endDate;
 
-    if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    } else {
-      // Default to last 30 days
-      const defaultEnd = new Date();
-      const defaultStart = new Date();
-      defaultStart.setDate(defaultStart.getDate() - 30);
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate: defaultStart,
-        endDate: defaultEnd,
-      });
+    if (!finalStart || !finalEnd) {
+      finalEnd = new Date();
+      finalStart = new Date();
+      finalStart.setDate(finalStart.getDate() - 30);
     }
 
-    const results = await query.getRawMany();
+    const startStr = finalStart.toISOString();
+    const endStr = finalEnd.toISOString();
+
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT 
+        CAST(createdAt AS DATE) as date,
+        COUNT(id) as count,
+        SUM(CASE WHEN status = ${TicketStatus.COMPLETED} THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status = ${TicketStatus.PENDING} THEN 1 ELSE 0 END) as pending
+      FROM tickets
+      WHERE createdAt BETWEEN ${startStr} AND ${endStr}
+      GROUP BY CAST(createdAt AS DATE)
+      ORDER BY date ASC
+    `;
+
     return results.map((r) => ({
       date: r.date,
       total: parseInt(r.count),
@@ -530,21 +401,17 @@ export class AnalyticsService {
   }
 
   async getHourlyDistribution(startDate?: Date, endDate?: Date): Promise<any[]> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .select('DATEPART(HOUR, ticket.createdAt)', 'hour')
-      .addSelect('COUNT(ticket.id)', 'count')
-      .groupBy('DATEPART(HOUR, ticket.createdAt)')
-      .orderBy('DATEPART(HOUR, ticket.createdAt)', 'ASC');
+    const start = startDate ? startDate.toISOString() : '1970-01-01';
+    const end = endDate ? endDate.toISOString() : '9999-12-31';
 
-    if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT DATEPART(HOUR, createdAt) as hour, COUNT(id) as count
+      FROM tickets
+      WHERE createdAt BETWEEN ${start} AND ${end}
+      GROUP BY DATEPART(HOUR, createdAt)
+      ORDER BY hour ASC
+    `;
 
-    const results = await query.getRawMany();
     return Array.from({ length: 24 }, (_, hour) => {
       const hourData = results.find((r) => parseInt(r.hour) === hour);
       return {
@@ -555,21 +422,17 @@ export class AnalyticsService {
   }
 
   async getDayOfWeekDistribution(startDate?: Date, endDate?: Date): Promise<any[]> {
-    const query = this.ticketRepository
-      .createQueryBuilder('ticket')
-      .select('DATEPART(WEEKDAY, ticket.createdAt)', 'dayOfWeek')
-      .addSelect('COUNT(ticket.id)', 'count')
-      .groupBy('DATEPART(WEEKDAY, ticket.createdAt)')
-      .orderBy('DATEPART(WEEKDAY, ticket.createdAt)', 'ASC');
+    const start = startDate ? startDate.toISOString() : '1970-01-01';
+    const end = endDate ? endDate.toISOString() : '9999-12-31';
 
-    if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT DATEPART(WEEKDAY, createdAt) as dayOfWeek, COUNT(id) as count
+      FROM tickets
+      WHERE createdAt BETWEEN ${start} AND ${end}
+      GROUP BY DATEPART(WEEKDAY, createdAt)
+      ORDER BY dayOfWeek ASC
+    `;
 
-    const results = await query.getRawMany();
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return Array.from({ length: 7 }, (_, index) => {
       const dayData = results.find((r) => parseInt(r.dayOfWeek) === index + 1);
@@ -582,17 +445,18 @@ export class AnalyticsService {
   }
 
   async getStatusDistribution(startDate?: Date, endDate?: Date): Promise<any[]> {
-    const query = this.ticketRepository.createQueryBuilder('ticket');
-
+    const where: any = {};
     if (startDate && endDate) {
-      query.where('ticket.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      where.createdAt = { gte: startDate, lte: endDate };
     }
 
-    const allTickets = await query.getMany();
-    const statusCounts = {
+    const counts = await this.prisma.ticket.groupBy({
+      by: ['status'],
+      where,
+      _count: { id: true },
+    });
+
+    const statusCounts: Record<string, number> = {
       [TicketStatus.PENDING]: 0,
       [TicketStatus.SERVING]: 0,
       [TicketStatus.COMPLETED]: 0,
@@ -601,9 +465,9 @@ export class AnalyticsService {
       [TicketStatus.CANCELLED]: 0,
     };
 
-    allTickets.forEach((ticket) => {
-      if (statusCounts[ticket.status] !== undefined) {
-        statusCounts[ticket.status]++;
+    counts.forEach((c) => {
+      if (statusCounts[c.status] !== undefined) {
+        statusCounts[c.status] = c._count.id;
       }
     });
 

@@ -3,29 +3,15 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Category } from './entities/category.entity';
-import { AgentCategory } from './entities/agent-category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
-import { User } from '../users/entities/user.entity';
-import { Ticket } from '../queue/entities/ticket.entity';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CategoriesService {
-  constructor(
-    @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
-    @InjectRepository(AgentCategory)
-    private agentCategoryRepository: Repository<AgentCategory>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Ticket)
-    private ticketRepository: Repository<Ticket>,
-  ) {}
+  constructor(private prisma: PrismaService) { }
 
-  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-    const existingCategory = await this.categoryRepository.findOne({
+  async create(createCategoryDto: CreateCategoryDto) {
+    const existingCategory = await this.prisma.category.findUnique({
       where: { name: createCategoryDto.name },
     });
 
@@ -33,25 +19,38 @@ export class CategoriesService {
       throw new BadRequestException('Category with this name already exists');
     }
 
-    const category = this.categoryRepository.create(createCategoryDto);
-    return this.categoryRepository.save(category);
+    return this.prisma.category.create({
+      data: createCategoryDto,
+    });
   }
 
-  async findAll(activeOnly = false): Promise<Category[]> {
+  async findAll(activeOnly = false) {
     const where: any = {};
     if (activeOnly) {
       where.isActive = true;
     }
-    return this.categoryRepository.find({
+    return this.prisma.category.findMany({
       where,
-      relations: ['agentCategories', 'agentCategories.agent'],
+      include: {
+        agentCategories: {
+          include: {
+            agent: true,
+          },
+        },
+      },
     });
   }
 
-  async findOne(id: string): Promise<Category> {
-    const category = await this.categoryRepository.findOne({
+  async findOne(id: string) {
+    const category = await this.prisma.category.findUnique({
       where: { id },
-      relations: ['agentCategories', 'agentCategories.agent'],
+      include: {
+        agentCategories: {
+          include: {
+            agent: true,
+          },
+        },
+      },
     });
 
     if (!category) {
@@ -61,24 +60,31 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, updateData: Partial<Category>): Promise<Category> {
-    const category = await this.findOne(id);
-    Object.assign(category, updateData);
-    return this.categoryRepository.save(category);
+  async update(id: string, updateData: any) {
+    // Check if category exists
+    await this.findOne(id);
+
+    return this.prisma.category.update({
+      where: { id },
+      data: updateData,
+    });
   }
 
   async remove(id: string): Promise<{ message: string; deactivated?: boolean }> {
-    const category = await this.findOne(id);
+    // Check if category exists
+    await this.findOne(id);
 
     // Check if there are any tickets associated with this category
-    const ticketCount = await this.ticketRepository.count({
+    const ticketCount = await this.prisma.ticket.count({
       where: { categoryId: id },
     });
 
     if (ticketCount > 0) {
       // Instead of hard delete, mark as inactive (soft delete)
-      category.isActive = false;
-      await this.categoryRepository.save(category);
+      await this.prisma.category.update({
+        where: { id },
+        data: { isActive: false },
+      });
       return {
         message: `Category cannot be deleted because it has ${ticketCount} associated ticket(s). Category has been deactivated instead.`,
         deactivated: true,
@@ -86,71 +92,72 @@ export class CategoriesService {
     }
 
     // If no tickets, proceed with deletion
-    await this.categoryRepository.remove(category);
+    await this.prisma.category.delete({ where: { id } });
     return { message: 'Category deleted successfully' };
   }
 
-  async assignAgentToCategory(
-    agentId: string,
-    categoryId: string,
-  ): Promise<AgentCategory> {
-    const agent = await this.userRepository.findOne({ where: { id: agentId } });
+  async assignAgentToCategory(agentId: string, categoryId: string) {
+    const agent = await this.prisma.user.findUnique({ where: { id: agentId } });
     if (!agent) {
       throw new NotFoundException('Agent not found');
     }
 
-    const category = await this.findOne(categoryId);
+    // Check if category exists
+    await this.findOne(categoryId);
 
     // Check if agent is already assigned to this category
-    const existing = await this.agentCategoryRepository.findOne({
+    const existing = await this.prisma.agentCategory.findFirst({
       where: { agentId, categoryId },
     });
 
     if (existing) {
-      existing.isActive = true;
-      return this.agentCategoryRepository.save(existing);
+      return this.prisma.agentCategory.update({
+        where: { id: existing.id },
+        data: { isActive: true },
+      });
     }
 
     // Check if agent is assigned to any other active category
     // If so, remove them from the old category (one agent = one service rule)
-    const otherAssignments = await this.agentCategoryRepository.find({
+    const otherAssignments = await this.prisma.agentCategory.findMany({
       where: { agentId, isActive: true },
     });
 
     // Remove agent from all other categories
     for (const assignment of otherAssignments) {
       if (assignment.categoryId !== categoryId) {
-        assignment.isActive = false;
-        await this.agentCategoryRepository.save(assignment);
+        await this.prisma.agentCategory.update({
+          where: { id: assignment.id },
+          data: { isActive: false },
+        });
       }
     }
 
-    const agentCategory = this.agentCategoryRepository.create({
-      agentId,
-      categoryId,
+    return this.prisma.agentCategory.create({
+      data: {
+        agentId,
+        categoryId,
+      },
     });
-
-    return this.agentCategoryRepository.save(agentCategory);
   }
 
-  async removeAgentFromCategory(
-    agentId: string,
-    categoryId: string,
-  ): Promise<void> {
-    const agentCategory = await this.agentCategoryRepository.findOne({
+  async removeAgentFromCategory(agentId: string, categoryId: string): Promise<void> {
+    const agentCategory = await this.prisma.agentCategory.findFirst({
       where: { agentId, categoryId },
     });
 
     if (agentCategory) {
-      agentCategory.isActive = false;
-      await this.agentCategoryRepository.save(agentCategory);
+      await this.prisma.agentCategory.update({
+        where: { id: agentCategory.id },
+        data: { isActive: false },
+      });
     }
   }
 
-  async getAgentsByCategory(categoryId: string): Promise<User[]> {
-    const agentCategories = await this.agentCategoryRepository.find({
+  async getAgentsByCategory(categoryId: string) {
+    const agentCategories = await this.prisma.agentCategory.findMany({
       where: { categoryId, isActive: true },
-      relations: ['agent'],
+      include: { agent: true },
     });
 
     return agentCategories.map((ac) => ac.agent);

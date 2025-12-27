@@ -2,16 +2,15 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { PrismaService } from '../../prisma/prisma.service';
+import { EncryptionService } from '../../encryption/encryption.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private prisma: PrismaService,
+    private encryptionService: EncryptionService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -20,16 +19,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  private decryptUser(user: any) {
+    if (!user) return user;
+    if (user.phone) user.phone = this.encryptionService.decrypt(user.phone);
+    if (user.firstName) user.firstName = this.encryptionService.decrypt(user.firstName);
+    if (user.lastName) user.lastName = this.encryptionService.decrypt(user.lastName);
+    return user;
+  }
+
   async validate(payload: any) {
-    const user = await this.userRepository.findOne({
-      where: { id: payload.sub, isActive: true },
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
     }
 
-    return user;
+    return this.decryptUser(user);
   }
 }
 
