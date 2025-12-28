@@ -15,12 +15,12 @@ import { Logger } from '@nestjs/common';
   namespace: '/queue',
 })
 export class RealtimeGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   private logger: Logger = new Logger('RealtimeGateway');
+  private activeAgents = new Set<string>();
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);

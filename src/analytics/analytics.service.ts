@@ -147,6 +147,8 @@ export class AnalyticsService {
       return {
         agentId: r.agentId,
         agentName: agent ? `${agent.firstName} ${agent.lastName}` : 'Unknown',
+        agentEmail: agent?.email || '',
+        employeeId: agent?.employeeId || '',
         totalTickets: parseInt(r.totalTickets),
         completedTickets: parseInt(r.completedTickets),
         avgServiceTime: r.avgServiceTime ? Math.round(parseFloat(r.avgServiceTime)) : 0,
@@ -352,6 +354,7 @@ export class AnalyticsService {
         agentId,
         agentName: agent ? `${agent.firstName} ${agent.lastName}` : 'Unknown',
         agentEmail: agent?.email || '',
+        employeeId: agent?.employeeId || '',
         totalTickets: agentData.totalTickets,
         pendingTickets: agentData.pendingTickets,
         servingTickets: agentData.servingTickets,

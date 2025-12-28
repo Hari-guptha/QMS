@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { useThemeStore } from '@/lib/theme-store';
 import { auth, User } from '@/lib/auth';
 import { User as UserIcon, ChevronDown, LogOut, UserCircle, Palette, Lock, Moon, Bell, Sun } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -13,6 +14,7 @@ export function Navbar() {
   const { t } = useI18n();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { setTheme: setStoreTheme } = useThemeStore();
   const [user, setUser] = useState<User | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
@@ -50,9 +52,27 @@ export function Navbar() {
     router.push('/');
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
+    setStoreTheme(newTheme);
     setIsThemeDropdownOpen(false);
+
+    // Save to DB if authenticated
+    if (auth.isAuthenticated()) {
+      try {
+        const { authApi } = await import('@/lib/api');
+        await authApi.updateProfile({ theme: newTheme });
+        // Update local user data
+        const currentUser = auth.getUser();
+        if (currentUser) {
+          localStorage.setItem('user', JSON.stringify({ ...currentUser, theme: newTheme }));
+          // Update the state to reflect changes if needed (though next-themes handles the visual part)
+          setUser({ ...currentUser, theme: newTheme });
+        }
+      } catch (error) {
+        console.error('Failed to save theme preference:', error);
+      }
+    }
   };
 
   const getUserInitials = (user: User) => {

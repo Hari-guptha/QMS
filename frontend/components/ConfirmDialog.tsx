@@ -4,8 +4,14 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X } from 'lucide-react';
 
+interface ConfirmOptions {
+  requireText?: string;
+  title?: string;
+  description?: string;
+}
+
 interface ConfirmDialogContextType {
-  confirm: (message: string) => Promise<boolean>;
+  confirm: (message: string, options?: ConfirmOptions) => Promise<boolean>;
 }
 
 const ConfirmDialogContext = createContext<ConfirmDialogContextType | undefined>(undefined);
@@ -25,18 +31,26 @@ interface ConfirmDialogProviderProps {
 export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [options, setOptions] = useState<ConfirmOptions>({});
+  const [userInput, setUserInput] = useState('');
   const [resolvePromise, setResolvePromise] = useState<((value: boolean) => void) | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const confirm = (msg: string): Promise<boolean> => {
+  const confirm = (msg: string, opts: ConfirmOptions = {}): Promise<boolean> => {
     return new Promise((resolve) => {
       setMessage(msg);
+      setOptions(opts);
+      setUserInput('');
       setResolvePromise(() => resolve);
       setIsOpen(true);
     });
   };
 
   const handleConfirm = async () => {
+    if (options.requireText && userInput !== options.requireText) {
+      return;
+    }
+
     if (resolvePromise) {
       setIsProcessing(true);
       // Small delay to show processing state
@@ -44,6 +58,7 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
         resolvePromise(true);
         setIsOpen(false);
         setMessage('');
+        setUserInput('');
         setResolvePromise(null);
         setIsProcessing(false);
       }, 100);
@@ -56,9 +71,12 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
     }
     setIsOpen(false);
     setMessage('');
+    setUserInput('');
     setResolvePromise(null);
     setIsProcessing(false);
   };
+
+  const isButtonDisabled = isProcessing || (options.requireText && userInput !== options.requireText);
 
   return (
     <ConfirmDialogContext.Provider value={{ confirm }}>
@@ -72,16 +90,16 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={handleCancel}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]"
             />
-            
+
             {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
             >
               <div className="bg-card text-card-foreground border rounded-2xl shadow-xl w-full max-w-md">
                 {/* Modal Header */}
@@ -90,7 +108,7 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
                     <div className="p-2 bg-destructive/10 rounded-lg">
                       <AlertTriangle className="w-6 h-6 text-destructive" />
                     </div>
-                    <h2 className="text-xl font-bold text-foreground">Confirm Action</h2>
+                    <h2 className="text-xl font-bold text-foreground">{options.title || 'Confirm Action'}</h2>
                   </div>
                   {!isProcessing && (
                     <button
@@ -101,12 +119,37 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
                     </button>
                   )}
                 </div>
-                
+
                 {/* Modal Body */}
                 <div className="p-6">
-                  <p className="text-foreground">{message}</p>
+                  <p className="text-foreground font-medium mb-2">{message}</p>
+                  {options.description && (
+                    <p className="text-sm text-muted-foreground mb-4 bg-destructive/5 p-3 rounded-lg border border-destructive/10">
+                      {options.description}
+                    </p>
+                  )}
+
+                  {options.requireText && (
+                    <div className="mt-4">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Please type <span className="font-bold text-foreground">"{options.requireText}"</span> to confirm.
+                      </p>
+                      <input
+                        type="text"
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        className="w-full p-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !isButtonDisabled) {
+                            handleConfirm();
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
-                
+
                 {/* Modal Footer */}
                 <div className="flex items-center justify-end gap-3 p-6 border-t border-border">
                   {!isProcessing && (
@@ -121,7 +164,7 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
                   <button
                     type="button"
                     onClick={handleConfirm}
-                    disabled={isProcessing}
+                    disabled={!!isButtonDisabled}
                     className="px-6 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {isProcessing ? (
@@ -142,4 +185,3 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
     </ConfirmDialogContext.Provider>
   );
 }
-

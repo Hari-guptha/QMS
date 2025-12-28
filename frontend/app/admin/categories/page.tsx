@@ -173,10 +173,18 @@ export default function CategoriesManagement() {
   });
 
   const handleDelete = async (id: string) => {
-    const confirmed = await confirm(t('admin.categories.deleteConfirm'));
+    const confirmed = await confirm(
+      t('admin.categories.deleteConfirm'),
+      {
+        requireText: 'confirm',
+        title: 'Delete Service?',
+        description: 'Warning: All tickets in this category (including those currently being served) will be permanently deleted. This action cannot be undone.'
+      }
+    );
+
     if (!confirmed) return;
     try {
-      const response = await adminApi.deleteCategory(id);
+      const response = await adminApi.deleteCategory(id, true);
       const result = response.data || response;
 
       // Check if it was soft-deleted (deactivated) or hard-deleted
@@ -319,8 +327,8 @@ export default function CategoriesManagement() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${socketConnected
-                ? 'bg-chart-2/10 border-chart-2/30 text-chart-2'
-                : 'bg-destructive/10 border-destructive/30 text-destructive'
+              ? 'bg-chart-2/10 border-chart-2/30 text-chart-2'
+              : 'bg-destructive/10 border-destructive/30 text-destructive'
               }`}
           >
             {socketConnected ? (
@@ -373,37 +381,52 @@ export default function CategoriesManagement() {
                   {/* Modal Body */}
                   <form onSubmit={handleCreate} className="p-6">
                     <div className="space-y-4">
-                      <motion.input
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 }}
-                        type="text"
-                        placeholder={t('admin.categories.serviceName')}
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                        required
-                      />
-                      <motion.textarea
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
-                        placeholder={t('admin.categories.description')}
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[100px]"
-                      />
-                      <motion.input
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        type="number"
-                        placeholder={t('admin.categories.estWaitTime')}
-                        value={formData.estimatedWaitTime}
-                        onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
-                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                        min="0"
-                      />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground block">
+                          {t('admin.categories.serviceName')}
+                        </label>
+                        <motion.input
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 }}
+                          type="text"
+                          placeholder={t('admin.categories.serviceName')}
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground block">
+                          {t('admin.categories.description')}
+                        </label>
+                        <motion.textarea
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          placeholder={t('admin.categories.description')}
+                          value={formData.description}
+                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[100px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground block">
+                          {t('admin.categories.estWaitTime')}
+                        </label>
+                        <motion.input
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          type="number"
+                          placeholder={t('admin.categories.estWaitTime')}
+                          value={formData.estimatedWaitTime}
+                          onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
+                          className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                          min="0"
+                        />
+                      </div>
                     </div>
 
                     {/* Modal Footer */}
@@ -460,28 +483,43 @@ export default function CategoriesManagement() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     onSubmit={(e) => handleUpdate(e, category.id)}
-                    className="space-y-3"
+                    className="space-y-4"
                   >
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                      required
-                    />
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                      rows={2}
-                    />
-                    <input
-                      type="number"
-                      value={formData.estimatedWaitTime}
-                      onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
-                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                      min="0"
-                    />
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground block">
+                        {t('admin.categories.serviceName')}
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full p-2 border border-border rounded-lg text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground block">
+                        {t('admin.categories.description')}
+                      </label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full p-2 border border-border rounded-lg text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground block">
+                        {t('admin.categories.estWaitTime')}
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.estimatedWaitTime}
+                        onChange={(e) => setFormData({ ...formData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
+                        className="w-full p-2 border border-border rounded-lg text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        min="0"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <motion.button
                         whileHover={{ scale: 1.05 }}

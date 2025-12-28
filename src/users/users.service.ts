@@ -8,6 +8,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../encryption/encryption.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Injectable()
 export class UsersService {
@@ -15,6 +16,7 @@ export class UsersService {
     private prisma: PrismaService,
     private authService: AuthService,
     private encryptionService: EncryptionService,
+    private realtimeService: RealtimeService,
   ) { }
 
   private encryptUser(data: any) {
@@ -33,12 +35,35 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto) {
-    const existingUser = await this.prisma.user.findUnique({
+    const existingEmail = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
 
-    if (existingUser) {
+    if (existingEmail) {
       throw new BadRequestException('User with this email already exists');
+    }
+
+    if (createUserDto.username) {
+      const existingUsername = await this.prisma.user.findUnique({
+        where: { username: createUserDto.username },
+      });
+      if (existingUsername) {
+        throw new BadRequestException('User with this username already exists');
+      }
+    }
+
+    // Generate unique ID if not provided
+    if (!createUserDto.employeeId) {
+      let isUnique = false;
+      let newId = '';
+      while (!isUnique) {
+        newId = `QMS-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const existing = await this.prisma.user.findFirst({
+          where: { employeeId: newId },
+        });
+        if (!existing) isUnique = true;
+      }
+      createUserDto.employeeId = newId;
     }
 
     const hashedPassword = await this.authService.hashPassword(
@@ -51,6 +76,11 @@ export class UsersService {
     });
 
     const user = await this.prisma.user.create({ data });
+    return this.decryptUser(user);
+  }
+
+  async findByUsername(username: string) {
+    const user = await this.prisma.user.findUnique({ where: { username } });
     return this.decryptUser(user);
   }
 
@@ -110,15 +140,34 @@ export class UsersService {
       where: { id },
       data,
     });
-    return this.decryptUser(user);
+
+    const decrypted = this.decryptUser(user);
+    if (decrypted.role === UserRole.AGENT) {
+      this.realtimeService.emitAgentStatusUpdate(decrypted.id);
+    }
+
+    return decrypted;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, confirm?: boolean): Promise<void> {
     await this.findOne(id);
 
-    await this.prisma.ticket.updateMany({
-      where: { agentId: id },
-      data: { agentId: null },
+    if (confirm) {
+      // Delete all tickets associated with this agent
+      await this.prisma.ticket.deleteMany({
+        where: { agentId: id },
+      });
+    } else {
+      // Just unassign tickets (old behavior - might not be reached if frontend always confirms)
+      await this.prisma.ticket.updateMany({
+        where: { agentId: id },
+        data: { agentId: null },
+      });
+    }
+
+    // Delete agent category associations first (Prisma handles relations, but let's be safe)
+    await this.prisma.agentCategory.deleteMany({
+      where: { agentId: id }
     });
 
     await this.prisma.user.delete({ where: { id } });

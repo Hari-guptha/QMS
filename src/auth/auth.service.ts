@@ -30,9 +30,14 @@ export class AuthService {
     return user;
   }
 
-  async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+  async validateUser(identifier: string, password: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { username: identifier },
+        ],
+      },
     });
 
     if (!user || !user.isActive) {
@@ -85,6 +90,9 @@ export class AuthService {
         role: user.role,
         employeeId: user.employeeId,
         counterNumber: user.counterNumber,
+        username: user.username,
+        language: user.language,
+        theme: user.theme,
       },
     };
   }
@@ -160,6 +168,9 @@ export class AuthService {
         role: user.role,
         employeeId: user.employeeId,
         counterNumber: user.counterNumber,
+        username: user.username,
+        language: user.language,
+        theme: user.theme,
       },
     };
   }
@@ -191,6 +202,21 @@ export class AuthService {
       where: { id: userId },
       data: { password: hashedNewPassword },
     });
+  }
+
+  async updateProfile(userId: string, updateData: { firstName?: string; lastName?: string; email?: string; language?: string; theme?: string }) {
+    // Encrypt sensitive fields if provided
+    const data: any = { ...updateData };
+    if (data.firstName) data.firstName = this.encryptionService.encrypt(data.firstName);
+    if (data.lastName) data.lastName = this.encryptionService.encrypt(data.lastName);
+    // email is usually not encrypted in this project based on schema.prisma and other files
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+
+    return this.decryptUser(user);
   }
 }
 

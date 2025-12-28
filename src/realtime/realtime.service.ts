@@ -17,7 +17,7 @@ export class RealtimeService {
     this.gateway.server
       .to(`category:${ticket.categoryId}`)
       .emit('queue:updated', { categoryId: ticket.categoryId, ticket });
-    this.gateway.server.to('public').emit('status:updated');
+    this.emitPublicStatusUpdate();
   }
 
   emitTicketCalled(ticket: Ticket) {
@@ -28,7 +28,7 @@ export class RealtimeService {
         ticket,
       });
     }
-    this.gateway.server.to('public').emit('status:updated');
+    this.emitPublicStatusUpdate();
   }
 
   emitTicketServing(ticket: Ticket) {
@@ -39,7 +39,7 @@ export class RealtimeService {
         ticket,
       });
     }
-    this.gateway.server.to('public').emit('status:updated');
+    this.emitPublicStatusUpdate();
   }
 
   emitTicketCompleted(ticket: Ticket) {
@@ -50,7 +50,7 @@ export class RealtimeService {
         ticket,
       });
     }
-    this.gateway.server.to('public').emit('status:updated');
+    this.emitPublicStatusUpdate();
   }
 
   emitTicketNoShow(ticket: Ticket) {
@@ -61,6 +61,7 @@ export class RealtimeService {
         ticket,
       });
     }
+    this.emitPublicStatusUpdate();
   }
 
   emitTicketTransferred(ticket: Ticket) {
@@ -71,6 +72,7 @@ export class RealtimeService {
         ticket,
       });
     }
+    this.emitPublicStatusUpdate();
   }
 
   emitQueueUpdate(agentId?: string, categoryId?: string) {
@@ -84,6 +86,15 @@ export class RealtimeService {
         categoryId,
       });
     }
+    this.emitPublicStatusUpdate();
+  }
+
+  emitPublicStatusUpdate() {
     this.gateway.server.to('public').emit('status:updated');
+  }
+
+  emitAgentStatusUpdate(agentId: string) {
+    this.emitPublicStatusUpdate();
+    this.gateway.server.to(`agent:${agentId}`).emit('agent:status_changed', { agentId });
   }
 }

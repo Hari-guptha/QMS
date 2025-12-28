@@ -142,7 +142,7 @@ const translations: Translations = {
   // Admin Dashboard
   'admin.usersManagement': { en: 'Users Management', ar: 'إدارة المستخدمين' },
   'admin.manageAgentsUsers': { en: 'Manage agents and users', ar: 'إدارة الموظفين والمستخدمين' },
-  'admin.categories': { en: 'Categories', ar: 'الفئات' },
+  'admin.categories': { en: 'Services', ar: 'خدمات' },
   'admin.manageCategories': { en: 'Manage service categories', ar: 'إدارة فئات الخدمات' },
   'admin.allQueues': { en: 'All Queues', ar: 'جميع الطوابير' },
   'admin.viewManageQueues': { en: 'View and manage all queues', ar: 'عرض وإدارة جميع الطوابير' },

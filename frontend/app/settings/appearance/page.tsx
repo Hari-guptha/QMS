@@ -9,6 +9,7 @@ import { Sun, Moon, Monitor, Eye, Paintbrush, Palette, Check, ArrowLeft } from '
 import { motion } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import { auth } from '@/lib/auth';
+import { authApi } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 
 export default function AppearanceSettings() {
@@ -24,9 +25,23 @@ export default function AppearanceSettings() {
     }
   }, [primaryColor, mounted]);
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
     useThemeStore.getState().setTheme(newTheme);
+
+    // Save to DB if authenticated
+    if (auth.isAuthenticated()) {
+      try {
+        await authApi.updateProfile({ theme: newTheme });
+        // Update local user data
+        const user = auth.getUser();
+        if (user) {
+          localStorage.setItem('user', JSON.stringify({ ...user, theme: newTheme }));
+        }
+      } catch (error) {
+        console.error('Failed to save theme preference:', error);
+      }
+    }
   };
 
   const handleColorChange = (color: string) => {

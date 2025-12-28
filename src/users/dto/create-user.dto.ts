@@ -11,6 +11,11 @@ import { UserRole } from '../../common/enums';
 
 export class CreateUserDto {
   @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
+  @ApiProperty()
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -50,5 +55,15 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   counterNumber?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  language?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  theme?: string;
 }
 

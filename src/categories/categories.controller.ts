@@ -68,8 +68,11 @@ export class CategoriesController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete category (Admin only)' })
   @ApiResponse({ status: 200, description: 'Category deleted or deactivated successfully' })
-  async remove(@Param('id') id: string) {
-    return this.categoriesService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @Query('confirm') confirm?: string,
+  ) {
+    return this.categoriesService.remove(id, confirm === 'true');
   }
 
   @Post(':categoryId/assign-agent/:agentId')

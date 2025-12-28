@@ -16,6 +16,7 @@ interface SelectProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  buttonClassName?: string;
 }
 
 export function Select({
@@ -25,6 +26,7 @@ export function Select({
   placeholder = 'Select...',
   disabled = false,
   className = '',
+  buttonClassName = '',
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
@@ -62,15 +64,15 @@ export function Select({
           transition
           flex items-center justify-between
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-ring'}
+          ${buttonClassName}
         `}
       >
         <span className={isEmpty ? 'text-muted-foreground' : 'text-foreground'}>
           {displayValue}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-muted-foreground transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
@@ -92,7 +94,7 @@ export function Select({
                 {options.map((option) => {
                   const isSelected = value === option.value;
                   const isEmptyOption = option.value === '';
-                  
+
                   return (
                     <button
                       key={option.value || 'empty'}
@@ -105,10 +107,9 @@ export function Select({
                         w-full px-4 py-2 text-left rounded-lg
                         flex items-center justify-between
                         transition-colors
-                        ${
-                          isSelected
-                            ? 'bg-primary text-primary-foreground'
-                            : isEmptyOption
+                        ${isSelected
+                          ? 'bg-primary text-primary-foreground'
+                          : isEmptyOption
                             ? 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                             : 'hover:bg-accent hover:text-accent-foreground text-foreground'
                         }

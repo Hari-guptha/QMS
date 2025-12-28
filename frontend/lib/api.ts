@@ -31,7 +31,7 @@ api.interceptors.response.use(
         // Session expired, logout
         const { auth } = await import('./auth');
         auth.logout();
-        
+
         // Redirect to appropriate login
         const userStr = localStorage.getItem('user');
         if (userStr) {
@@ -52,7 +52,7 @@ api.interceptors.response.use(
         }
         return Promise.reject(error);
       }
-      
+
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
@@ -86,7 +86,7 @@ export const authApi = {
     api.post('/auth/refresh', { refreshToken }),
   updatePassword: (currentPassword: string, newPassword: string) =>
     api.post('/auth/update-password', { currentPassword, newPassword }),
-  updateProfile: (data: { firstName?: string; lastName?: string; email?: string }) =>
+  updateProfile: (data: { firstName?: string; lastName?: string; email?: string; language?: string; theme?: string }) =>
     api.put('/auth/profile', data),
   getProfile: () => api.get('/users/profile/me'),
   microsoftAuth: () => {
@@ -131,18 +131,20 @@ export const adminApi = {
   getAgents: () => api.get('/users/agents'),
   createUser: (data: any) => api.post('/users', data),
   updateUser: (id: string, data: any) => api.put(`/users/${id}`, data),
-  deleteUser: (id: string) => api.delete(`/users/${id}`),
-  
+  deleteUser: (id: string, confirm?: boolean) =>
+    api.delete(`/users/${id}`, { params: { confirm: confirm ? 'true' : 'false' } }),
+
   // Categories
   getCategories: () => api.get('/categories'),
   createCategory: (data: any) => api.post('/categories', data),
   updateCategory: (id: string, data: any) => api.put(`/categories/${id}`, data),
-  deleteCategory: (id: string) => api.delete(`/categories/${id}`),
+  deleteCategory: (id: string, confirm?: boolean) =>
+    api.delete(`/categories/${id}`, { params: { confirm: confirm ? 'true' : 'false' } }),
   assignAgent: (categoryId: string, agentId: string) =>
     api.post(`/categories/${categoryId}/assign-agent/${agentId}`),
   removeAgent: (categoryId: string, agentId: string) =>
     api.delete(`/categories/${categoryId}/remove-agent/${agentId}`),
-  
+
   // Queues
   getAllQueues: (categoryId?: string, agentId?: string) =>
     api.get('/queue/admin/all', { params: { categoryId, agentId } }),
@@ -152,6 +154,8 @@ export const adminApi = {
     api.put(`/queue/admin/reorder/${agentId}`, { ticketIds }),
   adminCallNext: (agentId: string) =>
     api.post(`/queue/admin/call-next/${agentId}`),
+  reassignTicket: (ticketId: string, newAgentId: string) =>
+    api.patch(`/queue/admin/${ticketId}/reassign/${newAgentId}`),
   adminMarkAsCompleted: (ticketId: string) =>
     api.patch(`/queue/admin/${ticketId}/complete`),
   adminMarkAsServing: (ticketId: string) =>
@@ -164,7 +168,7 @@ export const adminApi = {
     api.put(`/queue/admin/${ticketId}`, data),
   deleteTicket: (ticketId: string) =>
     api.delete(`/queue/admin/${ticketId}`),
-  
+
   // Analytics
   getDashboard: (startDate?: string, endDate?: string) =>
     api.get('/analytics/dashboard', { params: { startDate, endDate } }),

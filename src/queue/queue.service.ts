@@ -205,10 +205,27 @@ export class QueueService {
 
   private async getNextPositionInQueueInternal(tx: any, agentId: string): Promise<number> {
     const lastTicket = await tx.ticket.findFirst({
-      where: { agentId },
+      where: {
+        agentId,
+        status: { in: [TicketStatus.PENDING, TicketStatus.CALLED, TicketStatus.SERVING] },
+        positionInQueue: { gt: 0 }
+      },
       orderBy: { positionInQueue: 'desc' },
     });
     return lastTicket ? lastTicket.positionInQueue + 1 : 1;
+  }
+
+  private async shiftQueuePositionsUp(tx: any, agentId: string, removedPosition: number) {
+    if (removedPosition <= 0) return;
+    await tx.ticket.updateMany({
+      where: {
+        agentId,
+        positionInQueue: { gt: removedPosition },
+      },
+      data: {
+        positionInQueue: { decrement: 1 },
+      },
+    });
   }
 
   async getAgentQueue(agentId: string) {
@@ -282,7 +299,7 @@ export class QueueService {
       );
     }
 
-    this.realtimeService.emitTicketCalled(decrypted);
+    this.realtimeService.emitTicketServing(decrypted);
     this.realtimeService.emitQueueUpdate(agentId, decrypted.categoryId);
 
     return decrypted;
@@ -312,13 +329,19 @@ export class QueueService {
     const ticket = await this.getTicketById(ticketId);
     if (ticket.agentId !== agentId) throw new BadRequestException('You can only complete your own tickets');
 
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        status: TicketStatus.COMPLETED,
-        completedAt: new Date(),
-      },
-      include: { category: true, agent: true }
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const removedPosition = ticket.positionInQueue;
+      const t = await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: TicketStatus.COMPLETED,
+          completedAt: new Date(),
+          positionInQueue: 0,
+        },
+        include: { category: true, agent: true }
+      });
+      await this.shiftQueuePositionsUp(tx, agentId, removedPosition);
+      return t;
     });
 
     const decrypted = this.decryptTicket(updated);
@@ -331,13 +354,19 @@ export class QueueService {
     const ticket = await this.getTicketById(ticketId);
     if (ticket.agentId !== agentId) throw new BadRequestException('You can only mark your own tickets');
 
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        status: TicketStatus.HOLD,
-        noShowAt: new Date(),
-      },
-      include: { category: true, agent: true }
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const removedPosition = ticket.positionInQueue;
+      const t = await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: TicketStatus.HOLD,
+          noShowAt: new Date(),
+          positionInQueue: 0,
+        },
+        include: { category: true, agent: true }
+      });
+      await this.shiftQueuePositionsUp(tx, agentId, removedPosition);
+      return t;
     });
 
     const decrypted = this.decryptTicket(updated);
@@ -383,15 +412,21 @@ export class QueueService {
       throw new BadRequestException('New agent does not handle this category');
     }
 
-    const newPosition = await this.getNextPositionInQueueInternal(this.prisma, newAgentId);
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const oldPosition = ticket.positionInQueue;
+      const newPosition = await this.getNextPositionInQueueInternal(tx, newAgentId);
 
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        agentId: newAgentId,
-        positionInQueue: newPosition,
-      },
-      include: { category: true, agent: true }
+      const t = await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          agentId: newAgentId,
+          positionInQueue: newPosition,
+        },
+        include: { category: true, agent: true }
+      });
+
+      await this.shiftQueuePositionsUp(tx, currentAgentId, oldPosition);
+      return t;
     });
 
     const decrypted = this.decryptTicket(updated);
@@ -402,9 +437,99 @@ export class QueueService {
     return decrypted;
   }
 
+  async adminReassignTicket(ticketId: string, newAgentId: string) {
+    const ticket = await this.getTicketById(ticketId);
+
+    const newAgent = await this.prisma.user.findUnique({
+      where: { id: newAgentId },
+    });
+
+    if (!newAgent || newAgent.role !== UserRole.AGENT) {
+      throw new NotFoundException('New agent not found');
+    }
+
+    const agentsForCategory = await this.getAgentsByCategoryInternal(ticket.categoryId);
+    if (!agentsForCategory.find((a: any) => a.id === newAgentId)) {
+      throw new BadRequestException('New agent does not handle this category');
+    }
+
+    const currentAgentId = ticket.agentId;
+
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const oldPosition = ticket.positionInQueue;
+      const newPosition = await this.getNextPositionInQueueInternal(tx, newAgentId);
+
+      const t = await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          agentId: newAgentId,
+          positionInQueue: newPosition,
+        },
+        include: { category: true, agent: true }
+      });
+
+      if (currentAgentId) {
+        await this.shiftQueuePositionsUp(tx, currentAgentId, oldPosition);
+      }
+      return t;
+    });
+
+    const decrypted = this.decryptTicket(updated);
+    this.realtimeService.emitTicketTransferred(decrypted);
+    if (currentAgentId) {
+      this.realtimeService.emitQueueUpdate(currentAgentId, ticket.categoryId);
+    }
+    this.realtimeService.emitQueueUpdate(newAgentId, ticket.categoryId);
+
+    return decrypted;
+  }
+
+  private async getAgentsByCategoryInternal(categoryId: string) {
+    const agentCategories = await this.prisma.agentCategory.findMany({
+      where: { categoryId, isActive: true },
+      include: { agent: true },
+    });
+    return agentCategories.map((ac) => ac.agent);
+  }
+
   async getPublicStatus(categoryId?: string) {
+    // 1. Get all active categories
+    const categories = await this.prisma.category.findMany({
+      where: {
+        isActive: true,
+        ...(categoryId ? { id: categoryId } : {})
+      },
+      include: {
+        agentCategories: {
+          where: { isActive: true },
+          include: {
+            agent: true
+          }
+        }
+      }
+    });
+
+    const result: any = {};
+
+    // 2. Initialize categories and agents
+    for (const cat of categories) {
+      // Handle bit type for isActive and filter agents properly
+      const activeAgentAssignments = cat.agentCategories.filter(ac => ac.agent.isActive);
+
+      if (activeAgentAssignments.length === 0) continue; // Skip categories with no agents
+
+      result[cat.name] = {};
+      for (const ac of activeAgentAssignments) {
+        const decryptedAgent = this.decryptUser(ac.agent);
+        const agentName = `${decryptedAgent.firstName} ${decryptedAgent.lastName}`;
+        result[cat.name][agentName] = [];
+      }
+    }
+
+    // 3. Get all active tickets
     const where: Prisma.TicketWhereInput = {
       status: { in: [TicketStatus.PENDING, TicketStatus.CALLED, TicketStatus.SERVING] },
+      positionInQueue: { gt: 0 }
     };
     if (categoryId) where.categoryId = categoryId;
 
@@ -414,21 +539,30 @@ export class QueueService {
       orderBy: { positionInQueue: 'asc' },
     });
 
-    return tickets.reduce((acc, ticket) => {
+    // 4. Populate tickets
+    for (const ticket of tickets) {
       const decrypted = this.decryptTicket(ticket);
       const catName = decrypted.category.name;
-      if (!acc[catName]) acc[catName] = {};
+
+      // Safety check if category was filtered out or inactive
+      if (!result[catName]) continue;
+
       const agentName = decrypted.agent
         ? `${decrypted.agent.firstName} ${decrypted.agent.lastName}`
         : 'Unassigned';
-      if (!acc[catName][agentName]) acc[catName][agentName] = [];
-      acc[catName][agentName].push({
+
+      if (!result[catName][agentName]) {
+        result[catName][agentName] = [];
+      }
+
+      result[catName][agentName].push({
         tokenNumber: decrypted.tokenNumber,
         status: decrypted.status,
         positionInQueue: decrypted.positionInQueue,
       });
-      return acc;
-    }, {});
+    }
+
+    return result;
   }
 
   async adminCallNext(agentId: string) {
@@ -437,13 +571,21 @@ export class QueueService {
 
   async adminMarkAsCompleted(ticketId: string) {
     const ticket = await this.getTicketById(ticketId);
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        status: TicketStatus.COMPLETED,
-        completedAt: new Date(),
-      },
-      include: { category: true, agent: true }
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const removedPosition = ticket.positionInQueue;
+      const t = await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: TicketStatus.COMPLETED,
+          completedAt: new Date(),
+          positionInQueue: 0,
+        },
+        include: { category: true, agent: true }
+      });
+      if (ticket.agentId) {
+        await this.shiftQueuePositionsUp(tx, ticket.agentId, removedPosition);
+      }
+      return t;
     });
     const decrypted = this.decryptTicket(updated);
     this.realtimeService.emitTicketCompleted(decrypted);
@@ -469,13 +611,21 @@ export class QueueService {
 
   async adminMarkAsNoShow(ticketId: string) {
     const ticket = await this.getTicketById(ticketId);
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        status: TicketStatus.HOLD,
-        noShowAt: new Date(),
-      },
-      include: { category: true, agent: true }
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const removedPosition = ticket.positionInQueue;
+      const t = await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: TicketStatus.HOLD,
+          noShowAt: new Date(),
+          positionInQueue: 0,
+        },
+        include: { category: true, agent: true }
+      });
+      if (ticket.agentId) {
+        await this.shiftQueuePositionsUp(tx, ticket.agentId, removedPosition);
+      }
+      return t;
     });
     const decrypted = this.decryptTicket(updated);
     this.realtimeService.emitTicketNoShow(decrypted);
@@ -485,7 +635,13 @@ export class QueueService {
 
   async deleteTicket(ticketId: string): Promise<void> {
     const ticket = await this.getTicketById(ticketId);
-    await this.prisma.ticket.delete({ where: { id: ticketId } });
+    await this.prisma.$transaction(async (tx: any) => {
+      const removedPosition = ticket.positionInQueue;
+      await tx.ticket.delete({ where: { id: ticketId } });
+      if (ticket.agentId) {
+        await this.shiftQueuePositionsUp(tx, ticket.agentId, removedPosition);
+      }
+    });
     this.realtimeService.emitQueueUpdate(ticket.agentId, ticket.categoryId);
   }
 
@@ -496,18 +652,20 @@ export class QueueService {
       throw new BadRequestException('Can only reopen completed, no-show, or hold tickets');
     }
 
-    const positionInQueue = await this.getNextPositionInQueueInternal(this.prisma, ticket.agentId);
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        status: TicketStatus.PENDING,
-        completedAt: null,
-        noShowAt: null,
-        calledAt: null,
-        servingStartedAt: null,
-        positionInQueue,
-      },
-      include: { category: true, agent: true }
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const positionInQueue = await this.getNextPositionInQueueInternal(tx, ticket.agentId);
+      return tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: TicketStatus.PENDING,
+          completedAt: null,
+          noShowAt: null,
+          calledAt: null,
+          servingStartedAt: null,
+          positionInQueue,
+        },
+        include: { category: true, agent: true }
+      });
     });
     const decrypted = this.decryptTicket(updated);
     this.realtimeService.emitQueueUpdate(decrypted.agentId, decrypted.categoryId);
@@ -519,18 +677,20 @@ export class QueueService {
     if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.NO_SHOW && ticket.status !== TicketStatus.HOLD) {
       throw new BadRequestException('Can only reopen completed, no-show, or hold tickets');
     }
-    const positionInQueue = await this.getNextPositionInQueueInternal(this.prisma, ticket.agentId);
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        status: TicketStatus.PENDING,
-        completedAt: null,
-        noShowAt: null,
-        calledAt: null,
-        servingStartedAt: null,
-        positionInQueue,
-      },
-      include: { category: true, agent: true }
+    const updated = await this.prisma.$transaction(async (tx: any) => {
+      const positionInQueue = await this.getNextPositionInQueueInternal(tx, ticket.agentId);
+      return tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: TicketStatus.PENDING,
+          completedAt: null,
+          noShowAt: null,
+          calledAt: null,
+          servingStartedAt: null,
+          positionInQueue,
+        },
+        include: { category: true, agent: true }
+      });
     });
     const decrypted = this.decryptTicket(updated);
     this.realtimeService.emitQueueUpdate(decrypted.agentId, decrypted.categoryId);

@@ -28,7 +28,7 @@ export default function AgentLogin() {
     try {
       const response = await auth.login(username, password);
       if (response.user.role === 'agent') {
-        router.push('/agent/dashboard');
+        window.location.href = '/agent/dashboard';
       } else if (response.user.role === 'admin') {
         setError(t('login.useAdminPage'));
         auth.logout();

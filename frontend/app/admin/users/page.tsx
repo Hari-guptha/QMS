@@ -40,6 +40,7 @@ export default function UsersManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
     firstName: '',
@@ -75,6 +76,7 @@ export default function UsersManagement() {
       await adminApi.createUser(formData);
       setShowForm(false);
       setFormData({
+        username: '',
         email: '',
         password: '',
         firstName: '',
@@ -94,6 +96,7 @@ export default function UsersManagement() {
   const handleCloseModal = () => {
     setShowForm(false);
     setFormData({
+      username: '',
       email: '',
       password: '',
       firstName: '',
@@ -104,11 +107,26 @@ export default function UsersManagement() {
     });
   };
 
-  const handleDelete = async (id: string) => {
-    const confirmed = await confirm(t('admin.users.deleteConfirm'));
+  const handleDelete = async (user: any) => {
+    let confirmed = false;
+
+    if (user.role === 'agent') {
+      confirmed = await confirm(
+        t('admin.users.deleteConfirm'),
+        {
+          requireText: 'confirm',
+          title: 'Delete Agent?',
+          description: 'Warning: All tickets currently assigned to this agent will be permanently deleted. This action cannot be undone.'
+        }
+      );
+    } else {
+      confirmed = await confirm(t('admin.users.deleteConfirm'));
+    }
+
     if (!confirmed) return;
+
     try {
-      await adminApi.deleteUser(id);
+      await adminApi.deleteUser(user.id, true);
       loadUsers();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to delete user');
@@ -118,6 +136,7 @@ export default function UsersManagement() {
   const handleEdit = (user: any) => {
     setEditingUserId(user.id);
     setFormData({
+      username: user.username || '',
       email: user.email || '',
       password: '', // Don't pre-fill password
       firstName: user.firstName || '',
@@ -143,6 +162,7 @@ export default function UsersManagement() {
       await adminApi.updateUser(editingUserId, updateData);
       setEditingUserId(null);
       setFormData({
+        username: '',
         email: '',
         password: '',
         firstName: '',
@@ -162,6 +182,7 @@ export default function UsersManagement() {
   const handleCloseEditModal = () => {
     setEditingUserId(null);
     setFormData({
+      username: '',
       email: '',
       password: '',
       firstName: '',
@@ -179,6 +200,7 @@ export default function UsersManagement() {
       user.firstName?.toLowerCase().includes(query) ||
       user.lastName?.toLowerCase().includes(query) ||
       user.email?.toLowerCase().includes(query) ||
+      user.username?.toLowerCase().includes(query) ||
       user.role?.toLowerCase().includes(query) ||
       user.employeeId?.toLowerCase().includes(query)
     );
@@ -314,6 +336,17 @@ export default function UsersManagement() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 }}
+                        type="text"
+                        placeholder="Username"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        required
+                      />
+                      <motion.input
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
                         type="email"
                         placeholder={t('admin.users.table.email')}
                         value={formData.email}
@@ -322,9 +355,9 @@ export default function UsersManagement() {
                         required
                       />
                       <motion.input
-                        initial={{ opacity: 0, x: 20 }}
+                        initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 }}
+                        transition={{ delay: 0.15 }}
                         type="password"
                         placeholder={t('admin.users.passwordPlaceholder')}
                         value={formData.password}
@@ -332,7 +365,7 @@ export default function UsersManagement() {
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       />
                       <motion.input
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 }}
                         type="text"
@@ -343,7 +376,7 @@ export default function UsersManagement() {
                         required
                       />
                       <motion.input
-                        initial={{ opacity: 0, x: 20 }}
+                        initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 }}
                         type="text"
@@ -364,7 +397,6 @@ export default function UsersManagement() {
                           options={[
                             { value: 'agent', label: t('admin.users.role.agent') },
                             { value: 'admin', label: t('admin.users.role.admin') },
-                            { value: 'customer', label: t('admin.users.role.customer') },
                           ]}
                         />
                       </motion.div>
@@ -469,6 +501,17 @@ export default function UsersManagement() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 }}
+                        type="text"
+                        placeholder="Username"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        required
+                      />
+                      <motion.input
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
                         type="email"
                         placeholder={t('admin.users.table.email')}
                         value={formData.email}
@@ -477,9 +520,9 @@ export default function UsersManagement() {
                         required
                       />
                       <motion.input
-                        initial={{ opacity: 0, x: 20 }}
+                        initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 }}
+                        transition={{ delay: 0.15 }}
                         type="password"
                         placeholder={t('admin.users.password')}
                         value={formData.password}
@@ -488,7 +531,7 @@ export default function UsersManagement() {
                         required
                       />
                       <motion.input
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 }}
                         type="text"
@@ -499,9 +542,9 @@ export default function UsersManagement() {
                         required
                       />
                       <motion.input
-                        initial={{ opacity: 0, x: 20 }}
+                        initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
+                        transition={{ delay: 0.25 }}
                         type="text"
                         placeholder={t('admin.users.lastName')}
                         value={formData.lastName}
@@ -520,14 +563,13 @@ export default function UsersManagement() {
                           options={[
                             { value: 'agent', label: t('admin.users.role.agent') },
                             { value: 'admin', label: t('admin.users.role.admin') },
-                            { value: 'customer', label: t('admin.users.role.customer') },
                           ]}
                         />
                       </motion.div>
                       <motion.input
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
+                        transition={{ delay: 0.35 }}
                         type="text"
                         placeholder={`${t('admin.users.employeeId')} ${t('admin.users.optional')}`}
                         value={formData.employeeId}
@@ -537,7 +579,7 @@ export default function UsersManagement() {
                       <motion.input
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
+                        transition={{ delay: 0.4 }}
                         type="text"
                         placeholder={`${t('admin.users.counterNumber')} ${t('admin.users.optional')}`}
                         value={formData.counterNumber}
@@ -599,6 +641,8 @@ export default function UsersManagement() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Username</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.name')}</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.email')}</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.role')}</th>
@@ -609,7 +653,7 @@ export default function UsersManagement() {
                 <AnimatePresence>
                   {paginatedUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                         {searchQuery ? t('admin.users.noUsersFound') : t('admin.users.noUsersAvailable')}
                       </td>
                     </tr>
@@ -624,13 +668,28 @@ export default function UsersManagement() {
                         className="hover:bg-muted/30 transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm font-mono bg-muted px-2 py-1 rounded text-muted-foreground">
+                            {user.employeeId || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-foreground text-sm">
+                          {user.username}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                               <UserCheck className="w-5 h-5 text-primary" />
                             </div>
-                            <span className="font-medium text-foreground">
-                              {user.firstName} {user.lastName}
-                            </span>
+                            <div>
+                              <div className="font-medium text-foreground">
+                                {user.firstName} {user.lastName}
+                              </div>
+                              {user.employeeId && (
+                                <div className="text-xs text-primary font-mono">
+                                  ID: {user.employeeId}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -666,7 +725,7 @@ export default function UsersManagement() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
-                              onClick={() => handleDelete(user.id)}
+                              onClick={() => handleDelete(user)}
                               className="inline-flex items-center gap-2 text-destructive hover:text-destructive/80 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />

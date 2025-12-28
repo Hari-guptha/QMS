@@ -7,6 +7,7 @@ import {
   Put,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -69,8 +70,11 @@ export class UsersController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete user (Admin only)' })
-  async remove(@Param('id') id: string) {
-    await this.usersService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @Query('confirm') confirm?: string,
+  ) {
+    await this.usersService.remove(id, confirm === 'true');
     return { message: 'User deleted successfully' };
   }
 

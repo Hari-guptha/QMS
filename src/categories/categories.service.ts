@@ -96,7 +96,7 @@ export class CategoriesService {
     });
   }
 
-  async remove(id: string): Promise<{ message: string; deactivated?: boolean }> {
+  async remove(id: string, confirm?: boolean): Promise<{ message: string; deactivated?: boolean }> {
     // Check if category exists
     await this.findOne(id);
 
@@ -105,8 +105,8 @@ export class CategoriesService {
       where: { categoryId: id },
     });
 
-    if (ticketCount > 0) {
-      // Instead of hard delete, mark as inactive (soft delete)
+    if (ticketCount > 0 && !confirm) {
+      // Instead of hard delete, mark as inactive (soft delete) if not confirmed
       await this.prisma.category.update({
         where: { id },
         data: { isActive: false },
@@ -115,6 +115,18 @@ export class CategoriesService {
         message: `Category cannot be deleted because it has ${ticketCount} associated ticket(s). Category has been deactivated instead.`,
         deactivated: true,
       };
+    }
+
+    if (confirm) {
+      // Delete all tickets associated with this category
+      await this.prisma.ticket.deleteMany({
+        where: { categoryId: id },
+      });
+
+      // Delete agent-category associations first
+      await this.prisma.agentCategory.deleteMany({
+        where: { categoryId: id },
+      });
     }
 
     // If no tickets, proceed with deletion

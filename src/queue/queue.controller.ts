@@ -245,6 +245,19 @@ export class QueueController {
     return { message: 'Ticket deleted successfully' };
   }
 
+  @Patch('admin/:ticketId/reassign/:newAgentId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiTags('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reassign ticket to another agent (Admin only)' })
+  async adminReassignTicket(
+    @Param('ticketId') ticketId: string,
+    @Param('newAgentId') newAgentId: string,
+  ) {
+    return this.queueService.adminReassignTicket(ticketId, newAgentId);
+  }
+
   @Patch('admin/:ticketId/reopen')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)

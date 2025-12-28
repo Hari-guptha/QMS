@@ -30,6 +30,7 @@ import {
   Calendar,
   Activity
 } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 import { BarChart } from '@/components/charts/BarChart';
 import { LineChart } from '@/components/charts/LineChart';
 import { PieChart } from '@/components/charts/PieChart';
@@ -118,7 +119,8 @@ export default function Analytics() {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
       agent.agentName?.toLowerCase().includes(query) ||
-      agent.agentEmail?.toLowerCase().includes(query);
+      agent.agentEmail?.toLowerCase().includes(query) ||
+      agent.employeeId?.toLowerCase().includes(query);
     return matchesSearch;
   });
 
@@ -264,19 +266,20 @@ export default function Analytics() {
                 />
               </div>
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <select
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                <Select
                   value={selectedCategoryId}
-                  onChange={(e) => setSelectedCategoryId(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 appearance-none"
-                >
-                  <option value="">{t('admin.analytics.allServices')}</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setSelectedCategoryId(value)}
+                  placeholder={t('admin.analytics.allServices')}
+                  buttonClassName="pl-11 sm:pl-11"
+                  options={[
+                    { value: '', label: t('admin.analytics.allServices') },
+                    ...categories.map((cat) => ({
+                      value: cat.id,
+                      label: cat.name,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 
@@ -355,6 +358,11 @@ export default function Analytics() {
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Mail className="w-3 h-3" />
                               {agent.agentEmail}
+                            </p>
+                          )}
+                          {agent.employeeId && (
+                            <p className="text-xs text-primary font-mono mt-0.5">
+                              ID: {agent.employeeId}
                             </p>
                           )}
                         </div>
@@ -662,7 +670,7 @@ export default function Analytics() {
                 </div>
                 <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.peakHours')}</h2>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-4 overflow-x-hidden">
                 <div className="flex items-end justify-between gap-1 h-64">
                   {Array.from({ length: 24 }, (_, hour) => {
                     const hourData = stats.peakHours.find((h: any) => h.hour === hour);
@@ -670,14 +678,14 @@ export default function Analytics() {
                     const maxCount = Math.max(...stats.peakHours.map((h: any) => h.count), 1);
                     const height = (count / maxCount) * 100;
                     return (
-                      <div key={hour} className="flex-1 flex flex-col items-center gap-1">
+                      <div key={hour} className="flex-1 flex flex-col items-center gap-1 min-w-0">
                         <div
                           className="w-full bg-primary rounded-t"
                           style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
                           title={`${hour}:00 - ${count} tickets`}
                         ></div>
                         {hour % 4 === 0 && (
-                          <span className="text-xs text-muted-foreground mt-1">{hour}h</span>
+                          <span className="text-[10px] text-muted-foreground mt-1">{hour}h</span>
                         )}
                       </div>
                     );

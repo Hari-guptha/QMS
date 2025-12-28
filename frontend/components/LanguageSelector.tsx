@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { auth } from '@/lib/auth';
+import { authApi } from '@/lib/api';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const languages = [
@@ -33,9 +35,23 @@ export function LanguageSelector() {
     };
   }, [isOpen]);
 
-  const handleLanguageChange = (langCode: typeof language) => {
+  const handleLanguageChange = async (langCode: typeof language) => {
     setLanguage(langCode);
     setIsOpen(false);
+
+    // Save to DB if authenticated
+    if (auth.isAuthenticated()) {
+      try {
+        await authApi.updateProfile({ language: langCode });
+        // Update local user data
+        const user = auth.getUser();
+        if (user) {
+          localStorage.setItem('user', JSON.stringify({ ...user, language: langCode }));
+        }
+      } catch (error) {
+        console.error('Failed to save language preference:', error);
+      }
+    }
   };
 
   return (
@@ -56,9 +72,8 @@ export function LanguageSelector() {
         />
         <span className="text-sm font-medium">{currentLanguage.nativeName}</span>
         <ChevronDown
-          className={`w-4 h-4 transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
@@ -86,9 +101,8 @@ export function LanguageSelector() {
                 <button
                   key={lang.code}
                   onClick={() => handleLanguageChange(lang.code)}
-                  className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
-                    language === lang.code ? 'bg-muted font-semibold' : ''
-                  }`}
+                  className={`relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${language === lang.code ? 'bg-muted font-semibold' : ''
+                    }`}
                   role="menuitem"
                   tabIndex={-1}
                 >

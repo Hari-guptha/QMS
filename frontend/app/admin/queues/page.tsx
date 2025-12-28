@@ -40,7 +40,8 @@ import {
   RotateCcw,
   Loader2,
   Save,
-  Search
+  Search,
+  Users
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -57,6 +58,7 @@ export default function AllQueues() {
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTicket, setEditingTicket] = useState<any | null>(null);
+  const [reassigningTicket, setReassigningTicket] = useState<any | null>(null);
   const [editFormData, setEditFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -223,6 +225,16 @@ export default function AllQueues() {
       loadAgentQueue(selectedAgentId);
     } catch (error: any) {
       alert(error.response?.data?.message || t('admin.queues.alert.updateTicket'));
+    }
+  };
+
+  const handleReassignTicket = async (ticketId: string, newAgentId: string) => {
+    try {
+      await adminApi.reassignTicket(ticketId, newAgentId);
+      setReassigningTicket(null);
+      loadAgentQueue(selectedAgentId);
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to reassign ticket');
     }
   };
 
@@ -616,6 +628,15 @@ export default function AllQueues() {
                               <Trash2 className="w-4 h-4" />
                               {t('admin.queues.delete')}
                             </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setReassigningTicket(ticket)}
+                              className="bg-chart-1 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
+                            >
+                              <Users className="w-4 h-4" />
+                              Reassign
+                            </motion.button>
                           </div>
                         </motion.div>
                       ))}
@@ -649,6 +670,7 @@ export default function AllQueues() {
                               onComplete={handleAdminComplete}
                               onHold={handleAdminHold}
                               onDelete={handleDeleteTicket}
+                              onReassign={(t) => setReassigningTicket(t)}
                               index={index}
                             />
                           ))}
@@ -828,6 +850,69 @@ export default function AllQueues() {
             </>
           )}
         </AnimatePresence>
+
+        {/* Reassign Ticket Modal */}
+        <AnimatePresence>
+          {reassigningTicket && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={() => setReassigningTicket(null)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-card text-card-foreground border rounded-2xl shadow-2xl p-8 max-w-md w-full"
+                >
+                  <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2">
+                    <Users className="w-6 h-6 text-primary" />
+                    Reassign Ticket: {reassigningTicket.tokenNumber}
+                  </h2>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Select another agent in the same service ({reassigningTicket.category?.name}) to reassign this ticket to.
+                    </p>
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {agents
+                        .filter(a => a.id !== selectedAgentId && a.agentCategories?.some((ac: any) => ac.categoryId === reassigningTicket.categoryId && (ac.isActive === true || ac.isActive === 1)))
+                        .map(agent => (
+                          <button
+                            key={agent.id}
+                            onClick={() => handleReassignTicket(reassigningTicket.id, agent.id)}
+                            className="w-full p-3 text-left border border-border rounded-xl hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3"
+                          >
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <User className="w-4 h-4 text-primary" />
+                            </div>
+                            <span className="font-medium">{agent.firstName} {agent.lastName}</span>
+                          </button>
+                        ))}
+                      {agents.filter(a => a.id !== selectedAgentId && a.agentCategories?.some((ac: any) => ac.categoryId === reassigningTicket.categoryId && (ac.isActive === true || ac.isActive === 1))).length === 0 && (
+                        <p className="text-center py-4 text-muted-foreground italic">No other agents available for this service.</p>
+                      )}
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setReassigningTicket(null)}
+                        className="flex-1 bg-secondary text-secondary-foreground px-6 py-3 rounded-xl hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-2"
+                      >
+                        <X className="w-5 h-5" />
+                        Cancel
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -839,12 +924,14 @@ function SortableTicketItem({
   onComplete,
   onHold,
   onDelete,
+  onReassign,
   index
 }: {
   ticket: any;
   onComplete: (id: string) => void;
   onHold: (id: string) => void;
   onDelete: (id: string) => void;
+  onReassign: (ticket: any) => void;
   index: number;
 }) {
   const {
@@ -934,6 +1021,19 @@ function SortableTicketItem({
           >
             <Trash2 className="w-4 h-4" />
             Delete
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onReassign(ticket);
+            }}
+            className="bg-chart-1 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Reassign
           </motion.button>
         </div>
       </div>

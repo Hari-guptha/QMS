@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res, Put } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
@@ -72,6 +72,20 @@ export class AuthController {
     redirectUrl.searchParams.set('user', JSON.stringify(tokens.user));
 
     res.redirect(redirectUrl.toString());
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async updateProfile(
+    @GetUser() user: User,
+    @Body() updateData: { firstName?: string; lastName?: string; email?: string; language?: string; theme?: string },
+  ) {
+    return this.authService.updateProfile(user.id, updateData);
   }
 
   @Post('update-password')

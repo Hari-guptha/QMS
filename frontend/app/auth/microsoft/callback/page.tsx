@@ -31,7 +31,7 @@ export default function MicrosoftCallback() {
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', refreshToken);
             localStorage.setItem('user', userParam);
-            
+
             // Reset session manager
             const { getSessionManager } = await import('@/lib/session-manager');
             const sessionManager = getSessionManager();
@@ -43,16 +43,19 @@ export default function MicrosoftCallback() {
           // Parse user data
           const user = JSON.parse(userParam);
 
+          // Apply preferences
+          auth.applyUserPreferences(user);
+
           // Redirect based on role and intended destination
           const intendedRole = sessionStorage.getItem('microsoftAuthRole');
           sessionStorage.removeItem('microsoftAuthRole');
 
           if (user.role === 'admin') {
-            router.push('/admin/dashboard');
+            window.location.href = '/admin/dashboard';
           } else if (user.role === 'agent' || intendedRole === 'agent') {
-            router.push('/agent/dashboard');
+            window.location.href = '/agent/dashboard';
           } else {
-            router.push('/');
+            window.location.href = '/';
           }
         } else {
           setError('Failed to complete Microsoft authentication. Missing tokens.');
