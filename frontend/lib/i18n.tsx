@@ -71,6 +71,13 @@ const translations: Translations = {
   'dashboard.admin': { en: 'Admin Dashboard', ar: 'لوحة تحكم المدير' },
   'dashboard.agent': { en: 'Agent Dashboard', ar: 'لوحة تحكم الموظف' },
   'dashboard.manageSystem': { en: 'Manage your queue management system', ar: 'إدارة نظام إدارة الطوابير الخاص بك' },
+  // Agent specific
+  'agent.assignedService': { en: 'Assigned Service:', ar: 'الخدمة المخصصة:' },
+  'agent.currentlyServing': { en: 'Currently Serving', ar: 'قيد الخدمة' },
+  'agent.customerDetails': { en: 'Customer Details', ar: 'تفاصيل العميل' },
+  'agent.myQueue': { en: 'My Queue', ar: 'قائمتي' },
+  'agent.statistics': { en: 'Statistics', ar: 'الإحصائيات' },
+  'agent.totalInQueue': { en: 'Total in Queue', ar: 'الإجمالي في الطابور' },
 
   // Home
   'home.title': { en: 'Queue Management System', ar: 'نظام إدارة الطوابير' },
@@ -103,6 +110,7 @@ const translations: Translations = {
   'status.agents': { en: 'Agents', ar: 'الموظفون' },
   'status.liveUpdates': { en: 'Live Updates', ar: 'تحديثات مباشرة' },
   'status.disconnected': { en: 'Disconnected', ar: 'غير متصل' },
+  'status.connected': { en: 'Connected', ar: 'متصل' },
   'status.lastUpdated': { en: 'Last updated:', ar: 'آخر تحديث:' },
   'status.refresh': { en: 'Refresh', ar: 'تحديث' },
   'status.noActiveQueues': { en: 'No Active Queues', ar: 'لا توجد طوابير نشطة' },

@@ -6,6 +6,7 @@ import { agentApi, authApi } from '@/lib/api';
 import { auth } from '@/lib/auth';
 import { getSocket } from '@/lib/socket';
 import { Navbar } from '@/components/Navbar';
+import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
@@ -45,6 +46,7 @@ import {
 import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function AgentDashboard() {
+  const { t } = useI18n();
   const router = useRouter();
   const { confirm } = useConfirm();
   const [queue, setQueue] = useState<any[]>([]);
@@ -184,7 +186,7 @@ export default function AgentDashboard() {
       setCurrentTicket(response.data);
       loadQueue();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to call next');
+      alert(error.response?.data?.message || t('admin.queues.alert.callNext'));
     }
   };
 
@@ -195,7 +197,7 @@ export default function AgentDashboard() {
       setCurrentTicket(null);
       loadQueue();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to complete');
+      alert(error.response?.data?.message || t('admin.queues.alert.completeTicket'));
     }
   };
 
@@ -208,18 +210,18 @@ export default function AgentDashboard() {
       }
       loadQueue();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update');
+      alert(error.response?.data?.message || t('admin.queues.alert.holdTicket'));
     }
   };
 
   const handleReopen = async (ticketId: string) => {
-    const confirmed = await confirm('Reopen this ticket? It will be added back to the queue.');
+    const confirmed = await confirm(t('admin.queues.confirmReopen'));
     if (!confirmed) return;
     try {
       await agentApi.reopenTicket(ticketId);
       loadQueue();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to reopen ticket');
+      alert(error.response?.data?.message || t('admin.queues.alert.reopenTicket'));
     }
   };
 
@@ -265,7 +267,7 @@ export default function AgentDashboard() {
     })
   );
 
-  if (loading) {
+    if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -276,7 +278,7 @@ export default function AgentDashboard() {
             className="flex flex-col items-center gap-4"
           >
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <div className="text-lg text-muted-foreground">Loading dashboard...</div>
+            <div className="text-lg text-muted-foreground">{t('admin.loadingDashboard')}</div>
           </motion.div>
         </div>
       </div>
@@ -300,11 +302,11 @@ export default function AgentDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Ticket className="w-6 h-6 text-primary" />
                 </div>
-                <h1 className="text-4xl font-bold text-foreground">Agent Dashboard</h1>
+                <h1 className="text-4xl font-bold text-foreground">{t('dashboard.agent')}</h1>
               </div>
               {assignedService && (
                 <motion.div
@@ -314,7 +316,7 @@ export default function AgentDashboard() {
                   className="flex items-center gap-2 ml-11"
                 >
                   <FolderOpen className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Assigned Service:</span>
+                  <span className="text-sm text-muted-foreground">{t('agent.assignedService')}</span>
                   <span className="text-sm font-semibold text-foreground">{assignedService.name}</span>
                 </motion.div>
               )}
@@ -335,7 +337,7 @@ export default function AgentDashboard() {
                 <WifiOff className="w-4 h-4" />
               )}
               <span className="text-sm font-medium">
-                {socketConnected ? 'Connected' : 'Disconnected'}
+                {socketConnected ? t('status.connected') : t('status.disconnected')}
               </span>
             </motion.div>
           </div>
@@ -353,11 +355,11 @@ export default function AgentDashboard() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   className="bg-gradient-to-br from-chart-2/20 to-chart-2/5 border-2 border-chart-2/30 rounded-2xl shadow-lg p-6"
                 >
-                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-4">
                     <div className="p-3 bg-chart-2/20 rounded-xl">
                       <UserCheck className="w-6 h-6 text-chart-2" />
                     </div>
-                    <h2 className="text-2xl font-bold text-foreground">Currently Serving</h2>
+                    <h2 className="text-2xl font-bold text-foreground">{t('agent.currentlyServing')}</h2>
                   </div>
                   <div className="mb-4 space-y-2">
                     <div>
@@ -368,7 +370,7 @@ export default function AgentDashboard() {
                     </div>
                     {currentTicket.category && (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Service</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t('customer.category')}</p>
                         <p className="text-lg font-semibold text-foreground">
                           {currentTicket.category.name}
                         </p>
@@ -376,7 +378,7 @@ export default function AgentDashboard() {
                     )}
                     {(currentTicket.customerName || currentTicket.customerPhone || currentTicket.customerEmail) && (
                       <div className="pt-2 border-t border-chart-2/20">
-                        <p className="text-xs text-muted-foreground mb-2">Customer Details</p>
+                        <p className="text-xs text-muted-foreground mb-2">{t('agent.customerDetails')}</p>
                         <div className="space-y-1">
                           {currentTicket.customerName && (
                             <p className="text-sm text-foreground flex items-center gap-2">
@@ -400,7 +402,7 @@ export default function AgentDashboard() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-3">
+                    <div className="flex gap-3">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -408,7 +410,7 @@ export default function AgentDashboard() {
                       className="flex-1 bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg flex items-center justify-center gap-2"
                     >
                       <CheckCircle2 className="w-5 h-5" />
-                      Complete
+                      {t('admin.queues.complete')}
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -417,7 +419,7 @@ export default function AgentDashboard() {
                       className="flex-1 bg-destructive text-destructive-foreground px-6 py-3 rounded-xl hover:bg-destructive/90 transition-colors shadow-lg flex items-center justify-center gap-2"
                     >
                       <X className="w-5 h-5" />
-                      Hold
+                      {t('common.hold')}
                     </motion.button>
                   </div>
                 </motion.div>
@@ -432,11 +434,11 @@ export default function AgentDashboard() {
               className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6"
             >
               <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <Ticket className="w-6 h-6 text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold text-foreground">My Queue</h2>
+                  <h2 className="text-2xl font-bold text-foreground">{t('agent.myQueue')}</h2>
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -444,9 +446,9 @@ export default function AgentDashboard() {
                   onClick={handleCallNext}
                   disabled={pendingTickets.length === 0}
                   className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-lg"
-                >
+                  >
                   <Phone className="w-5 h-5" />
-                  Call Next
+                  {t('admin.queues.callNext')}
                 </motion.button>
               </div>
 
@@ -454,12 +456,12 @@ export default function AgentDashboard() {
               <div>
                 <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
                   <Clock className="w-5 h-5 text-chart-4" />
-                  Pending ({pendingTickets.length})
+                  {t('common.pending')} ({pendingTickets.length})
                 </h3>
                 {pendingTickets.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No pending tickets</p>
+                    <p>{t('admin.queues.noPendingTickets')}</p>
                   </div>
                 ) : (
                   <DndContext
@@ -486,7 +488,7 @@ export default function AgentDashboard() {
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
                     <X className="w-5 h-5 text-destructive" />
-                    Hold ({holdTickets.length})
+                    {t('common.hold')} ({holdTickets.length})
                   </h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {holdTickets.map((ticket: any, index: number) => (
@@ -539,7 +541,7 @@ export default function AgentDashboard() {
                             className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 ml-4"
                           >
                             <RotateCcw className="w-4 h-4" />
-                            Reopen
+                            {t('admin.queues.reopen')}
                           </motion.button>
                         </div>
                       </motion.div>
@@ -553,7 +555,7 @@ export default function AgentDashboard() {
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-chart-3" />
-                    Completed ({completedTickets.length})
+                    {t('status.completed')} ({completedTickets.length})
                   </h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {completedTickets.map((ticket: any, index: number) => (
@@ -609,7 +611,7 @@ export default function AgentDashboard() {
                             className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 ml-4"
                           >
                             <RotateCcw className="w-4 h-4" />
-                            Reopen
+                            {t('admin.queues.reopen')}
                           </motion.button>
                         </div>
                       </motion.div>
@@ -631,7 +633,7 @@ export default function AgentDashboard() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
                 <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Statistics</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t('agent.statistics')}</h2>
             </div>
             <div className="space-y-6">
               <motion.div
@@ -645,7 +647,7 @@ export default function AgentDashboard() {
                     <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
                       <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                  <span className="text-muted-foreground">Total in Queue</span>
+                  <span className="text-muted-foreground">{t('agent.totalInQueue')}</span>
                   </div>
                   <span className="text-3xl font-bold text-foreground">{queue.length}</span>
                 </div>
@@ -661,7 +663,7 @@ export default function AgentDashboard() {
                     <div className="inline-flex items-center justify-center w-10 h-10 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg">
                       <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                     </div>
-                  <span className="text-muted-foreground">Pending</span>
+                  <span className="text-muted-foreground">{t('common.pending')}</span>
                   </div>
                   <span className="text-3xl font-bold text-foreground">{pendingTickets.length}</span>
                 </div>
@@ -677,7 +679,7 @@ export default function AgentDashboard() {
                     <div className="inline-flex items-center justify-center w-10 h-10 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
                       <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
-                  <span className="text-muted-foreground">Serving</span>
+                  <span className="text-muted-foreground">{t('common.serving')}</span>
                   </div>
                   <span className="text-3xl font-bold text-foreground">
                     {currentTicket ? 1 : 0}
@@ -695,7 +697,7 @@ export default function AgentDashboard() {
                     <div className="inline-flex items-center justify-center w-10 h-10 bg-red-100 dark:bg-red-500/20 rounded-lg">
                       <X className="w-5 h-5 text-red-600 dark:text-red-400" />
                     </div>
-                  <span className="text-muted-foreground">Hold</span>
+                  <span className="text-muted-foreground">{t('common.hold')}</span>
                   </div>
                   <span className="text-3xl font-bold text-foreground">{holdTickets.length}</span>
                 </div>
