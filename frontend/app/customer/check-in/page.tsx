@@ -19,7 +19,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { Select } from '@/components/ui/Select';
 import { useI18n } from '@/lib/i18n';
+import COUNTRIES from '@/lib/countries';
 
 export default function CustomerCheckIn() {
   const { t } = useI18n();
@@ -31,6 +33,7 @@ export default function CustomerCheckIn() {
     customerPhone: '',
     customerEmail: '',
   });
+  const [countryDial, setCountryDial] = useState('+1');
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState('');
@@ -134,13 +137,17 @@ export default function CustomerCheckIn() {
       return;
     }
 
+    // Combine country dial code with entered phone, strip leading zeros from entered number
+    const cleanedLocal = formData.customerPhone.trim().replace(/^0+/, '');
+    const fullPhone = `${countryDial}${cleanedLocal}`;
+
     setLoading(true);
     setError('');
     try {
       const response = await publicApi.checkIn({
         categoryId: selectedCategory,
         customerName: formData.customerName.trim(),
-        customerPhone: formData.customerPhone.trim(),
+        customerPhone: fullPhone,
         ...(formData.customerEmail?.trim() && { customerEmail: formData.customerEmail.trim() }),
       });
       router.push(`/customer/token/${response.data.tokenNumber}`);
@@ -364,16 +371,31 @@ export default function CustomerCheckIn() {
                     <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
                       {t('customer.phone')} <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      type="tel"
-                      value={formData.customerPhone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, customerPhone: e.target.value })
-                      }
-                      required
-                      className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                      placeholder={t('customer.enterPhone')}
-                    />
+                      <div className="flex gap-2">
+                        <div className="w-48">
+                          <Select
+                            value={`${COUNTRIES.find(c => c.dial_code === countryDial)?.code || 'US'}|${countryDial}`}
+                            onChange={(val) => {
+                              const parts = val.split('|');
+                              const dial = parts[1] || parts[0] || '+1';
+                              setCountryDial(dial);
+                            }}
+                            options={COUNTRIES.map((c) => ({ value: `${c.code}|${c.dial_code}`, label: `${c.name} (${c.dial_code})` }))}
+                            searchable
+                            searchPlaceholder={t('customer.searchCountry') || 'Search country...'}
+                          />
+                        </div>
+                        <input
+                          type="tel"
+                          value={formData.customerPhone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, customerPhone: e.target.value })
+                          }
+                          required
+                          className="flex-1 p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                          placeholder={t('customer.enterPhone')}
+                        />
+                      </div>
                   </motion.div>
 
                   <motion.div

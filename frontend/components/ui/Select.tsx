@@ -17,6 +17,8 @@ interface SelectProps {
   disabled?: boolean;
   className?: string;
   buttonClassName?: string;
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 export function Select({
@@ -27,8 +29,11 @@ export function Select({
   disabled = false,
   className = '',
   buttonClassName = '',
+  searchable = false,
+  searchPlaceholder = 'Search...',
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const selectRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,6 +55,9 @@ export function Select({
   const selectedOption = options.find(opt => opt.value === value);
   const displayValue = selectedOption ? selectedOption.label : placeholder;
   const isEmpty = !value || value === '';
+  const filteredOptions = query
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options;
 
   return (
     <div ref={selectRef} className={`relative ${className}`}>
@@ -90,8 +98,19 @@ export function Select({
               transition={{ duration: 0.2 }}
               className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-lg max-h-60 overflow-auto"
             >
-              <div className="p-1">
-                {options.map((option) => {
+              <div className="p-2">
+                {searchable && (
+                  <div className="px-2 pb-2">
+                    <input
+                      autoFocus
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={searchPlaceholder}
+                      className="w-full p-2 text-sm border border-border rounded-lg bg-white dark:bg-background text-foreground focus:outline-none"
+                    />
+                  </div>
+                )}
+                {filteredOptions.map((option) => {
                   const isSelected = value === option.value;
                   const isEmptyOption = option.value === '';
 
@@ -102,6 +121,7 @@ export function Select({
                       onClick={() => {
                         onChange(option.value);
                         setIsOpen(false);
+                        setQuery('');
                       }}
                       className={`
                         w-full px-4 py-2 text-left rounded-lg

@@ -149,18 +149,18 @@ export default function Home() {
           />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-24">
+        <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-18">
           <motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-center mb-12"
+            className="text-center mb-6"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
-              className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-2xl mb-6"
+              className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-2xl mb-2"
             >
               <Ticket className="w-10 h-10 text-primary" />
             </motion.div>
@@ -169,7 +169,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground tracking-tight mb-6"
+              className="text-5xl md:text-3xl lg:text-5xl font-bold text-foreground tracking-tight mb-2"
             >
               {t('home.titleMain')}
               <span className="block text-primary mt-2">{t('home.titleSystem')}</span>

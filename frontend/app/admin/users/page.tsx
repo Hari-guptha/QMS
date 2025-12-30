@@ -641,7 +641,6 @@ export default function UsersManagement() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User ID</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Username</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.name')}</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.email')}</th>
@@ -653,7 +652,7 @@ export default function UsersManagement() {
                 <AnimatePresence>
                   {paginatedUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                      <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                         {searchQuery ? t('admin.users.noUsersFound') : t('admin.users.noUsersAvailable')}
                       </td>
                     </tr>
@@ -667,11 +666,6 @@ export default function UsersManagement() {
                         transition={{ delay: index * 0.05 }}
                         className="hover:bg-muted/30 transition-colors"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-mono bg-muted px-2 py-1 rounded text-muted-foreground">
-                            {user.employeeId || 'N/A'}
-                          </span>
-                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-foreground text-sm">
                           {user.username}
                         </td>
@@ -684,11 +678,6 @@ export default function UsersManagement() {
                               <div className="font-medium text-foreground">
                                 {user.firstName} {user.lastName}
                               </div>
-                              {user.employeeId && (
-                                <div className="text-xs text-primary font-mono">
-                                  ID: {user.employeeId}
-                                </div>
-                              )}
                             </div>
                           </div>
                         </td>
