@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useEffect, useState as useStateReact } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { authApi } from '@/lib/api';
@@ -19,6 +20,12 @@ export default function AdminLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Microsoft login visibility flag
+  const [showMicrosoftLogin, setShowMicrosoftLogin] = useStateReact(false);
+  useEffect(() => {
+    setShowMicrosoftLogin(process.env.NEXT_PUBLIC_SHOW_MICROSOFT_LOGIN === 'true');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,34 +180,38 @@ export default function AdminLogin() {
           </button>
 
           {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-border"></div>
+          {showMicrosoftLogin && (
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-border"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white dark:bg-card text-gray-500 dark:text-muted-foreground">{t('common.or')}</span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white dark:bg-card text-gray-500 dark:text-muted-foreground">{t('common.or')}</span>
-            </div>
-          </div>
+          )}
 
           {/* Microsoft Sign In Button */}
-          <button
-            type="button"
-            onClick={() => {
-              // Store the intended role in sessionStorage for callback
-              sessionStorage.setItem('microsoftAuthRole', 'admin');
-              authApi.microsoftAuth();
-            }}
-            disabled={loading}
-            className="w-full bg-white dark:bg-card border-2 border-gray-300 dark:border-border text-gray-700 dark:text-foreground py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-accent transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 23 23" fill="none">
-              <rect x="0" y="0" width="10" height="10" fill="#F25022" />
-              <rect x="13" y="0" width="10" height="10" fill="#7FBA00" />
-              <rect x="0" y="13" width="10" height="10" fill="#00A4EF" />
-              <rect x="13" y="13" width="10" height="10" fill="#FFB900" />
-            </svg>
-            {t('login.signInWithMicrosoft')}
-          </button>
+          {showMicrosoftLogin && (
+            <button
+              type="button"
+              onClick={() => {
+                // Store the intended role in sessionStorage for callback
+                sessionStorage.setItem('microsoftAuthRole', 'admin');
+                authApi.microsoftAuth();
+              }}
+              disabled={loading}
+              className="w-full bg-white dark:bg-card border-2 border-gray-300 dark:border-border text-gray-700 dark:text-foreground py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-accent transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 23 23" fill="none">
+                <rect x="0" y="0" width="10" height="10" fill="#F25022" />
+                <rect x="13" y="0" width="10" height="10" fill="#7FBA00" />
+                <rect x="0" y="13" width="10" height="10" fill="#00A4EF" />
+                <rect x="13" y="13" width="10" height="10" fill="#FFB900" />
+              </svg>
+              {t('login.signInWithMicrosoft')}
+            </button>
+          )}
         </form>
       </motion.div>
     </div>
