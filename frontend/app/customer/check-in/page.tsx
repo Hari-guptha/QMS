@@ -405,7 +405,8 @@ export default function CustomerCheckIn() {
                   >
                     <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                       <Mail className="w-4 h-4" />
-                      {t('customer.emailOptional')}
+                      {t('customer.email')}
+                      <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="email"
@@ -413,6 +414,7 @@ export default function CustomerCheckIn() {
                       onChange={(e) =>
                         setFormData({ ...formData, customerEmail: e.target.value })
                       }
+                      required
                       className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       placeholder={t('customer.enterEmail')}
                     />
@@ -426,7 +428,7 @@ export default function CustomerCheckIn() {
                   >
                     <button
                       type="submit"
-                      disabled={loading || !selectedCategory || !formData.customerName.trim() || !formData.customerPhone.trim()}
+                      disabled={loading || !selectedCategory || !formData.customerName.trim() || !formData.customerPhone.trim() || !formData.customerEmail.trim()}
                       className="w-full bg-primary text-primary-foreground py-4 rounded-md font-semibold hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-2 group"
                     >
                       {loading ? (

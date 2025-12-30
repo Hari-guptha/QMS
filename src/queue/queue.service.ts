@@ -112,19 +112,17 @@ export class QueueService {
       const decrypted = this.decryptTicket(savedTicket);
 
       // Send notifications (using decrypted data)
-      if (decrypted.customerPhone) {
-        await this.notificationService.sendSMS(
-          decrypted.customerPhone,
-          `Your token number is ${decrypted.tokenNumber}. Your position in queue is ${decrypted.positionInQueue}.`,
-        );
-      }
-
-      if (decrypted.customerEmail) {
-        await this.notificationService.sendEmail(
-          decrypted.customerEmail,
-          'Token Generated',
-          `Your token number is ${decrypted.tokenNumber}. Your position in queue is ${decrypted.positionInQueue}.`,
-        );
+      const method = this.notificationService.getMethod();
+      const message = `Your token number is ${decrypted.tokenNumber}. Your position in queue is ${decrypted.positionInQueue}.`;
+      if (method === 'sms') {
+        if (decrypted.customerPhone) {
+          await this.notificationService.sendSMS(decrypted.customerPhone, message);
+        }
+      } else {
+        if (decrypted.customerEmail) {
+          // send email; no agent context for a public check-in
+          await this.notificationService.sendEmail(decrypted.customerEmail, 'Token Generated', message);
+        }
       }
 
       // Emit real-time update
@@ -297,6 +295,13 @@ export class QueueService {
         decrypted.customerPhone,
         `Your token ${decrypted.tokenNumber} has been called. Please proceed to counter.`,
       );
+    }
+    // Also respect configured method and send email if configured
+    const method = this.notificationService.getMethod();
+    if (method !== 'sms' && decrypted.customerEmail) {
+      // If agent exists, send from agent
+      const from = decrypted.agent && decrypted.agent.email ? { name: `${decrypted.agent.firstName} ${decrypted.agent.lastName}`, email: decrypted.agent.email } : undefined;
+      await this.notificationService.sendTemplate(decrypted.customerEmail, 'Token Called', 'application_applied', { companyName: 'QMS', name: decrypted.customerName, token: decrypted.tokenNumber }, from as any);
     }
 
     this.realtimeService.emitTicketServing(decrypted);

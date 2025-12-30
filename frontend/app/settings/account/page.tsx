@@ -7,6 +7,8 @@ import { authApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { useI18n } from '@/lib/i18n';
 import { UserCircle, Save, ArrowLeft } from 'lucide-react';
+import { adminApi } from '@/lib/api';
+import { Select } from '@/components/ui/Select';
 
 export default function MyAccountPage() {
   const { t } = useI18n();
@@ -21,6 +23,9 @@ export default function MyAccountPage() {
     lastName: '',
     email: '',
   });
+  const [notificationMethod, setNotificationMethod] = useState<'sms'|'mail'>('sms');
+  const [showConfig, setShowConfig] = useState(false);
+  const [config, setConfig] = useState<any>({ smtp: {} });
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -39,6 +44,16 @@ export default function MyAccountPage() {
     }
     setLoading(false);
   }, [router]);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      adminApi.getNotificationConfig().then(res => {
+        const data = res.data || { method: 'sms', smtp: {} };
+        setNotificationMethod(data.method || 'sms');
+        setConfig(data);
+      }).catch(() => {});
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +204,25 @@ export default function MyAccountPage() {
                     <span className="font-medium text-foreground">{user.counterNumber}</span>
                   </div>
                 )}
+                {user.role === 'admin' && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Notification Method:</span>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={notificationMethod}
+                        onChange={(v) => setNotificationMethod(v as any)}
+                        options={[{ value: 'sms', label: 'SMS' }, { value: 'mail', label: 'Email' }]}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfig(true)}
+                        className="px-3 py-1 bg-primary text-primary-foreground rounded-md"
+                      >
+                        Configure
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
@@ -211,6 +245,43 @@ export default function MyAccountPage() {
             </form>
           </div>
         </div>
+        {/* Config modal */}
+        {showConfig && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowConfig(false)} />
+            <div className="bg-card text-card-foreground border rounded-lg p-6 z-10 w-full max-w-lg">
+              <h3 className="text-lg font-semibold mb-4">Notification Configuration</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1">SMTP Host</label>
+                  <input value={config.smtp?.host || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, host: e.target.value } })} className="w-full p-2 border rounded" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-1">SMTP Port</label>
+                    <input value={config.smtp?.port || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, port: e.target.value } })} className="w-full p-2 border rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-1">From Email</label>
+                    <input value={config.smtp?.fromEmail || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, fromEmail: e.target.value } })} className="w-full p-2 border rounded" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1">From Name</label>
+                  <input value={config.smtp?.fromName || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, fromName: e.target.value } })} className="w-full p-2 border rounded" />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <button onClick={() => setShowConfig(false)} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md">Cancel</button>
+                  <button onClick={async () => {
+                    const payload = { method: notificationMethod, smtp: config.smtp };
+                    await adminApi.setNotificationConfig(payload);
+                    setShowConfig(false);
+                  }} className="px-3 py-1 bg-primary text-primary-foreground rounded-md">Save</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

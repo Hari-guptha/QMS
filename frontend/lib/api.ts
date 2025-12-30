@@ -169,6 +169,10 @@ export const adminApi = {
   deleteTicket: (ticketId: string) =>
     api.delete(`/queue/admin/${ticketId}`),
 
+  // Notification config
+  getNotificationConfig: () => api.get('/notification/config'),
+  setNotificationConfig: (data: any) => api.post('/notification/config', data),
+
   // Analytics
   getDashboard: (startDate?: string, endDate?: string) =>
     api.get('/analytics/dashboard', { params: { startDate, endDate } }),
