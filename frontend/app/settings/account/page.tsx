@@ -23,7 +23,7 @@ export default function MyAccountPage() {
     lastName: '',
     email: '',
   });
-  const [notificationMethod, setNotificationMethod] = useState<'sms'|'mail'>('sms');
+  const [notificationMethod, setNotificationMethod] = useState<'none' | 'sms' | 'mail' | 'both'>('sms');
   const [showConfig, setShowConfig] = useState(false);
   const [config, setConfig] = useState<any>({ smtp: {} });
 
