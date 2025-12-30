@@ -3,7 +3,7 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import fs from 'fs';
 import path from 'path';
 
-const DEFAULT_CONFIG = {
+let currentConfig: any = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: false,
@@ -15,14 +15,18 @@ const DEFAULT_CONFIG = {
 
 let transporter: nodemailer.Transporter | null = null;
 
+export function setConfig(cfg: Partial<typeof currentConfig>) {
+  currentConfig = { ...currentConfig, ...cfg };
+  transporter = null; // reset
+}
+
 export async function getTransporter() {
   if (transporter) return transporter;
-  // build from env or config file
   transporter = nodemailer.createTransport({
-    host: DEFAULT_CONFIG.host,
-    port: DEFAULT_CONFIG.port,
-    secure: DEFAULT_CONFIG.port === 465,
-    auth: DEFAULT_CONFIG.user && DEFAULT_CONFIG.pass ? { user: DEFAULT_CONFIG.user, pass: DEFAULT_CONFIG.pass } : undefined,
+    host: currentConfig.host,
+    port: currentConfig.port,
+    secure: currentConfig.port === 465,
+    auth: currentConfig.user && currentConfig.pass ? { user: currentConfig.user, pass: currentConfig.pass } : undefined,
     tls: { rejectUnauthorized: false },
   } as SMTPTransport.Options);
 
@@ -37,5 +41,7 @@ export async function getTransporter() {
 
 export async function sendMail(opts: any) {
   const t = await getTransporter();
+  // provide default from if not given
+  if (!opts.from) opts.from = `${currentConfig.fromName} <${currentConfig.fromEmail}>`;
   return t.sendMail(opts);
 }

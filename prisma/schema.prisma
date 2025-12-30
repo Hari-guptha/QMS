@@ -88,3 +88,21 @@ model Ticket {
   @@index([categoryId, status, createdAt])
   @@map("tickets")
 }
+
+model NotificationSetting {
+  id                   String   @id @default(uuid()) @db.UniqueIdentifier
+  method               String   @default("sms") @db.VarChar(20)
+  smtpHost             String?  @db.NVarChar(500)
+  smtpPort             Int?     @db.Int
+  smtpUser             String?  @db.NVarChar(500)
+  smtpPassEncrypted    String?  @db.NVarChar(Max)
+  smtpFromEmail        String?  @db.NVarChar(255)
+  smtpFromName         String?  @db.NVarChar(255)
+  twilioAccountSidEnc  String?  @db.NVarChar(Max)
+  twilioAuthTokenEnc   String?  @db.NVarChar(Max)
+  twilioFromNumber     String?  @db.NVarChar(50)
+  createdAt            DateTime @default(now()) @db.DateTime2
+  updatedAt            DateTime @updatedAt @db.DateTime2
+
+  @@map("notification_settings")
+}

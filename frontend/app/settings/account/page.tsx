@@ -48,9 +48,18 @@ export default function MyAccountPage() {
   useEffect(() => {
     if (user?.role === 'admin') {
       adminApi.getNotificationConfig().then(res => {
-        const data = res.data || { method: 'sms', smtp: {} };
+        const data = res.data || { method: 'sms' };
         setNotificationMethod(data.method || 'sms');
-        setConfig(data);
+        setConfig({
+          method: data.method,
+          smtpHost: data.smtpHost || '',
+          smtpPort: data.smtpPort || '',
+          smtpUser: data.smtpUser || '',
+          smtpFromEmail: data.smtpFromEmail || '',
+          smtpFromName: data.smtpFromName || '',
+          twilioAccountSid: '',
+          twilioFromNumber: data.twilioFromNumber || '',
+        });
       }).catch(() => {});
     }
   }, [user]);
@@ -204,26 +213,34 @@ export default function MyAccountPage() {
                     <span className="font-medium text-foreground">{user.counterNumber}</span>
                   </div>
                 )}
-                {user.role === 'admin' && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Notification Method:</span>
-                    <div className="flex items-center gap-2">
+              </div>
+
+              {/* Notification Settings Separate Card */}
+              {user.role === 'admin' && (
+                <div className="bg-card text-card-foreground border rounded-xl shadow-sm mt-8 p-6">
+                  <h3 className="text-lg font-semibold mb-4">Notification Settings</h3>
+                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="w-full md:w-1/2">
                       <Select
                         value={notificationMethod}
                         onChange={(v) => setNotificationMethod(v as any)}
-                        options={[{ value: 'sms', label: 'SMS' }, { value: 'mail', label: 'Email' }]}
+                        options={[
+                          { value: 'none', label: 'No Notification' },
+                          { value: 'sms', label: 'SMS Only' },
+                          { value: 'mail', label: 'Email Only' },
+                          { value: 'both', label: 'Both' },
+                        ]}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfig(true)}
-                        className="px-3 py-1 bg-primary text-primary-foreground rounded-md"
-                      >
-                        Configure
-                      </button>
                     </div>
+                    {(notificationMethod === 'mail' || notificationMethod === 'both') && (
+                      <button type="button" onClick={() => { setShowConfig(true); setConfig({ ...config, _openFor: 'mail' }); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-md">Configure Email</button>
+                    )}
+                    {(notificationMethod === 'sms' || notificationMethod === 'both') && (
+                      <button type="button" onClick={() => { setShowConfig(true); setConfig({ ...config, _openFor: 'sms' }); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-md">Configure SMS</button>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button
@@ -250,30 +267,69 @@ export default function MyAccountPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowConfig(false)} />
             <div className="bg-card text-card-foreground border rounded-lg p-6 z-10 w-full max-w-lg">
-              <h3 className="text-lg font-semibold mb-4">Notification Configuration</h3>
+              <h3 className="text-lg font-semibold mb-4">{config._openFor === 'mail' ? 'Email Configuration' : 'SMS Configuration'}</h3>
               <div className="space-y-3">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">SMTP Host</label>
-                  <input value={config.smtp?.host || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, host: e.target.value } })} className="w-full p-2 border rounded" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+                {config._openFor === 'mail' && <>
                   <div>
-                    <label className="block text-sm text-muted-foreground mb-1">SMTP Port</label>
-                    <input value={config.smtp?.port || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, port: e.target.value } })} className="w-full p-2 border rounded" />
+                    <label className="block text-sm text-muted-foreground mb-1">SMTP Host</label>
+                    <input value={config.smtpHost || ''} onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })} className="w-full p-2 border rounded" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">SMTP Port</label>
+                      <input value={config.smtpPort || ''} onChange={(e) => setConfig({ ...config, smtpPort: e.target.value })} className="w-full p-2 border rounded" />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">SMTP User</label>
+                      <input value={config.smtpUser || ''} onChange={(e) => setConfig({ ...config, smtpUser: e.target.value })} className="w-full p-2 border rounded" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">SMTP Password</label>
+                      <input type="password" value={config.smtpPass || ''} onChange={(e) => setConfig({ ...config, smtpPass: e.target.value })} className="w-full p-2 border rounded" />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">From Email</label>
+                      <input value={config.smtpFromEmail || ''} onChange={(e) => setConfig({ ...config, smtpFromEmail: e.target.value })} className="w-full p-2 border rounded" />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm text-muted-foreground mb-1">From Email</label>
-                    <input value={config.smtp?.fromEmail || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, fromEmail: e.target.value } })} className="w-full p-2 border rounded" />
+                    <label className="block text-sm text-muted-foreground mb-1">From Name</label>
+                    <input value={config.smtpFromName || ''} onChange={(e) => setConfig({ ...config, smtpFromName: e.target.value })} className="w-full p-2 border rounded" />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">From Name</label>
-                  <input value={config.smtp?.fromName || ''} onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, fromName: e.target.value } })} className="w-full p-2 border rounded" />
-                </div>
+                </>}
+                {config._openFor === 'sms' && <>
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-1">Twilio Account SID</label>
+                    <input value={config.twilioAccountSid || ''} onChange={(e) => setConfig({ ...config, twilioAccountSid: e.target.value })} className="w-full p-2 border rounded" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">Twilio Auth Token</label>
+                      <input type="password" value={config.twilioAuthToken || ''} onChange={(e) => setConfig({ ...config, twilioAuthToken: e.target.value })} className="w-full p-2 border rounded" />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">Twilio From Number</label>
+                      <input value={config.twilioFromNumber || ''} onChange={(e) => setConfig({ ...config, twilioFromNumber: e.target.value })} className="w-full p-2 border rounded" />
+                    </div>
+                  </div>
+                </>}
                 <div className="flex justify-end gap-2 pt-4">
                   <button onClick={() => setShowConfig(false)} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md">Cancel</button>
                   <button onClick={async () => {
-                    const payload = { method: notificationMethod, smtp: config.smtp };
+                    const payload = {
+                      method: notificationMethod,
+                      smtpHost: config.smtpHost,
+                      smtpPort: config.smtpPort,
+                      smtpUser: config.smtpUser,
+                      smtpPass: config.smtpPass,
+                      smtpFromEmail: config.smtpFromEmail,
+                      smtpFromName: config.smtpFromName,
+                      twilioAccountSid: config.twilioAccountSid,
+                      twilioAuthToken: config.twilioAuthToken,
+                      twilioFromNumber: config.twilioFromNumber,
+                    };
                     await adminApi.setNotificationConfig(payload);
                     setShowConfig(false);
                   }} className="px-3 py-1 bg-primary text-primary-foreground rounded-md">Save</button>

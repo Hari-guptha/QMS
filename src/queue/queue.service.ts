@@ -112,7 +112,7 @@ export class QueueService {
       const decrypted = this.decryptTicket(savedTicket);
 
       // Send notifications (using decrypted data)
-      const method = this.notificationService.getMethod();
+      const method = await this.notificationService.getMethod();
       const message = `Your token number is ${decrypted.tokenNumber}. Your position in queue is ${decrypted.positionInQueue}.`;
       if (method === 'sms') {
         if (decrypted.customerPhone) {
@@ -297,7 +297,7 @@ export class QueueService {
       );
     }
     // Also respect configured method and send email if configured
-    const method = this.notificationService.getMethod();
+    const method = await this.notificationService.getMethod();
     if (method !== 'sms' && decrypted.customerEmail) {
       // If agent exists, send from agent
       const from = decrypted.agent && decrypted.agent.email ? { name: `${decrypted.agent.firstName} ${decrypted.agent.lastName}`, email: decrypted.agent.email } : undefined;
