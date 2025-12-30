@@ -166,5 +166,25 @@ export class AnalyticsController {
     const buffer = await workbook.xlsx.writeBuffer();
     res.send(buffer);
   }
+
+  @Get('export')
+  @ApiOperation({ summary: 'Export analytics data as JSON (Admin only)' })
+  async exportData(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+
+    const dashboard = await this.analyticsService.getDashboardStats(start, end);
+    const agentPerformance = await this.analyticsService.getDetailedAgentPerformance(start, end);
+    const categoryStats = await this.analyticsService.getCategoryStats(start, end);
+
+    return {
+      dashboard,
+      agentPerformance,
+      categoryStats,
+    };
+  }
 }
 

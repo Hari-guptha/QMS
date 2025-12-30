@@ -47,6 +47,24 @@ export default function Analytics() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [startDate, setStartDate] = useState<string>(() => {
+    try {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - 1);
+      return d.toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    try {
+      return new Date().toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  });
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -100,16 +118,307 @@ export default function Analytics() {
 
   const handleExport = async () => {
     try {
-      const response = await adminApi.exportExcel();
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `analytics-${new Date().toISOString().split('T')[0]}.xlsx`;
-      a.click();
+      const params = {
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      };
+      const response = await adminApi.exportAnalytics(params);
+      const data = response.data;
+
+      // Helper: convert array of objects to CSV
+      const toCSV = (rows: any[], headers?: string[]) => {
+        if (!rows || rows.length === 0) return '';
+        const keys = headers || Object.keys(rows[0]);
+        const lines = [keys.join(',')];
+        rows.forEach((row) => {
+          const vals = keys.map((k) => {
+            const v = row[k];
+            if (v === null || v === undefined) return '';
+            return `"${String(v).replace(/"/g, '""')}"`;
+          });
+          lines.push(vals.join(','));
+        });
+        return lines.join('\n');
+      };
+
+      if (exportFormat === 'excel') {
+        const parts: string[] = [];
+        const d = data.dashboard || {};
+
+        // Summary metrics
+        parts.push(`${t('admin.analytics.table.totals') || 'Metric'},${t('common.value') || 'Value'}`);
+        if (d.avgWaitTime !== undefined) parts.push(`${t('admin.avgWaitTime') || 'Avg Wait Time'},${d.avgWaitTime}`);
+        if (d.avgServiceTime !== undefined) parts.push(`${t('admin.avgServiceTime') || 'Avg Service Time'},${d.avgServiceTime}`);
+        if (d.abandonmentRate !== undefined) parts.push(`${t('admin.abandonmentRate') || 'Abandonment Rate'},${d.abandonmentRate}`);
+        parts.push('');
+
+        // Ticket counts
+        parts.push(t('admin.analytics.statusDistribution') || 'Ticket Status Distribution');
+        if (d.ticketCounts) {
+          parts.push('Status,Count');
+          Object.entries(d.ticketCounts).forEach(([k, v]) => parts.push(`${k},${v}`));
+        }
+        parts.push('');
+
+        // Service performance
+        if (d.servicePerformance && d.servicePerformance.length > 0) {
+          parts.push(t('admin.analytics.servicePerformance') || 'Service Performance');
+          parts.push(['Category', 'Total', 'Pending', 'Serving', 'Hold', 'Completed', 'Avg Total Time', 'Avg Service Time', 'Completion Rate'].join(','));
+          d.servicePerformance.forEach((s: any) => {
+            parts.push([
+              s.categoryName,
+              s.totalTickets,
+              s.pendingTickets,
+              s.servingTickets,
+              s.holdTickets,
+              s.completedTickets,
+              s.avgTotalTime,
+              s.avgServiceTime,
+              s.completionRate?.toFixed(2) + '%',
+            ].join(','));
+          });
+          parts.push('');
+        }
+
+        // Category stats (if separate)
+        if (d.categoryStats && d.categoryStats.length > 0) {
+          parts.push('Category Stats');
+          parts.push(['Category', 'Total Tickets', 'Avg Total Time'].join(','));
+          d.categoryStats.forEach((c: any) => {
+            parts.push([c.categoryName, c.totalTickets, c.avgTotalTime].join(','));
+          });
+          parts.push('');
+        }
+
+        // Agent detailed performance
+        if (d.agentPerformance && d.agentPerformance.length > 0) {
+          parts.push(t('admin.analytics.agentPerformance') || 'Agent Performance');
+          parts.push(['Agent', 'Total', 'Pending', 'Serving', 'Hold', 'Completed', 'Avg Wait', 'Avg Called→Serving', 'Avg Service', 'Avg Total', 'Completion Rate'].join(','));
+          d.agentPerformance.forEach((a: any) => {
+            parts.push([
+              a.agentName,
+              a.totalTickets,
+              a.pendingTickets,
+              a.servingTickets,
+              a.holdTickets,
+              a.completedTickets,
+              a.avgWaitTime,
+              a.avgCalledToServingTime,
+              a.avgServiceTime,
+              a.avgTotalTime,
+              a.completionRate?.toFixed(2) + '%',
+            ].join(','));
+          });
+          parts.push('');
+        }
+
+        // Daily trends
+        if (d.dailyTrends && d.dailyTrends.length > 0) {
+          parts.push(t('admin.analytics.dailyTrends') || 'Daily Ticket Trends');
+          parts.push(['Date', 'Total', 'Completed', 'Pending'].join(','));
+          d.dailyTrends.forEach((r: any) => parts.push([r.date, r.total, r.completed, r.pending].join(',')));
+          parts.push('');
+        }
+
+        // Hourly distribution
+        if (d.hourlyDistribution && d.hourlyDistribution.length > 0) {
+          parts.push(t('admin.analytics.hourlyDistribution') || 'Hourly Distribution');
+          parts.push(['Hour', 'Count'].join(','));
+          d.hourlyDistribution.forEach((h: any) => parts.push([h.hour, h.count].join(',')));
+          parts.push('');
+        }
+
+        // Day of week
+        if (d.dayOfWeekDistribution && d.dayOfWeekDistribution.length > 0) {
+          parts.push(t('admin.analytics.dayOfWeekDistribution') || 'Day of Week Distribution');
+          parts.push(['Day', 'Count'].join(','));
+          d.dayOfWeekDistribution.forEach((d2: any) => parts.push([d2.day, d2.count].join(',')));
+          parts.push('');
+        }
+
+        // Status distribution
+        if (d.statusDistribution && d.statusDistribution.length > 0) {
+          parts.push(t('admin.analytics.statusDistribution') || 'Status Distribution');
+          parts.push(['Label', 'Value'].join(','));
+          d.statusDistribution.forEach((s: any) => parts.push([s.label, s.value].join(',')));
+          parts.push('');
+        }
+
+        // Peak hours
+        if (d.peakHours && d.peakHours.length > 0) {
+          parts.push(t('admin.analytics.peakHours') || 'Peak Hours');
+          parts.push(['Hour', 'Count'].join(','));
+          d.peakHours.forEach((p: any) => parts.push([p.hour, p.count].join(',')));
+          parts.push('');
+        }
+
+        const csv = parts.join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const fileNameSuffix = startDate && endDate ? `${startDate}_to_${endDate}` : new Date().toISOString().split('T')[0];
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `analytics-${fileNameSuffix}.csv`;
+        a.click();
+      } else {
+        // PDF: open printable window with tables (localized and direction-aware)
+        const popup = window.open('', '_blank');
+        if (!popup) throw new Error('Unable to open print window');
+        const dir = document.documentElement.dir || 'ltr';
+        const lang = document.documentElement.lang || 'en';
+        const d = data.dashboard || {};
+        const docHtml = `
+          <html dir="${dir}" lang="${lang}">
+            <head>
+              <meta charset="utf-8" />
+              <title>${t('admin.analytics.title') || 'Analytics Report'}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background: #f4f4f4; }
+                h1, h2 { margin: 8px 0; }
+              </style>
+            </head>
+            <body>
+              <h1>${t('admin.analytics.title') || 'Analytics Report'}</h1>
+
+              <h2>${t('admin.analytics.table.totals') || 'Summary'}</h2>
+              <table>
+                <tbody>
+                  <tr><th>${t('admin.analytics.table.totals') || 'Metric'}</th><th>${t('common.value') || 'Value'}</th></tr>
+                  ${d.avgWaitTime !== undefined ? `<tr><td>${t('admin.avgWaitTime') || 'Avg Wait Time'}</td><td>${d.avgWaitTime}</td></tr>` : ''}
+                  ${d.avgServiceTime !== undefined ? `<tr><td>${t('admin.avgServiceTime') || 'Avg Service Time'}</td><td>${d.avgServiceTime}</td></tr>` : ''}
+                  ${d.abandonmentRate !== undefined ? `<tr><td>${t('admin.abandonmentRate') || 'Abandonment Rate'}</td><td>${d.abandonmentRate}</td></tr>` : ''}
+                </tbody>
+              </table>
+
+              <h2>${t('admin.analytics.statusDistribution') || 'Ticket Status Distribution'}</h2>
+              <table>
+                <thead><tr><th>${t('common.status') || 'Status'}</th><th>${t('common.value') || 'Value'}</th></tr></thead>
+                <tbody>
+                  ${(d.ticketCounts ? Object.entries(d.ticketCounts) : []).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}
+                </tbody>
+              </table>
+
+              ${d.servicePerformance && d.servicePerformance.length > 0 ? `
+                <h2>${t('admin.analytics.servicePerformance') || 'Service Performance'}</h2>
+                <table>
+                  <thead><tr><th>Category</th><th>Total</th><th>Pending</th><th>Serving</th><th>Hold</th><th>Completed</th><th>Avg Total</th><th>Avg Service</th><th>Completion</th></tr></thead>
+                  <tbody>
+                    ${d.servicePerformance.map((s: any) => `
+                      <tr>
+                        <td>${s.categoryName}</td>
+                        <td>${s.totalTickets}</td>
+                        <td>${s.pendingTickets}</td>
+                        <td>${s.servingTickets}</td>
+                        <td>${s.holdTickets}</td>
+                        <td>${s.completedTickets}</td>
+                        <td>${s.avgTotalTime}</td>
+                        <td>${s.avgServiceTime}</td>
+                        <td>${s.completionRate?.toFixed(2)}%</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+              ${d.categoryStats && d.categoryStats.length > 0 ? `
+                <h2>Category Stats</h2>
+                <table>
+                  <thead><tr><th>Category</th><th>Total Tickets</th><th>Avg Total Time</th></tr></thead>
+                  <tbody>
+                    ${d.categoryStats.map((c: any) => `<tr><td>${c.categoryName}</td><td>${c.totalTickets}</td><td>${c.avgTotalTime}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+              ${d.agentPerformance && d.agentPerformance.length > 0 ? `
+                <h2>${t('admin.analytics.agentPerformance') || 'Agent Performance'}</h2>
+                <table>
+                  <thead><tr><th>Agent</th><th>Total</th><th>Pending</th><th>Serving</th><th>Hold</th><th>Completed</th><th>Avg Wait</th><th>Avg Called→Serving</th><th>Avg Service</th><th>Avg Total</th><th>Completion</th></tr></thead>
+                  <tbody>
+                    ${d.agentPerformance.map((a: any) => `
+                      <tr>
+                        <td>${a.agentName}</td>
+                        <td>${a.totalTickets}</td>
+                        <td>${a.pendingTickets}</td>
+                        <td>${a.servingTickets}</td>
+                        <td>${a.holdTickets}</td>
+                        <td>${a.completedTickets}</td>
+                        <td>${a.avgWaitTime}</td>
+                        <td>${a.avgCalledToServingTime}</td>
+                        <td>${a.avgServiceTime}</td>
+                        <td>${a.avgTotalTime}</td>
+                        <td>${a.completionRate?.toFixed(2)}%</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+              ${d.dailyTrends && d.dailyTrends.length > 0 ? `
+                <h2>${t('admin.analytics.dailyTrends') || 'Daily Trends'}</h2>
+                <table>
+                  <thead><tr><th>Date</th><th>Total</th><th>Completed</th><th>Pending</th></tr></thead>
+                  <tbody>
+                    ${d.dailyTrends.map((r: any) => `<tr><td>${r.date}</td><td>${r.total}</td><td>${r.completed}</td><td>${r.pending}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+              ${d.hourlyDistribution && d.hourlyDistribution.length > 0 ? `
+                <h2>${t('admin.analytics.hourlyDistribution') || 'Hourly Distribution'}</h2>
+                <table>
+                  <thead><tr><th>Hour</th><th>Count</th></tr></thead>
+                  <tbody>
+                    ${d.hourlyDistribution.map((h: any) => `<tr><td>${h.hour}</td><td>${h.count}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+              ${d.dayOfWeekDistribution && d.dayOfWeekDistribution.length > 0 ? `
+                <h2>${t('admin.analytics.dayOfWeekDistribution') || 'Day of Week'}</h2>
+                <table>
+                  <thead><tr><th>Day</th><th>Count</th></tr></thead>
+                  <tbody>
+                    ${d.dayOfWeekDistribution.map((dd: any) => `<tr><td>${dd.day}</td><td>${dd.count}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+              ${d.statusDistribution && d.statusDistribution.length > 0 ? `
+                <h2>${t('admin.analytics.statusDistribution') || 'Status Distribution'}</h2>
+                <table>
+                  <thead><tr><th>Label</th><th>Value</th></tr></thead>
+                  <tbody>
+                    ${d.statusDistribution.map((s: any) => `<tr><td>${s.label}</td><td>${s.value}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+              ${d.peakHours && d.peakHours.length > 0 ? `
+                <h2>${t('admin.analytics.peakHours') || 'Peak Hours'}</h2>
+                <table>
+                  <thead><tr><th>Hour</th><th>Count</th></tr></thead>
+                  <tbody>
+                    ${d.peakHours.map((p: any) => `<tr><td>${p.hour}</td><td>${p.count}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+              ` : ''}
+
+            </body>
+          </html>
+        `;
+        popup.document.write(docHtml);
+        popup.document.close();
+        setTimeout(() => {
+          popup.focus();
+          popup.print();
+        }, 500);
+      }
     } catch (error) {
+      console.error(error);
       alert(t('error.exportFailed'));
     }
   };
@@ -179,15 +488,97 @@ export default function Analytics() {
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
               {t('admin.analytics.refresh')}
             </motion.button>
+
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleExport}
+              onClick={() => setIsExportOpen(true)}
               className="flex items-center gap-2 bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
             >
               <Download className="w-5 h-5" />
               {t('admin.analytics.export')}
             </motion.button>
+
+            {/* Export Modal */}
+            {isExportOpen && (
+              <>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setIsExportOpen(false)} />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                  transition={{ duration: 0.15 }}
+                  className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+                >
+                  <div className="bg-card text-card-foreground border border-border rounded-2xl shadow-xl w-full max-w-lg">
+                    <div className="flex items-center justify-between p-6 border-b border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-chart-4/10 rounded-lg">
+                          <Download className="w-6 h-6 text-chart-4" />
+                        </div>
+                        <h2 className="text-lg font-bold text-foreground">{t('admin.analytics.export')}</h2>
+                      </div>
+                      <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
+                        <X className="w-5 h-5 text-foreground" />
+                      </button>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.startDate')}</label>
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="w-full p-3 border border-border rounded-lg bg-white dark:bg-background text-foreground"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.endDate')}</label>
+                        <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="w-full p-3 border border-border rounded-lg bg-white dark:bg-background text-foreground"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.exportFormat')}</label>
+                        <Select
+                          value={exportFormat}
+                          onChange={(v) => setExportFormat(v as 'excel' | 'pdf')}
+                          options={[
+                            { value: 'excel', label: t('admin.analytics.excel') || 'Excel' },
+                            { value: 'pdf', label: t('admin.analytics.pdf') || 'PDF' },
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 p-6 border-t border-border">
+                      <button
+                        type="button"
+                        onClick={() => setIsExportOpen(false)}
+                        className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await handleExport();
+                          setIsExportOpen(false);
+                        }}
+                        className="px-6 py-2 bg-chart-2 text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg"
+                      >
+                        {t('admin.analytics.export')}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
           </div>
         </motion.div>
 
