@@ -26,8 +26,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         const trustServerCertificate = configService.get<string>('TrustServerCertificate', 'true') === 'true';
 
         // Prefer full DATABASE_URL when provided, otherwise construct SQL Server URL from parts
-        const url = envUrl
-            ? envUrl
+        const databaseUrl = envUrl;
+        const url = databaseUrl
+            ? databaseUrl
             : host
             ? `sqlserver://${host}:${port};database=${database};user=${user};password=${password};encrypt=${encrypt};trustServerCertificate=${trustServerCertificate};`
             : undefined;
