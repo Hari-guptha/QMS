@@ -41,8 +41,27 @@ import {
   Loader2,
   Save,
   Search,
-  Users
+  Users,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import {
+  format,
+  startOfWeek,
+  addDays,
+  addWeeks,
+  subWeeks,
+  startOfMonth,
+  addMonths,
+  subMonths,
+  isSameDay,
+  isSameMonth,
+  isToday,
+  parseISO,
+  startOfDay,
+  endOfDay,
+} from 'date-fns';
 import { Select } from '@/components/ui/Select';
 import { useConfirm } from '@/components/ConfirmDialog';
 
@@ -64,6 +83,12 @@ export default function AllQueues() {
     customerPhone: '',
     customerEmail: '',
   });
+  const [viewType, setViewType] = useState<'queue' | 'history'>('queue');
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [historyTickets, setHistoryTickets] = useState<any[]>([]);
+  const [hoveredTicket, setHoveredTicket] = useState<any | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -76,11 +101,16 @@ export default function AllQueues() {
 
   useEffect(() => {
     if (selectedAgentId) {
-      loadAgentQueue(selectedAgentId);
+      if (viewType === 'queue') {
+        loadAgentQueue(selectedAgentId);
+      } else {
+        loadAgentHistory(selectedAgentId);
+      }
     } else {
       setQueue([]);
+      setHistoryTickets([]);
     }
-  }, [selectedAgentId]);
+  }, [selectedAgentId, viewType, currentDate, viewMode]);
 
   const loadAgents = async () => {
     try {
@@ -108,6 +138,39 @@ export default function AllQueues() {
     } catch (error) {
       console.error('Failed to load queue:', error);
       alert(t('admin.queues.alert.loadQueue'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAgentHistory = async (agentId: string) => {
+    setLoading(true);
+    try {
+      let start: Date;
+      let end: Date;
+
+      if (viewMode === 'day') {
+        start = startOfDay(currentDate);
+        end = endOfDay(currentDate);
+      } else if (viewMode === 'week') {
+        start = startOfWeek(currentDate, { weekStartsOn: 0 });
+        end = addDays(start, 6);
+        end.setHours(23, 59, 59, 999);
+      } else {
+        start = startOfMonth(currentDate);
+        end = addMonths(start, 1);
+        end.setDate(end.getDate() - 1);
+        end.setHours(23, 59, 59, 999);
+      }
+
+      const response = await agentApi.getAgentHistory(
+        agentId,
+        format(start, 'yyyy-MM-dd'),
+        format(end, 'yyyy-MM-dd')
+      );
+      setHistoryTickets(response.data || []);
+    } catch (error) {
+      console.error('Failed to load agent history:', error);
     } finally {
       setLoading(false);
     }
@@ -278,6 +341,207 @@ export default function AllQueues() {
       default:
         return null;
     }
+  };
+
+  const handlePrev = () => {
+    if (viewMode === 'day') {
+      setCurrentDate(addDays(currentDate, -1));
+    } else if (viewMode === 'week') {
+      setCurrentDate(subWeeks(currentDate, 1));
+    } else {
+      setCurrentDate(subMonths(currentDate, 1));
+    }
+  };
+
+  const handleNext = () => {
+    if (viewMode === 'day') {
+      setCurrentDate(addDays(currentDate, 1));
+    } else if (viewMode === 'week') {
+      setCurrentDate(addWeeks(currentDate, 1));
+    } else {
+      setCurrentDate(addMonths(currentDate, 1));
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const getTicketsForDate = (date: Date) => {
+    return historyTickets.filter((ticket) => isSameDay(parseISO(ticket.createdAt), date));
+  };
+
+  const getTicketsForHour = (date: Date, hour: number) => {
+    return historyTickets.filter((ticket) => {
+      const ticketDate = parseISO(ticket.createdAt);
+      return isSameDay(ticketDate, date) && ticketDate.getHours() === hour;
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    return format(parseISO(dateString), 'HH:mm');
+  };
+
+  const renderMonthView = () => {
+    const startDay = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 });
+    const daysInMonth = Array.from({ length: 42 }, (_, i) => addDays(startDay, i));
+
+    return (
+      <div className="rounded-xl border border-border overflow-hidden bg-border">
+        <div className="grid grid-cols-7 bg-muted/60 text-xs font-medium text-muted-foreground">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="py-2 px-2 text-center border-b border-border/70">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 bg-border">
+          {daysInMonth.map(day => {
+            const dayTickets = getTicketsForDate(day);
+            const isCurrentMonth = isSameMonth(day, currentDate);
+            const isTodayDate = isToday(day);
+            const maxVisible = 3;
+
+            return (
+              <button
+                key={day.toISOString()}
+                className={`min-h-[110px] bg-background p-1.5 text-left border-border/70 border-r border-b ${
+                  !isCurrentMonth ? 'bg-muted/30 text-muted-foreground' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-xs font-medium ${isTodayDate ? 'text-primary' : ''}`}>
+                    {format(day, 'd')}
+                  </span>
+                  {isTodayDate && (
+                    <span className="inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
+                      Today
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {dayTickets.slice(0, maxVisible).map(ticket => (
+                    <div
+                      key={ticket.id}
+                      className="cursor-pointer"
+                      onMouseEnter={(e) => {
+                        setHoveredTicket(ticket);
+                        setHoverPosition({ x: e.clientX, y: e.clientY });
+                      }}
+                      onMouseLeave={() => setHoveredTicket(null)}
+                    >
+                      <span className="inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 text-[10px] px-1.5 py-0.5 text-foreground hover:bg-accent hover:text-accent-foreground transition">
+                        {ticket.tokenNumber || formatTime(ticket.createdAt)}
+                      </span>
+                    </div>
+                  ))}
+                  {dayTickets.length > maxVisible && (
+                    <div className="text-[11px] text-primary cursor-pointer">
+                      +{dayTickets.length - maxVisible} more tickets
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderWeekView = () => {
+    const startDay = startOfWeek(currentDate, { weekStartsOn: 0 });
+    const days = Array.from({ length: 7 }, (_, i) => addDays(startDay, i));
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+
+    return (
+      <div className="border rounded-xl bg-background overflow-hidden">
+        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b sticky top-0 bg-muted/60">
+          <div></div>
+          {days.map(day => (
+            <div key={day.toISOString()} className="py-2 text-center text-xs font-medium">
+              {format(day, 'EEE d')}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-[60px_repeat(7,1fr)] text-xs">
+          {hours.map(hour => (
+            <>
+              <div key={`hour-${hour}`} className="h-16 border-r text-muted-foreground pl-2 pt-2">
+                {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
+              </div>
+              {days.map(day => {
+                const hourTickets = getTicketsForHour(day, hour);
+                return (
+                  <div
+                    key={`${day.toISOString()}-${hour}`}
+                    className="border-r border-b relative h-16 cursor-pointer hover:bg-muted/40 transition"
+                    onMouseEnter={(e) => {
+                      if (hourTickets.length > 0) {
+                        setHoveredTicket(hourTickets[0]);
+                        setHoverPosition({ x: e.clientX, y: e.clientY });
+                      }
+                    }}
+                    onMouseLeave={() => setHoveredTicket(null)}
+                  >
+                    {hourTickets.length > 0 && (
+                      <div className="absolute top-1 left-1 right-1 rounded bg-primary/10 p-1 text-[10px]">
+                        {hourTickets.length === 1 
+                          ? hourTickets[0].tokenNumber || 'Ticket'
+                          : `${hourTickets.length} tickets`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDayView = () => {
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const dayTickets = getTicketsForDate(currentDate);
+
+    return (
+      <div className="border rounded-xl bg-background overflow-hidden">
+        <div className="py-3 px-4 border-b bg-muted/40 text-sm font-semibold">
+          {format(currentDate, 'EEE EEE MMM dd yyyy')}
+        </div>
+        <div className="grid grid-cols-[70px_1fr] text-xs">
+          {hours.map(hour => {
+            const hourTickets = getTicketsForHour(currentDate, hour);
+            return (
+              <>
+                <div key={`hour-${hour}`} className="h-16 border-r text-muted-foreground flex items-start pt-2 pl-2">
+                  {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
+                </div>
+                <div
+                  className="border-b h-16 relative cursor-pointer hover:bg-muted/30 transition"
+                  onMouseEnter={(e) => {
+                    if (hourTickets.length > 0) {
+                      setHoveredTicket(hourTickets[0]);
+                      setHoverPosition({ x: e.clientX, y: e.clientY });
+                    }
+                  }}
+                  onMouseLeave={() => setHoveredTicket(null)}
+                >
+                  {hourTickets.length > 0 && (
+                    <div className="absolute top-1 left-1 right-1 rounded bg-primary/10 p-1 text-[10px]">
+                      {hourTickets.length === 1 
+                        ? hourTickets[0].tokenNumber || 'Ticket'
+                        : `${hourTickets.length} tickets`}
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -455,29 +719,183 @@ export default function AllQueues() {
                 {t('admin.queues.queueFor')} {agents.find((a) => a.id === selectedAgentId)?.firstName}{' '}
                 {agents.find((a) => a.id === selectedAgentId)?.lastName}
               </h2>
-              {pendingTickets.length > 0 && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleAdminCallNext(selectedAgentId)}
-                  className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg"
+              <div className="flex items-center gap-3">
+                {/* View Toggle */}
+                <div
+                  role="tablist"
+                  className="text-muted-foreground h-9 w-fit items-center justify-center p-[3px] flex gap-2 rounded-full bg-card border border-border"
                 >
-                  <Phone className="w-5 h-5" />
-                  {t('admin.queues.callNext')}
-                </motion.button>
-              )}
+                  <button
+                    type="button"
+                    onClick={() => setViewType('queue')}
+                    className={`inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 border border-transparent text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 p-2 rounded-full border-none cursor-pointer ${
+                      viewType === 'queue'
+                        ? 'bg-accent/20 text-foreground shadow-sm'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    <List className="w-4 h-4" />
+                    Queue
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewType('history')}
+                    className={`inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 border border-transparent text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 p-2 rounded-full border-none cursor-pointer ${
+                      viewType === 'history'
+                        ? 'bg-accent/20 text-foreground shadow-sm'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    <CalendarIcon className="w-4 h-4" />
+                    History
+                  </button>
+                </div>
+                {viewType === 'queue' && pendingTickets.length > 0 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAdminCallNext(selectedAgentId)}
+                    className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg"
+                  >
+                    <Phone className="w-5 h-5" />
+                    {t('admin.queues.callNext')}
+                  </motion.button>
+                )}
+              </div>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : queue.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                {t('admin.queues.noTickets')}
-              </div>
+            {viewType === 'history' ? (
+              <>
+                {/* Calendar View Controls */}
+                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-6 w-6" />
+                    <div>
+                      <h3 className="text-xl font-semibold">Customer history</h3>
+                      <p className="text-sm text-muted-foreground">Calendar view of customer appointments</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+                      <button
+                        onClick={() => setViewMode('day')}
+                        className={`px-3 py-1 text-sm rounded transition-colors ${
+                          viewMode === 'day'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        Day
+                      </button>
+                      <button
+                        onClick={() => setViewMode('week')}
+                        className={`px-3 py-1 text-sm rounded transition-colors ${
+                          viewMode === 'week'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        Week
+                      </button>
+                      <button
+                        onClick={() => setViewMode('month')}
+                        className={`px-3 py-1 text-sm rounded transition-colors ${
+                          viewMode === 'month'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        Month
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handlePrev}
+                        className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleToday}
+                        className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+                      >
+                        Today
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Calendar View */}
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="border rounded-xl overflow-hidden">
+                    {viewMode === 'month' && renderMonthView()}
+                    {viewMode === 'week' && renderWeekView()}
+                    {viewMode === 'day' && renderDayView()}
+                  </div>
+                )}
+
+                {/* Ticket Hover Tooltip */}
+                <AnimatePresence>
+                  {hoveredTicket && hoverPosition && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="fixed z-50 bg-card border border-border rounded-lg shadow-xl p-4 max-w-xs pointer-events-none"
+                      style={{
+                        left: hoverPosition.x + 10,
+                        top: hoverPosition.y + 10,
+                      }}
+                    >
+                      <div className="space-y-2">
+                        <div className="font-bold text-foreground">{hoveredTicket.tokenNumber}</div>
+                        {hoveredTicket.customerName && (
+                          <div className="text-sm text-foreground">Customer: {hoveredTicket.customerName}</div>
+                        )}
+                        {hoveredTicket.category && (
+                          <div className="text-sm text-muted-foreground">Category: {hoveredTicket.category.name}</div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {format(parseISO(hoveredTicket.createdAt), 'MMM dd, yyyy HH:mm')}
+                        </div>
+                        <div className="text-xs">
+                          <span className={`px-2 py-1 rounded-full ${
+                            hoveredTicket.status === 'completed'
+                              ? 'bg-chart-2/20 text-chart-2'
+                              : hoveredTicket.status === 'no_show' || hoveredTicket.status === 'hold'
+                              ? 'bg-destructive/20 text-destructive'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {hoveredTicket.status}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
             ) : (
               <>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : queue.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    {t('admin.queues.noTickets')}
+                  </div>
+                ) : (
+                  <>
                 {/* Hold Tickets */}
                 {holdTickets.length > 0 && (
                   <div className="mb-6">
@@ -679,6 +1097,8 @@ export default function AllQueues() {
                     </DndContext>
                   )}
                 </div>
+                  </>
+                )}
               </>
             )}
           </motion.div>

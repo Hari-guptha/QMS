@@ -18,7 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "create-admin": "ts-node -r dotenv/config scripts/create-admin.ts"
+    "create-admin": "ts-node -r dotenv/config scripts/create-admin.ts",
+    "add-simulator-data": "ts-node -r dotenv/config mastertester/add-simulator-data.ts",
+    "remove-simulator-data": "ts-node -r dotenv/config mastertester/remove-simulator-data.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

@@ -57,6 +57,9 @@ export default function AgentDashboard() {
   const [socketConnected, setSocketConnected] = useState(false);
   const [assignedService, setAssignedService] = useState<any>(null);
   const [noteText, setNoteText] = useState('');
+  const [showHoldDialog, setShowHoldDialog] = useState(false);
+  const [holdReason, setHoldReason] = useState('');
+  const [ticketToHold, setTicketToHold] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -205,14 +208,31 @@ export default function AgentDashboard() {
     }
   };
 
-  const handleNoShow = async (ticketId: string) => {
+  const handleHoldClick = (ticketId: string) => {
+    setTicketToHold(ticketId);
+    setHoldReason('');
+    setShowHoldDialog(true);
+  };
+
+  const handleNoShow = async () => {
+    if (!ticketToHold) return;
+    
+    // Validate that reason is provided
+    if (!holdReason.trim()) {
+      alert('Please provide a reason for putting this ticket on hold.');
+      return;
+    }
+
     try {
-      await agentApi.markAsNoShow(ticketId, noteText.trim() || undefined);
+      await agentApi.markAsNoShow(ticketToHold, holdReason.trim());
       // Clear current ticket if it's the one being put on hold
-      if (currentTicket && currentTicket.id === ticketId) {
+      if (currentTicket && currentTicket.id === ticketToHold) {
         setCurrentTicket(null);
       }
       setNoteText(''); // Clear note after marking no-show
+      setHoldReason(''); // Clear hold reason
+      setShowHoldDialog(false);
+      setTicketToHold(null);
       loadQueue();
     } catch (error: any) {
       alert(error.response?.data?.message || t('admin.queues.alert.holdTicket'));
@@ -318,16 +338,6 @@ export default function AgentDashboard() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto p-6">
-        {/* Current Date Display - At Top */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-4 text-center"
-        >
-          <p className="text-xl font-semibold text-foreground">{dateString}</p>
-        </motion.div>
-
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -341,7 +351,10 @@ export default function AgentDashboard() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Ticket className="w-6 h-6 text-primary" />
                 </div>
-                <h1 className="text-4xl font-bold text-foreground">{t('dashboard.agent')}</h1>
+                <div className="flex flex-col">
+                  <h1 className="text-4xl font-bold text-foreground">{t('dashboard.agent')}</h1>
+                  <p className="text-lg font-medium text-muted-foreground mt-1">{dateString}</p>
+                </div>
               </div>
               {assignedService && (
                 <motion.div
@@ -482,7 +495,7 @@ export default function AgentDashboard() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => handleNoShow(currentTicket.id)}
+                      onClick={() => handleHoldClick(currentTicket.id)}
                       className="flex-1 bg-destructive text-destructive-foreground px-6 py-3 rounded-xl hover:bg-destructive/90 transition-colors shadow-lg flex items-center justify-center gap-2"
                     >
                       <X className="w-5 h-5" />
@@ -773,6 +786,86 @@ export default function AgentDashboard() {
           </motion.div>
         </div>
       </div>
+
+      {/* Hold Reason Dialog */}
+      <AnimatePresence>
+        {showHoldDialog && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowHoldDialog(false);
+                setHoldReason('');
+                setTicketToHold(null);
+              }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]"
+            />
+
+            {/* Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-card border border-border rounded-xl shadow-xl max-w-md w-full p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-destructive/10 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-destructive" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-foreground">Put Ticket on Hold</h2>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  Please provide a reason for putting this ticket on hold. This is required.
+                </p>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Reason <span className="text-destructive">*</span>
+                  </label>
+                  <textarea
+                    value={holdReason}
+                    onChange={(e) => setHoldReason(e.target.value)}
+                    placeholder="Enter the reason for putting this ticket on hold..."
+                    className="w-full p-3 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-destructive/40 transition min-h-[100px] resize-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex gap-3 justify-end">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setShowHoldDialog(false);
+                      setHoldReason('');
+                      setTicketToHold(null);
+                    }}
+                    className="px-4 py-2 rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleNoShow}
+                    disabled={!holdReason.trim()}
+                    className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Put on Hold
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

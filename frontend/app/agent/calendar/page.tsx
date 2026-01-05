@@ -239,13 +239,13 @@ export default function AgentCalendar() {
                       onMouseLeave={() => setHoveredTicket(null)}
                     >
                       <span className="inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 text-[10px] px-1.5 py-0.5 text-foreground hover:bg-accent hover:text-accent-foreground transition">
-                        {formatTime(ticket.createdAt)} · 1
+                        {ticket.tokenNumber || formatTime(ticket.createdAt)}
                       </span>
                     </div>
                   ))}
                   {dayTickets.length > maxVisible && (
                     <div className="text-[11px] text-primary cursor-pointer">
-                      +{dayTickets.length - maxVisible} more visitors
+                      +{dayTickets.length - maxVisible} more tickets
                     </div>
                   )}
                 </div>
@@ -294,7 +294,9 @@ export default function AgentCalendar() {
                   >
                     {hourTickets.length > 0 && (
                       <div className="absolute top-1 left-1 right-1 rounded bg-primary/10 p-1 text-[10px]">
-                        {hourTickets.length} {hourTickets.length === 1 ? 'visitor' : 'visitors'}
+                        {hourTickets.length === 1 
+                          ? hourTickets[0].tokenNumber || 'Ticket'
+                          : `${hourTickets.length} tickets`}
                       </div>
                     )}
                   </div>
@@ -336,7 +338,9 @@ export default function AgentCalendar() {
                 >
                   {hourTickets.length > 0 && (
                     <div className="absolute top-1 left-1 right-1 rounded bg-primary/10 p-1 text-[10px]">
-                      {hourTickets.length} {hourTickets.length === 1 ? 'visitor' : 'visitors'}
+                      {hourTickets.length === 1 
+                        ? hourTickets[0].tokenNumber || 'Ticket'
+                        : `${hourTickets.length} tickets`}
                     </div>
                   )}
                 </div>
@@ -372,11 +376,8 @@ export default function AgentCalendar() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col gap-4 w-full">
           {/* Top Header */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center mt-2 lg:mt-5 justify-between w-full gap-4">
-            <div className="flex flex-col">
-              <p className="text-xl sm:text-2xl font-bold text-foreground">Visitors</p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center mt-2 lg:mt-5 justify-end w-full gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto ml-auto">
               {/* Calendar/List Toggle */}
               <div
                 role="tablist"
@@ -411,7 +412,7 @@ export default function AgentCalendar() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="Search visitor, updates..."
+                  placeholder="Search tickets, updates..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 w-full min-w-0 border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-10 pl-10 rounded-full bg-background border-border"
@@ -427,8 +428,8 @@ export default function AgentCalendar() {
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-6 w-6" />
                   <div>
-                    <h2 className="text-xl font-semibold">Visitor Calendar</h2>
-                    <p className="text-sm text-muted-foreground">Calendar view of visitor appointments</p>
+                    <h2 className="text-xl font-semibold">Customer history</h2>
+                    <p className="text-sm text-muted-foreground">Calendar view of customer appointments</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -513,7 +514,7 @@ export default function AgentCalendar() {
                   <List className="h-6 w-6" />
                   <div>
                     <h2 className="text-xl font-semibold">Ticket History</h2>
-                    <p className="text-sm text-muted-foreground">List view of visitor appointments</p>
+                    <p className="text-sm text-muted-foreground">List view of customer appointments</p>
                   </div>
                 </div>
               </div>
