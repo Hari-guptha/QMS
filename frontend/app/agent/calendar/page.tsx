@@ -223,7 +223,7 @@ export default function AgentCalendar() {
                   </span>
                   {isTodayDate && (
                     <span className="inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
-                      Today
+                      {t('common.today')}
                     </span>
                   )}
                 </div>
@@ -245,7 +245,7 @@ export default function AgentCalendar() {
                   ))}
                   {dayTickets.length > maxVisible && (
                     <div className="text-[11px] text-primary cursor-pointer">
-                      +{dayTickets.length - maxVisible} more tickets
+                      +{dayTickets.length - maxVisible} {t('common.moreTickets')}
                     </div>
                   )}
                 </div>
@@ -363,7 +363,7 @@ export default function AgentCalendar() {
             className="flex flex-col items-center gap-4"
           >
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <div className="text-lg text-muted-foreground">Loading calendar...</div>
+            <div className="text-lg text-muted-foreground">{t('common.loadingCalendar')}</div>
           </motion.div>
         </div>
       </div>
@@ -428,8 +428,8 @@ export default function AgentCalendar() {
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-6 w-6" />
                   <div>
-                    <h2 className="text-xl font-semibold">Customer history</h2>
-                    <p className="text-sm text-muted-foreground">Calendar view of customer appointments</p>
+                    <h2 className="text-xl font-semibold">{t('common.customerHistory')}</h2>
+                    <p className="text-sm text-muted-foreground">{t('common.calendarView')}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -643,7 +643,7 @@ export default function AgentCalendar() {
                                 {ticket.note ? (
                                   <span className="bg-muted/50 p-2 rounded-lg block">{ticket.note}</span>
                                 ) : (
-                                  <span className="text-muted-foreground italic">No note</span>
+                                  <span className="text-muted-foreground italic">{t('common.noNote')}</span>
                                 )}
                               </div>
                             </td>
@@ -702,7 +702,7 @@ export default function AgentCalendar() {
               )}
               {hoveredTicket.note && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  <span className="font-semibold">Note:</span> {hoveredTicket.note}
+                  <span className="font-semibold">{t('common.note')}:</span> {hoveredTicket.note}
                 </p>
               )}
             </motion.div>

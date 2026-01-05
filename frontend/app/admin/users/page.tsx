@@ -118,8 +118,8 @@ export default function UsersManagement() {
         t('admin.users.deleteConfirm'),
         {
           requireText: 'confirm',
-          title: 'Delete Agent?',
-          description: 'Warning: All tickets currently assigned to this agent will be permanently deleted. This action cannot be undone.'
+          title: t('common.deleteAgent'),
+          description: t('common.deleteAgentWarning')
         }
       );
     } else {
@@ -282,7 +282,7 @@ export default function UsersManagement() {
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
-                  title="Grid View"
+                  title={t('common.gridView')}
                 >
                   <LayoutGrid className="w-4 h-4" />
                 </motion.button>
@@ -295,7 +295,7 @@ export default function UsersManagement() {
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
-                  title="Table View"
+                  title={t('common.tableView')}
                 >
                   <List className="w-4 h-4" />
                 </motion.button>
@@ -372,7 +372,7 @@ export default function UsersManagement() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 }}
                         type="text"
-                        placeholder="Username"
+                        placeholder={t('common.username')}
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
@@ -537,7 +537,7 @@ export default function UsersManagement() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 }}
                         type="text"
-                        placeholder="Username"
+                        placeholder={t('common.username')}
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
@@ -705,12 +705,12 @@ export default function UsersManagement() {
                     </div>
                     {user.employeeId && (
                       <div className="text-sm text-muted-foreground">
-                        Employee ID: {user.employeeId}
+                        {t('common.employeeId')}: {user.employeeId}
                       </div>
                     )}
                     {user.counterNumber && (
                       <div className="text-sm text-muted-foreground">
-                        Counter: {user.counterNumber}
+                        {t('common.counter')}: {user.counterNumber}
                       </div>
                     )}
                   </div>
@@ -723,7 +723,7 @@ export default function UsersManagement() {
                       className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2"
                     >
                       <Edit className="w-4 h-4" />
-                      Edit
+                      {t('common.edit')}
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -732,7 +732,7 @@ export default function UsersManagement() {
                       className="flex-1 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg hover:bg-destructive/90 transition-colors shadow-sm flex items-center justify-center gap-2"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Delete
+                      {t('common.delete')}
                     </motion.button>
                   </div>
                 </motion.div>
@@ -759,7 +759,7 @@ export default function UsersManagement() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Username</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('common.username')}</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.name')}</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.email')}</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('admin.users.table.role')}</th>
@@ -827,7 +827,7 @@ export default function UsersManagement() {
                               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
                             >
                               <Edit className="w-4 h-4" />
-                              Edit
+                              {t('common.edit')}
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -836,7 +836,7 @@ export default function UsersManagement() {
                               className="inline-flex items-center gap-2 text-destructive hover:text-destructive/80 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
-                              Delete
+                              {t('common.delete')}
                             </motion.button>
                           </div>
                         </td>
@@ -887,7 +887,7 @@ export default function UsersManagement() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{t('admin.users.limit')}</span>
+                <span className="text-sm text-muted-foreground">{t('common.limit')}</span>
                 <div className="w-20">
                   <Select
                     value={itemsPerPage.toString()}

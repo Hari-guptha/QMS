@@ -382,7 +382,7 @@ export default function CustomerCheckIn() {
                             }}
                             options={COUNTRIES.map((c) => ({ value: `${c.code}|${c.dial_code}`, label: `${c.name} (${c.dial_code})` }))}
                             searchable
-                            searchPlaceholder={t('customer.searchCountry') || 'Search country...'}
+                            searchPlaceholder={t('customer.searchCountry')}
                           />
                         </div>
                         <input

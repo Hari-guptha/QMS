@@ -217,11 +217,11 @@ export default function AgentDashboard() {
   const handleNoShow = async () => {
     if (!ticketToHold) return;
     
-    // Validate that reason is provided
-    if (!holdReason.trim()) {
-      alert('Please provide a reason for putting this ticket on hold.');
-      return;
-    }
+      // Validate that reason is provided
+      if (!holdReason.trim()) {
+        alert(t('common.pleaseProvideReason'));
+        return;
+      }
 
     try {
       await agentApi.markAsNoShow(ticketToHold, holdReason.trim());
@@ -377,7 +377,7 @@ export default function AgentDashboard() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card hover:bg-muted transition-colors"
               >
                 <Calendar className="w-4 h-4" />
-                <span className="text-sm font-medium">Calendar</span>
+                <span className="text-sm font-medium">{t('common.calendar')}</span>
               </motion.button>
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -422,7 +422,7 @@ export default function AgentDashboard() {
                   </div>
                   <div className="mb-4 space-y-3">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Ticket ID</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t('common.ticketId')}</p>
                       <p className="text-3xl font-mono font-bold text-foreground">
                         {currentTicket.tokenNumber}
                       </p>
@@ -462,7 +462,7 @@ export default function AgentDashboard() {
                     )}
                     {currentTicket.note && (
                       <div className="pt-2 border-t border-chart-2/20">
-                        <p className="text-xs text-muted-foreground mb-2">Note</p>
+                        <p className="text-xs text-muted-foreground mb-2">{t('common.note')}</p>
                         <p className="text-sm text-foreground bg-muted/50 p-2 rounded-lg">
                           {currentTicket.note}
                         </p>
@@ -472,12 +472,12 @@ export default function AgentDashboard() {
                     {/* Note Input */}
                     <div className="pt-2 border-t border-chart-2/20">
                       <label className="text-xs text-muted-foreground mb-2 block">
-                        Note (Optional)
+                        {t('common.noteOptional')}
                       </label>
                       <textarea
                         value={noteText}
                         onChange={(e) => setNoteText(e.target.value)}
-                        placeholder="Add a note about this ticket..."
+                        placeholder={t('common.addNote')}
                         className="w-full p-3 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[80px] resize-none"
                       />
                     </div>
@@ -818,21 +818,21 @@ export default function AgentDashboard() {
                   <div className="p-2 bg-destructive/10 rounded-lg">
                     <AlertCircle className="w-5 h-5 text-destructive" />
                   </div>
-                  <h2 className="text-xl font-semibold text-foreground">Put Ticket on Hold</h2>
+                  <h2 className="text-xl font-semibold text-foreground">{t('common.putTicketOnHold')}</h2>
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-4">
-                  Please provide a reason for putting this ticket on hold. This is required.
+                  {t('common.pleaseProvideReason')}
                 </p>
 
                 <div className="mb-4">
                   <label className="text-sm font-medium text-foreground mb-2 block">
-                    Reason <span className="text-destructive">*</span>
+                    {t('common.reason')} <span className="text-destructive">*</span>
                   </label>
                   <textarea
                     value={holdReason}
                     onChange={(e) => setHoldReason(e.target.value)}
-                    placeholder="Enter the reason for putting this ticket on hold..."
+                    placeholder={t('common.enterReason')}
                     className="w-full p-3 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-destructive/40 transition min-h-[100px] resize-none"
                     autoFocus
                   />
@@ -849,7 +849,7 @@ export default function AgentDashboard() {
                     }}
                     className="px-4 py-2 rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -858,7 +858,7 @@ export default function AgentDashboard() {
                     disabled={!holdReason.trim()}
                     className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Put on Hold
+                    {t('common.putOnHold')}
                   </motion.button>
                 </div>
               </div>

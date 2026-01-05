@@ -209,7 +209,7 @@ export default function AgentHistory() {
                   </span>
                   {isTodayDate && (
                     <span className="inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
-                      Today
+                      {t('common.today')}
                     </span>
                   )}
                 </div>
@@ -231,7 +231,7 @@ export default function AgentHistory() {
                   ))}
                   {dayTickets.length > maxVisible && (
                     <div className="text-[11px] text-primary cursor-pointer">
-                      +{dayTickets.length - maxVisible} more tickets
+                      +{dayTickets.length - maxVisible} {t('common.moreTickets')}
                     </div>
                   )}
                 </div>
@@ -372,14 +372,14 @@ export default function AgentHistory() {
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            {t('admin.users.backToDashboard')}
           </Link>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
                 <HistoryIcon className="w-6 h-6 text-primary" />
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Ticket History</h1>
+              <h1 className="text-4xl font-bold text-foreground">{t('common.history')}</h1>
             </div>
           </div>
 
@@ -462,8 +462,8 @@ export default function AgentHistory() {
               <div className="flex items-center gap-2">
                 <CalendarIcon className="h-6 w-6" />
                 <div>
-                  <h2 className="text-xl font-semibold">Customer history</h2>
-                  <p className="text-sm text-muted-foreground">Calendar view of customer appointments</p>
+                  <h2 className="text-xl font-semibold">{t('common.customerHistory')}</h2>
+                  <p className="text-sm text-muted-foreground">{t('common.calendarView')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -476,7 +476,7 @@ export default function AgentHistory() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    Day
+                    {t('common.day')}
                   </button>
                   <button
                     onClick={() => setViewMode('week')}
@@ -486,7 +486,7 @@ export default function AgentHistory() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    Week
+                    {t('common.week')}
                   </button>
                   <button
                     onClick={() => setViewMode('month')}
@@ -496,7 +496,7 @@ export default function AgentHistory() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    Month
+                    {t('common.month')}
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
@@ -671,7 +671,7 @@ export default function AgentHistory() {
                           {ticket.note ? (
                             <span className="bg-muted/50 p-2 rounded-lg block">{ticket.note}</span>
                           ) : (
-                            <span className="text-muted-foreground italic">No note</span>
+                            <span className="text-muted-foreground italic">{t('common.noNote')}</span>
                           )}
                         </div>
                       </td>

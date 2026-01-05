@@ -201,8 +201,8 @@ export default function CategoriesManagement() {
       t('admin.categories.deleteConfirm'),
       {
         requireText: 'confirm',
-        title: 'Delete Service?',
-        description: 'Warning: All tickets in this category (including those currently being served) will be permanently deleted. This action cannot be undone.'
+        title: t('common.deleteService'),
+        description: t('common.deleteServiceWarning')
       }
     );
 
@@ -338,7 +338,7 @@ export default function CategoriesManagement() {
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
-                  title="Grid View"
+                  title={t('common.gridView')}
                 >
                   <LayoutGrid className="w-4 h-4" />
                 </motion.button>
@@ -351,7 +351,7 @@ export default function CategoriesManagement() {
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
-                  title="Table View"
+                  title={t('common.tableView')}
                 >
                   <List className="w-4 h-4" />
                 </motion.button>
@@ -788,7 +788,7 @@ export default function CategoriesManagement() {
                     {filteredCategories.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                          {searchQuery ? t('admin.users.noUsersFound') : 'No categories available.'}
+                          {searchQuery ? t('admin.users.noUsersFound') : t('common.noCategoriesAvailable')}
                         </td>
                       </tr>
                     ) : (
@@ -812,7 +812,7 @@ export default function CategoriesManagement() {
                           <td className="px-6 py-4">
                             <div className="text-foreground text-sm max-w-md">
                               {category.description || (
-                                <span className="text-muted-foreground italic">No description</span>
+                                <span className="text-muted-foreground italic">{t('common.noDescription')}</span>
                               )}
                             </div>
                           </td>
@@ -839,7 +839,7 @@ export default function CategoriesManagement() {
                                 className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
                               >
                                 <Edit2 className="w-4 h-4" />
-                                Edit
+                                {t('common.edit')}
                               </motion.button>
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
@@ -848,7 +848,7 @@ export default function CategoriesManagement() {
                                 className="inline-flex items-center gap-2 text-destructive hover:text-destructive/80 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                Delete
+                                {t('common.delete')}
                               </motion.button>
                             </div>
                           </td>
@@ -899,7 +899,7 @@ export default function CategoriesManagement() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{t('admin.users.limit')}</span>
+                <span className="text-sm text-muted-foreground">{t('common.limit')}</span>
                 <div className="w-20">
                   <Select
                     value={itemsPerPage.toString()}

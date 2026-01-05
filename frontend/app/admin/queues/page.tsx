@@ -415,7 +415,7 @@ export default function AllQueues() {
                   </span>
                   {isTodayDate && (
                     <span className="inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
-                      Today
+                      {t('common.today')}
                     </span>
                   )}
                 </div>
@@ -437,7 +437,7 @@ export default function AllQueues() {
                   ))}
                   {dayTickets.length > maxVisible && (
                     <div className="text-[11px] text-primary cursor-pointer">
-                      +{dayTickets.length - maxVisible} more tickets
+                      +{dayTickets.length - maxVisible} {t('common.moreTickets')}
                     </div>
                   )}
                 </div>
@@ -487,8 +487,8 @@ export default function AllQueues() {
                     {hourTickets.length > 0 && (
                       <div className="absolute top-1 left-1 right-1 rounded bg-primary/10 p-1 text-[10px]">
                         {hourTickets.length === 1 
-                          ? hourTickets[0].tokenNumber || 'Ticket'
-                          : `${hourTickets.length} tickets`}
+                          ? hourTickets[0].tokenNumber || t('common.ticket')
+                          : `${hourTickets.length} ${t('common.tickets')}`}
                       </div>
                     )}
                   </div>
@@ -735,7 +735,7 @@ export default function AllQueues() {
                     }`}
                   >
                     <List className="w-4 h-4" />
-                    Queue
+                    {t('common.queue')}
                   </button>
                   <button
                     type="button"
@@ -747,7 +747,7 @@ export default function AllQueues() {
                     }`}
                   >
                     <CalendarIcon className="w-4 h-4" />
-                    History
+                    {t('common.history')}
                   </button>
                 </div>
                 {viewType === 'queue' && pendingTickets.length > 0 && (
@@ -771,8 +771,8 @@ export default function AllQueues() {
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-6 w-6" />
                     <div>
-                      <h3 className="text-xl font-semibold">Customer history</h3>
-                      <p className="text-sm text-muted-foreground">Calendar view of customer appointments</p>
+                      <h3 className="text-xl font-semibold">{t('common.customerHistory')}</h3>
+                      <p className="text-sm text-muted-foreground">{t('common.calendarView')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -785,7 +785,7 @@ export default function AllQueues() {
                             : 'text-muted-foreground hover:bg-muted'
                         }`}
                       >
-                        Day
+                        {t('common.day')}
                       </button>
                       <button
                         onClick={() => setViewMode('week')}
@@ -795,7 +795,7 @@ export default function AllQueues() {
                             : 'text-muted-foreground hover:bg-muted'
                         }`}
                       >
-                        Week
+                        {t('common.week')}
                       </button>
                       <button
                         onClick={() => setViewMode('month')}
@@ -805,7 +805,7 @@ export default function AllQueues() {
                             : 'text-muted-foreground hover:bg-muted'
                         }`}
                       >
-                        Month
+                        {t('common.month')}
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -819,7 +819,7 @@ export default function AllQueues() {
                         onClick={handleToday}
                         className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
                       >
-                        Today
+                        {t('common.today')}
                       </button>
                       <button
                         onClick={handleNext}
@@ -860,10 +860,10 @@ export default function AllQueues() {
                       <div className="space-y-2">
                         <div className="font-bold text-foreground">{hoveredTicket.tokenNumber}</div>
                         {hoveredTicket.customerName && (
-                          <div className="text-sm text-foreground">Customer: {hoveredTicket.customerName}</div>
+                          <div className="text-sm text-foreground">{t('common.customer')}: {hoveredTicket.customerName}</div>
                         )}
                         {hoveredTicket.category && (
-                          <div className="text-sm text-muted-foreground">Category: {hoveredTicket.category.name}</div>
+                          <div className="text-sm text-muted-foreground">{t('common.category')}: {hoveredTicket.category.name}</div>
                         )}
                         <div className="text-xs text-muted-foreground">
                           {format(parseISO(hoveredTicket.createdAt), 'MMM dd, yyyy HH:mm')}
@@ -1252,7 +1252,7 @@ export default function AllQueues() {
                         className="flex-1 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg flex items-center justify-center gap-2"
                       >
                         <Save className="w-5 h-5" />
-                        Save
+                        {t('common.save')}
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -1261,7 +1261,7 @@ export default function AllQueues() {
                         className="flex-1 bg-secondary text-secondary-foreground px-6 py-3 rounded-xl hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-2"
                       >
                         <X className="w-5 h-5" />
-                        Cancel
+                        {t('common.cancel')}
                       </motion.button>
                     </div>
                   </div>
@@ -1291,11 +1291,11 @@ export default function AllQueues() {
                 >
                   <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2">
                     <Users className="w-6 h-6 text-primary" />
-                    Reassign Ticket: {reassigningTicket.tokenNumber}
+                    {t('common.reassignTicket')}: {reassigningTicket.tokenNumber}
                   </h2>
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-4">
-                      Select another agent in the same service ({reassigningTicket.category?.name}) to reassign this ticket to.
+                      {t('common.selectAgentToReassign').replace('{categoryName}', reassigningTicket.category?.name || '')}
                     </p>
                     <div className="max-h-60 overflow-y-auto space-y-2">
                       {agents
@@ -1313,7 +1313,7 @@ export default function AllQueues() {
                           </button>
                         ))}
                       {agents.filter(a => a.id !== selectedAgentId && a.agentCategories?.some((ac: any) => ac.categoryId === reassigningTicket.categoryId && (ac.isActive === true || ac.isActive === 1))).length === 0 && (
-                        <p className="text-center py-4 text-muted-foreground italic">No other agents available for this service.</p>
+                        <p className="text-center py-4 text-muted-foreground italic">{t('common.noOtherAgents')}</p>
                       )}
                     </div>
                     <div className="flex gap-3 mt-6">
@@ -1324,7 +1324,7 @@ export default function AllQueues() {
                         className="flex-1 bg-secondary text-secondary-foreground px-6 py-3 rounded-xl hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-2"
                       >
                         <X className="w-5 h-5" />
-                        Cancel
+                        {t('common.cancel')}
                       </motion.button>
                     </div>
                   </div>
@@ -1414,7 +1414,7 @@ function SortableTicketItem({
             className="bg-chart-2 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
-            Complete
+            {t('common.complete')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -1427,7 +1427,7 @@ function SortableTicketItem({
             className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
           >
             <X className="w-4 h-4" />
-            Hold
+            {t('common.hold')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -1440,7 +1440,7 @@ function SortableTicketItem({
             className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm hover:bg-destructive/90 transition-colors shadow-sm flex items-center gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            Delete
+            {t('common.delete')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -1453,7 +1453,7 @@ function SortableTicketItem({
             className="bg-chart-1 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
           >
             <Users className="w-4 h-4" />
-            Reassign
+            {t('common.reassign')}
           </motion.button>
         </div>
       </div>
