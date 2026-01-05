@@ -16,6 +16,47 @@ export default function StatusPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isConnected, setIsConnected] = useState(true);
 
+  // Get current date and day name
+  const currentDate = new Date();
+  const dateString = currentDate.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  // Filter tickets to show only today's tickets
+  const filterTodayTickets = (statusData: any) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const filtered: any = {};
+    
+    Object.entries(statusData).forEach(([categoryName, agents]: [string, any]) => {
+      const filteredAgents: any = {};
+      
+      Object.entries(agents).forEach(([agentName, tickets]: [string, any]) => {
+        const agentTickets = Array.isArray(tickets) ? tickets : [];
+        const todayTickets = agentTickets.filter((ticket: any) => {
+          const ticketDate = new Date(ticket.createdAt);
+          return ticketDate >= today && ticketDate <= todayEnd;
+        });
+        
+        if (todayTickets.length > 0) {
+          filteredAgents[agentName] = todayTickets;
+        }
+      });
+      
+      if (Object.keys(filteredAgents).length > 0) {
+        filtered[categoryName] = filteredAgents;
+      }
+    });
+    
+    return filtered;
+  };
+
   useEffect(() => {
     loadStatus();
 
@@ -45,7 +86,9 @@ export default function StatusPage() {
   const loadStatus = async () => {
     try {
       const response = await publicApi.getStatus();
-      setStatus(response.data);
+      // Filter to show only today's tickets
+      const filteredStatus = filterTodayTickets(response.data);
+      setStatus(filteredStatus);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to load status:', error);
@@ -157,6 +200,20 @@ export default function StatusPage() {
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <LanguageSelector />
         <ThemeToggle />
+      </div>
+      
+      {/* Current Date Display - At Top */}
+      <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b">
+        <div className="max-w-7xl mx-auto px-4 pt-8 pb-4">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <p className="text-xl font-semibold text-foreground">{dateString}</p>
+          </motion.div>
+        </div>
       </div>
       
       {/* Hero Section */}

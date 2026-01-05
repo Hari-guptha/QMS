@@ -109,13 +109,15 @@ export const publicApi = {
 // Agent API
 export const agentApi = {
   getMyQueue: () => api.get('/queue/agent/my-queue'),
+  getAgentHistory: (agentId: string, startDate?: string, endDate?: string) =>
+    api.get(`/queue/agent/${agentId}/history`, { params: { startDate, endDate } }),
   callNext: () => api.post('/queue/agent/call-next'),
   markAsServing: (ticketId: string) =>
     api.patch(`/queue/agent/${ticketId}/serving`),
-  markAsCompleted: (ticketId: string) =>
-    api.patch(`/queue/agent/${ticketId}/complete`),
-  markAsNoShow: (ticketId: string) =>
-    api.patch(`/queue/agent/${ticketId}/no-show`),
+  markAsCompleted: (ticketId: string, note?: string) =>
+    api.patch(`/queue/agent/${ticketId}/complete`, note ? { note } : {}),
+  markAsNoShow: (ticketId: string, note?: string) =>
+    api.patch(`/queue/agent/${ticketId}/no-show`, note ? { note } : {}),
   reopenTicket: (ticketId: string) =>
     api.patch(`/queue/agent/${ticketId}/reopen`),
   reorderQueue: (ticketIds: string[]) =>

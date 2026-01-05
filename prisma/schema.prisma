@@ -73,6 +73,7 @@ model Ticket {
   customerPhone    String?      @db.NVarChar(500)
   customerEmail    String?      @db.NVarChar(500)
   formData         String?      @db.NVarChar(Max)
+  note             String?      @db.NVarChar(Max)
   calledAt         DateTime?    @db.DateTime2
   servingStartedAt DateTime?    @db.DateTime2
   completedAt      DateTime?    @db.DateTime2

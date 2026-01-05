@@ -145,6 +145,12 @@ export class QueueService {
       throw new BadRequestException('No agents found');
     }
 
+    // Only consider tickets created today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
     const agentCounts = await Promise.all(
       agents.map(async (agent) => {
         const ticketCount = await tx.ticket.count({
@@ -153,6 +159,10 @@ export class QueueService {
             status: {
               in: [TicketStatus.PENDING, TicketStatus.CALLED, TicketStatus.SERVING],
             },
+            createdAt: {
+              gte: today,
+              lte: todayEnd,
+            }
           },
         });
         return { agent, count: ticketCount };
@@ -202,11 +212,21 @@ export class QueueService {
   }
 
   private async getNextPositionInQueueInternal(tx: any, agentId: string): Promise<number> {
+    // Only consider tickets created today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
     const lastTicket = await tx.ticket.findFirst({
       where: {
         agentId,
         status: { in: [TicketStatus.PENDING, TicketStatus.CALLED, TicketStatus.SERVING] },
-        positionInQueue: { gt: 0 }
+        positionInQueue: { gt: 0 },
+        createdAt: {
+          gte: today,
+          lte: todayEnd,
+        }
       },
       orderBy: { positionInQueue: 'desc' },
     });
@@ -227,10 +247,56 @@ export class QueueService {
   }
 
   async getAgentQueue(agentId: string) {
+    // Only return tickets created today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
     const tickets = await this.prisma.ticket.findMany({
-      where: { agentId },
+      where: {
+        agentId,
+        createdAt: {
+          gte: today,
+          lte: todayEnd,
+        }
+      },
       include: { category: true },
       orderBy: { positionInQueue: 'asc' },
+    });
+    return tickets.map((t) => this.decryptTicket(t));
+  }
+
+  async getAgentHistory(agentId: string, startDate?: string, endDate?: string) {
+    const where: Prisma.TicketWhereInput = {
+      agentId,
+    };
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.createdAt = {
+        gte: start,
+        lte: end,
+      };
+    } else {
+      // Default to today if no date range is provided
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      where.createdAt = {
+        gte: today,
+        lt: tomorrow,
+      };
+    }
+
+    const tickets = await this.prisma.ticket.findMany({
+      where,
+      include: { category: true, agent: true },
+      orderBy: { createdAt: 'desc' },
     });
     return tickets.map((t) => this.decryptTicket(t));
   }
@@ -267,10 +333,20 @@ export class QueueService {
   }
 
   async callNext(agentId: string) {
+    // Only consider tickets created today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
     const nextTicket = await this.prisma.ticket.findFirst({
       where: {
         agentId,
         status: TicketStatus.PENDING,
+        createdAt: {
+          gte: today,
+          lte: todayEnd,
+        }
       },
       include: { category: true },
       orderBy: { positionInQueue: 'asc' },
@@ -330,19 +406,25 @@ export class QueueService {
     return decrypted;
   }
 
-  async markAsCompleted(ticketId: string, agentId: string) {
+  async markAsCompleted(ticketId: string, agentId: string, note?: string) {
     const ticket = await this.getTicketById(ticketId);
     if (ticket.agentId !== agentId) throw new BadRequestException('You can only complete your own tickets');
+
+    const updateData: any = {
+      status: TicketStatus.COMPLETED,
+      completedAt: new Date(),
+      positionInQueue: 0,
+    };
+
+    if (note && note.trim()) {
+      updateData.note = note.trim();
+    }
 
     const updated = await this.prisma.$transaction(async (tx: any) => {
       const removedPosition = ticket.positionInQueue;
       const t = await tx.ticket.update({
         where: { id: ticketId },
-        data: {
-          status: TicketStatus.COMPLETED,
-          completedAt: new Date(),
-          positionInQueue: 0,
-        },
+        data: updateData,
         include: { category: true, agent: true }
       });
       await this.shiftQueuePositionsUp(tx, agentId, removedPosition);
@@ -355,19 +437,25 @@ export class QueueService {
     return decrypted;
   }
 
-  async markAsNoShow(ticketId: string, agentId: string) {
+  async markAsNoShow(ticketId: string, agentId: string, note?: string) {
     const ticket = await this.getTicketById(ticketId);
     if (ticket.agentId !== agentId) throw new BadRequestException('You can only mark your own tickets');
+
+    const updateData: any = {
+      status: TicketStatus.NO_SHOW,
+      noShowAt: new Date(),
+      positionInQueue: 0,
+    };
+
+    if (note && note.trim()) {
+      updateData.note = note.trim();
+    }
 
     const updated = await this.prisma.$transaction(async (tx: any) => {
       const removedPosition = ticket.positionInQueue;
       const t = await tx.ticket.update({
         where: { id: ticketId },
-        data: {
-          status: TicketStatus.HOLD,
-          noShowAt: new Date(),
-          positionInQueue: 0,
-        },
+        data: updateData,
         include: { category: true, agent: true }
       });
       await this.shiftQueuePositionsUp(tx, agentId, removedPosition);
@@ -531,10 +619,19 @@ export class QueueService {
       }
     }
 
-    // 3. Get all active tickets
+    // 3. Get all active tickets created today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
     const where: Prisma.TicketWhereInput = {
       status: { in: [TicketStatus.PENDING, TicketStatus.CALLED, TicketStatus.SERVING] },
-      positionInQueue: { gt: 0 }
+      positionInQueue: { gt: 0 },
+      createdAt: {
+        gte: today,
+        lte: todayEnd,
+      }
     };
     if (categoryId) where.categoryId = categoryId;
 
@@ -564,6 +661,7 @@ export class QueueService {
         tokenNumber: decrypted.tokenNumber,
         status: decrypted.status,
         positionInQueue: decrypted.positionInQueue,
+        createdAt: ticket.createdAt, // Include createdAt for frontend filtering
       });
     }
 

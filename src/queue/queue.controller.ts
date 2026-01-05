@@ -9,6 +9,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -68,6 +69,25 @@ export class QueueController {
     return this.queueService.getAgentQueue(user.id);
   }
 
+  @Get('agent/:agentId/history')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.AGENT)
+  @ApiTags('agent')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get agent ticket history (Agent only)' })
+  async getAgentHistory(
+    @Param('agentId') agentId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @GetUser() user?: User,
+  ) {
+    // Ensure agent can only access their own history
+    if (user && user.id !== agentId && user.role !== UserRole.ADMIN) {
+      throw new BadRequestException('You can only access your own history');
+    }
+    return this.queueService.getAgentHistory(agentId, startDate, endDate);
+  }
+
   @Post('agent/call-next')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.AGENT)
@@ -100,8 +120,9 @@ export class QueueController {
   async markAsCompleted(
     @Param('ticketId') ticketId: string,
     @GetUser() user: User,
+    @Body() body?: { note?: string },
   ) {
-    return this.queueService.markAsCompleted(ticketId, user.id);
+    return this.queueService.markAsCompleted(ticketId, user.id, body?.note);
   }
 
   @Patch('agent/:ticketId/no-show')
@@ -113,8 +134,9 @@ export class QueueController {
   async markAsNoShow(
     @Param('ticketId') ticketId: string,
     @GetUser() user: User,
+    @Body() body?: { note?: string },
   ) {
-    return this.queueService.markAsNoShow(ticketId, user.id);
+    return this.queueService.markAsNoShow(ticketId, user.id, body?.note);
   }
 
   @Put('agent/reorder')

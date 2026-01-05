@@ -41,7 +41,9 @@ import {
   Loader2,
   AlertCircle,
   Mail,
-  FolderOpen
+  FolderOpen,
+  History,
+  Calendar
 } from 'lucide-react';
 import { useConfirm } from '@/components/ConfirmDialog';
 
@@ -54,6 +56,7 @@ export default function AgentDashboard() {
   const [loading, setLoading] = useState(true);
   const [socketConnected, setSocketConnected] = useState(false);
   const [assignedService, setAssignedService] = useState<any>(null);
+  const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -193,8 +196,9 @@ export default function AgentDashboard() {
 
   const handleComplete = async (ticketId: string) => {
     try {
-      await agentApi.markAsCompleted(ticketId);
+      await agentApi.markAsCompleted(ticketId, noteText.trim() || undefined);
       setCurrentTicket(null);
+      setNoteText(''); // Clear note after completing
       loadQueue();
     } catch (error: any) {
       alert(error.response?.data?.message || t('admin.queues.alert.completeTicket'));
@@ -203,11 +207,12 @@ export default function AgentDashboard() {
 
   const handleNoShow = async (ticketId: string) => {
     try {
-      await agentApi.markAsNoShow(ticketId);
+      await agentApi.markAsNoShow(ticketId, noteText.trim() || undefined);
       // Clear current ticket if it's the one being put on hold
       if (currentTicket && currentTicket.id === ticketId) {
         setCurrentTicket(null);
       }
+      setNoteText(''); // Clear note after marking no-show
       loadQueue();
     } catch (error: any) {
       alert(error.response?.data?.message || t('admin.queues.alert.holdTicket'));
@@ -285,14 +290,44 @@ export default function AgentDashboard() {
     );
   }
 
-  const pendingTickets = queue.filter((t: any) => t.status === 'pending');
-  const holdTickets = queue.filter((t: any) => t.status === 'hold');
-  const completedTickets = queue.filter((t: any) => t.status === 'completed' || t.status === 'no_show');
+  // Filter to show only today's tickets
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(today);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const todayTickets = queue.filter((t: any) => {
+    const ticketDate = new Date(t.createdAt);
+    return ticketDate >= today && ticketDate <= todayEnd;
+  });
+
+  const pendingTickets = todayTickets.filter((t: any) => t.status === 'pending');
+  const holdTickets = todayTickets.filter((t: any) => t.status === 'hold');
+  const completedTickets = todayTickets.filter((t: any) => t.status === 'completed' || t.status === 'no_show');
+  
+  // Get current date and day name
+  const currentDate = new Date();
+  const dateString = currentDate.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto p-6">
+        {/* Current Date Display - At Top */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-4 text-center"
+        >
+          <p className="text-xl font-semibold text-foreground">{dateString}</p>
+        </motion.div>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -321,25 +356,36 @@ export default function AgentDashboard() {
                 </motion.div>
               )}
             </div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
-                socketConnected 
-                  ? 'bg-chart-2/10 border-chart-2/30 text-chart-2' 
-                  : 'bg-destructive/10 border-destructive/30 text-destructive'
-              }`}
-            >
-              {socketConnected ? (
-                <Wifi className="w-4 h-4" />
-              ) : (
-                <WifiOff className="w-4 h-4" />
-              )}
-              <span className="text-sm font-medium">
-                {socketConnected ? t('status.connected') : t('status.disconnected')}
-              </span>
-            </motion.div>
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/agent/calendar')}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card hover:bg-muted transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm font-medium">Calendar</span>
+              </motion.button>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                  socketConnected 
+                    ? 'bg-chart-2/10 border-chart-2/30 text-chart-2' 
+                    : 'bg-destructive/10 border-destructive/30 text-destructive'
+                }`}
+              >
+                {socketConnected ? (
+                  <Wifi className="w-4 h-4" />
+                ) : (
+                  <WifiOff className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {socketConnected ? t('status.connected') : t('status.disconnected')}
+                </span>
+              </motion.div>
+            </div>
           </div>
         </motion.div>
 
@@ -361,17 +407,17 @@ export default function AgentDashboard() {
                     </div>
                     <h2 className="text-2xl font-bold text-foreground">{t('agent.currentlyServing')}</h2>
                   </div>
-                  <div className="mb-4 space-y-2">
+                  <div className="mb-4 space-y-3">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Ticket ID</p>
-                      <p className="text-4xl font-mono font-bold text-foreground">
+                      <p className="text-3xl font-mono font-bold text-foreground">
                         {currentTicket.tokenNumber}
                       </p>
                     </div>
                     {currentTicket.category && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">{t('customer.category')}</p>
-                        <p className="text-lg font-semibold text-foreground">
+                        <p className="text-base font-semibold text-foreground">
                           {currentTicket.category.name}
                         </p>
                       </div>
@@ -401,6 +447,27 @@ export default function AgentDashboard() {
                         </div>
                       </div>
                     )}
+                    {currentTicket.note && (
+                      <div className="pt-2 border-t border-chart-2/20">
+                        <p className="text-xs text-muted-foreground mb-2">Note</p>
+                        <p className="text-sm text-foreground bg-muted/50 p-2 rounded-lg">
+                          {currentTicket.note}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Note Input */}
+                    <div className="pt-2 border-t border-chart-2/20">
+                      <label className="text-xs text-muted-foreground mb-2 block">
+                        Note (Optional)
+                      </label>
+                      <textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        placeholder="Add a note about this ticket..."
+                        className="w-full p-3 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[80px] resize-none"
+                      />
+                    </div>
                   </div>
                     <div className="flex gap-3">
                     <motion.button
@@ -446,7 +513,7 @@ export default function AgentDashboard() {
                   onClick={handleCallNext}
                   disabled={pendingTickets.length === 0}
                   className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors shadow-lg"
-                  >
+                >
                   <Phone className="w-5 h-5" />
                   {t('admin.queues.callNext')}
                 </motion.button>
