@@ -30,7 +30,7 @@ export class CreateTicketDto {
   @IsOptional()
   customerEmail?: string;
 
-  @ApiProperty({ required: false, type: 'object' })
+  @ApiProperty({ required: false, type: Object })
   @IsObject()
   @IsOptional()
   formData?: Record<string, any>;
