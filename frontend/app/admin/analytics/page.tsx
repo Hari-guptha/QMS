@@ -7,7 +7,8 @@ import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { useI18n } from '@/lib/i18n';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
 import {
   BarChart3,
   Clock,
@@ -28,7 +29,10 @@ import {
   Pause,
   Mail,
   Calendar,
-  Activity
+  Activity,
+  Maximize2,
+  Minimize2,
+  ExternalLink
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { BarChart } from '@/components/charts/BarChart';
@@ -48,11 +52,16 @@ export default function Analytics() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month' | 'custom'>('week');
   const [startDate, setStartDate] = useState<string>(() => {
     try {
-      const d = new Date();
-      d.setFullYear(d.getFullYear() - 1);
-      return d.toISOString().split('T')[0];
+      // Default to start of this week
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - dayOfWeek);
+      startOfWeek.setHours(0, 0, 0, 0);
+      return startOfWeek.toISOString().split('T')[0];
     } catch {
       return '';
     }
@@ -65,19 +74,61 @@ export default function Analytics() {
     }
   });
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [expandedChart, setExpandedChart] = useState<string | null>(null);
+  const [analyticsSearchQuery, setAnalyticsSearchQuery] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
       router.push('/admin/login');
       return;
     }
+    updateDateRange();
+  }, [dateFilter]);
+
+  useEffect(() => {
+    if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
+      return;
+    }
     loadAnalytics();
     loadCategories();
-  }, [router]);
+  }, [router, startDate, endDate]);
 
   useEffect(() => {
     loadAgentPerformance();
-  }, [selectedCategoryId]);
+  }, [selectedCategoryId, startDate, endDate]);
+
+  const updateDateRange = () => {
+    const today = new Date();
+    let start: Date;
+    let end: Date = new Date(today);
+    end.setHours(23, 59, 59, 999);
+
+    switch (dateFilter) {
+      case 'day':
+        start = new Date(today);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        const dayOfWeek = today.getDay();
+        start = new Date(today);
+        start.setDate(today.getDate() - dayOfWeek);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'custom':
+        // Don't change dates for custom
+        return;
+      default:
+        start = new Date(today);
+        start.setHours(0, 0, 0, 0);
+    }
+
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+  };
 
   const loadCategories = async () => {
     try {
@@ -91,7 +142,7 @@ export default function Analytics() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getDashboard();
+      const response = await adminApi.getDashboard(startDate, endDate);
       setStats(response.data || {});
     } catch (error: any) {
       console.error('Failed to load analytics:', error);
@@ -104,7 +155,7 @@ export default function Analytics() {
 
   const loadAgentPerformance = async () => {
     try {
-      const response = await adminApi.getDetailedAgentPerformance(undefined, undefined, selectedCategoryId || undefined);
+      const response = await adminApi.getDetailedAgentPerformance(startDate, endDate, selectedCategoryId || undefined);
       setAgentPerformance(response.data || []);
     } catch (error: any) {
       console.error('Failed to load agent performance:', error);
@@ -433,6 +484,51 @@ export default function Analytics() {
     return matchesSearch;
   });
 
+  // Chart expand component
+  const ChartWrapper = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setExpandedChart(id)}
+          className="absolute top-2 right-2 z-10 p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors"
+          title="Expand chart"
+        >
+          <Maximize2 className="w-4 h-4 text-foreground" />
+        </button>
+        {children}
+      </div>
+    );
+  };
+
+  // Expanded chart modal
+  const ExpandedChartModal = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => {
+    if (expandedChart !== id) return null;
+    
+    return (
+      <>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setExpandedChart(null)} />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="fixed inset-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+            <button
+              onClick={() => setExpandedChart(null)}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-foreground" />
+            </button>
+          </div>
+          <div className="h-[calc(100vh-12rem)]">
+            {children}
+          </div>
+        </motion.div>
+      </>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -478,6 +574,14 @@ export default function Analytics() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/admin/analytics/export"
+              className="flex items-center gap-2 bg-chart-3 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
+            >
+              <ExternalLink className="w-5 h-5" />
+              Advanced Export
+            </Link>
+            
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -498,88 +602,193 @@ export default function Analytics() {
               <Download className="w-5 h-5" />
               {t('admin.analytics.export')}
             </motion.button>
+          </div>
+        </motion.div>
 
-            {/* Export Modal */}
-            {isExportOpen && (
-              <>
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setIsExportOpen(false)} />
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                  transition={{ duration: 0.15 }}
-                  className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+        {/* Date Filters and Search */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="bg-card border border-border rounded-xl p-4 mb-6"
+        >
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            {/* Date Filter Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">Period:</span>
+              <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+                <button
+                  onClick={() => setDateFilter('day')}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    dateFilter === 'day'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
                 >
-                  <div className="bg-card text-card-foreground border border-border rounded-2xl shadow-xl w-full max-w-lg">
-                    <div className="flex items-center justify-between p-6 border-b border-border">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-chart-4/10 rounded-lg">
-                          <Download className="w-6 h-6 text-chart-4" />
-                        </div>
-                        <h2 className="text-lg font-bold text-foreground">{t('admin.analytics.export')}</h2>
+                  Today
+                </button>
+                <button
+                  onClick={() => setDateFilter('week')}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    dateFilter === 'week'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  This Week
+                </button>
+                <button
+                  onClick={() => setDateFilter('month')}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    dateFilter === 'month'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  This Month
+                </button>
+                <button
+                  onClick={() => setDateFilter('custom')}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    dateFilter === 'custom'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  Custom
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Date Range */}
+            {dateFilter === 'custom' && (
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                <span className="text-muted-foreground">to</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="flex-1 flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search analytics..."
+                value={analyticsSearchQuery}
+                onChange={(e) => setAnalyticsSearchQuery(e.target.value)}
+                className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+
+            {/* Quick Links */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin/analytics/agents"
+                className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+              >
+                Agent Analytics
+              </Link>
+              <Link
+                href="/admin/analytics/services"
+                className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+              >
+                Service Analytics
+              </Link>
+            </div>
+          </div>
+          {/* Export Modal */}
+          {isExportOpen && (
+            <>
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setIsExportOpen(false)} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                transition={{ duration: 0.15 }}
+                className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+              >
+                <div className="bg-card text-card-foreground border border-border rounded-2xl shadow-xl w-full max-w-lg">
+                  <div className="flex items-center justify-between p-6 border-b border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-chart-4/10 rounded-lg">
+                        <Download className="w-6 h-6 text-chart-4" />
                       </div>
-                      <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
-                        <X className="w-5 h-5 text-foreground" />
-                      </button>
+                      <h2 className="text-lg font-bold text-foreground">{t('admin.analytics.export')}</h2>
+                    </div>
+                    <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
+                      <X className="w-5 h-5 text-foreground" />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.startDate')}</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full p-3 border border-border rounded-lg bg-white dark:bg-background text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.endDate')}</label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full p-3 border border-border rounded-lg bg-white dark:bg-background text-foreground"
+                      />
                     </div>
 
-                    <div className="p-6 space-y-4">
-                      <div>
-                        <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.startDate')}</label>
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full p-3 border border-border rounded-lg bg-white dark:bg-background text-foreground"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.endDate')}</label>
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full p-3 border border-border rounded-lg bg-white dark:bg-background text-foreground"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.exportFormat')}</label>
-                        <Select
-                          value={exportFormat}
-                          onChange={(v) => setExportFormat(v as 'excel' | 'pdf')}
-                          options={[
-                            { value: 'excel', label: t('admin.analytics.excel') || 'Excel' },
-                            { value: 'pdf', label: t('admin.analytics.pdf') || 'PDF' },
-                          ]}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 p-6 border-t border-border">
-                      <button
-                        type="button"
-                        onClick={() => setIsExportOpen(false)}
-                        className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await handleExport();
-                          setIsExportOpen(false);
-                        }}
-                        className="px-6 py-2 bg-chart-2 text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg"
-                      >
-                        {t('admin.analytics.export')}
-                      </button>
+                    <div>
+                      <label className="text-sm text-muted-foreground mb-1">{t('admin.analytics.exportFormat')}</label>
+                      <Select
+                        value={exportFormat}
+                        onChange={(v) => setExportFormat(v as 'excel' | 'pdf')}
+                        options={[
+                          { value: 'excel', label: t('admin.analytics.excel') || 'Excel' },
+                          { value: 'pdf', label: t('admin.analytics.pdf') || 'PDF' },
+                        ]}
+                      />
                     </div>
                   </div>
-                </motion.div>
-              </>
-            )}
-          </div>
+
+                  <div className="flex items-center justify-end gap-3 p-6 border-t border-border">
+                    <button
+                      type="button"
+                      onClick={() => setIsExportOpen(false)}
+                      className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                    >
+                      {t('common.cancel')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleExport();
+                        setIsExportOpen(false);
+                      }}
+                      className="px-6 py-2 bg-chart-2 text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg"
+                    >
+                      {t('admin.analytics.export')}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
         </motion.div>
 
         {/* Overall Stats */}
@@ -885,26 +1094,28 @@ export default function Analytics() {
               transition={{ duration: 0.6, delay: 0.5 }}
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Activity className="w-6 h-6 text-primary" />
+              <ChartWrapper id="status-distribution" title={t('admin.analytics.statusDistribution')}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Activity className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.statusDistribution')}</h2>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.statusDistribution')}</h2>
-              </div>
-              <PieChart
-                data={stats.statusDistribution.map((s: any) => ({
-                  label: s.label,
-                  value: s.value,
-                  color: s.status === 'completed' ? 'var(--chart-3)' :
-                    s.status === 'pending' ? '#f59e0b' :
-                      s.status === 'serving' ? '#10b981' :
-                        s.status === 'hold' ? '#ef4444' :
-                          s.status === 'no_show' ? '#8b5cf6' :
-                            'var(--muted-foreground)',
-                }))}
-                title=""
-                size={250}
-              />
+                <PieChart
+                  data={stats.statusDistribution.map((s: any) => ({
+                    label: s.label,
+                    value: s.value,
+                    color: s.status === 'completed' ? 'var(--chart-3)' :
+                      s.status === 'pending' ? '#f59e0b' :
+                        s.status === 'serving' ? '#10b981' :
+                          s.status === 'hold' ? '#ef4444' :
+                            s.status === 'no_show' ? '#8b5cf6' :
+                              'var(--muted-foreground)',
+                  }))}
+                  title=""
+                  size={expandedChart === 'status-distribution' ? 400 : 250}
+                />
+              </ChartWrapper>
             </motion.div>
           )}
 
@@ -916,31 +1127,33 @@ export default function Analytics() {
               transition={{ duration: 0.6, delay: 0.6 }}
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-chart-2/10 rounded-lg">
-                  <Calendar className="w-6 h-6 text-chart-2" />
+              <ChartWrapper id="daily-trends" title={t('admin.analytics.dailyTrends')}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-chart-2/10 rounded-lg">
+                    <Calendar className="w-6 h-6 text-chart-2" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.dailyTrends')}</h2>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.dailyTrends')}</h2>
-              </div>
-              <AreaChart
-                data={stats.dailyTrends.map((d: any) => ({
-                  label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                  value: d.total,
-                }))}
-                title=""
-                height={250}
-                color="var(--chart-2)"
-              />
-              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-chart-2"></div>
-                  <span className="text-muted-foreground">{t('admin.analytics.totalTickets')}</span>
+                <AreaChart
+                  data={stats.dailyTrends.map((d: any) => ({
+                    label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    value: d.total,
+                  }))}
+                  title=""
+                  height={expandedChart === 'daily-trends' ? 400 : 250}
+                  color="var(--chart-2)"
+                />
+                <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded bg-chart-2"></div>
+                    <span className="text-muted-foreground">{t('admin.analytics.totalTickets')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded bg-chart-3"></div>
+                    <span className="text-muted-foreground">{t('admin.analytics.completed')}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-chart-3"></div>
-                  <span className="text-muted-foreground">{t('admin.analytics.completed')}</span>
-                </div>
-              </div>
+              </ChartWrapper>
             </motion.div>
           )}
 
@@ -954,20 +1167,22 @@ export default function Analytics() {
                 transition={{ duration: 0.6, delay: 0.7 }}
                 className="bg-card border border-border rounded-2xl shadow-lg p-6"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-chart-1/10 rounded-lg">
-                    <Clock className="w-6 h-6 text-chart-1" />
+                <ChartWrapper id="hourly-distribution" title={t('admin.analytics.hourlyDistribution')}>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-chart-1/10 rounded-lg">
+                      <Clock className="w-6 h-6 text-chart-1" />
+                    </div>
+                    <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.hourlyDistribution')}</h2>
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.hourlyDistribution')}</h2>
-                </div>
-                <BarChart
-                  data={stats.hourlyDistribution.map((h: any) => ({
-                    label: `${h.hour}:00`,
-                    value: h.count,
-                    color: 'var(--chart-1)',
-                  }))}
-                  height={200}
-                />
+                  <BarChart
+                    data={stats.hourlyDistribution.map((h: any) => ({
+                      label: `${h.hour}:00`,
+                      value: h.count,
+                      color: 'var(--chart-1)',
+                    }))}
+                    height={expandedChart === 'hourly-distribution' ? 400 : 200}
+                  />
+                </ChartWrapper>
               </motion.div>
             )}
 
@@ -979,20 +1194,22 @@ export default function Analytics() {
                 transition={{ duration: 0.6, delay: 0.8 }}
                 className="bg-card border border-border rounded-2xl shadow-lg p-6"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-chart-4/10 rounded-lg">
-                    <Calendar className="w-6 h-6 text-chart-4" />
+                <ChartWrapper id="day-of-week" title={t('admin.analytics.dayOfWeekDistribution')}>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-chart-4/10 rounded-lg">
+                      <Calendar className="w-6 h-6 text-chart-4" />
+                    </div>
+                    <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.dayOfWeekDistribution')}</h2>
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.dayOfWeekDistribution')}</h2>
-                </div>
-                <BarChart
-                  data={stats.dayOfWeekDistribution.map((d: any) => ({
-                    label: d.day,
-                    value: d.count,
-                    color: 'var(--chart-4)',
-                  }))}
-                  height={200}
-                />
+                  <BarChart
+                    data={stats.dayOfWeekDistribution.map((d: any) => ({
+                      label: d.day,
+                      value: d.count,
+                      color: 'var(--chart-4)',
+                    }))}
+                    height={expandedChart === 'day-of-week' ? 400 : 200}
+                  />
+                </ChartWrapper>
               </motion.div>
             )}
 
@@ -1004,20 +1221,22 @@ export default function Analytics() {
                 transition={{ duration: 0.6, delay: 0.9 }}
                 className="bg-card border border-border rounded-2xl shadow-lg p-6"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-chart-2/10 rounded-lg">
-                    <FolderOpen className="w-6 h-6 text-chart-2" />
+                <ChartWrapper id="service-performance" title={t('admin.analytics.servicePerformance')}>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-chart-2/10 rounded-lg">
+                      <FolderOpen className="w-6 h-6 text-chart-2" />
+                    </div>
+                    <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.servicePerformance')}</h2>
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.servicePerformance')}</h2>
-                </div>
-                <BarChart
-                  data={stats.servicePerformance.map((s: any) => ({
-                    label: s.categoryName.length > 10 ? s.categoryName.substring(0, 10) + '...' : s.categoryName,
-                    value: s.totalTickets,
-                    color: 'var(--chart-2)',
-                  }))}
-                  height={200}
-                />
+                  <BarChart
+                    data={stats.servicePerformance.map((s: any) => ({
+                      label: s.categoryName.length > 10 ? s.categoryName.substring(0, 10) + '...' : s.categoryName,
+                      value: s.totalTickets,
+                      color: 'var(--chart-2)',
+                    }))}
+                    height={expandedChart === 'service-performance' ? 400 : 200}
+                  />
+                </ChartWrapper>
               </motion.div>
             )}
 
@@ -1029,20 +1248,22 @@ export default function Analytics() {
                 transition={{ duration: 0.6, delay: 1.0 }}
                 className="bg-card border border-border rounded-2xl shadow-lg p-6"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-chart-3/10 rounded-lg">
-                    <UserCheck className="w-6 h-6 text-chart-3" />
+                <ChartWrapper id="agent-performance-comparison" title={t('admin.analytics.agentPerformanceComparison')}>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-chart-3/10 rounded-lg">
+                      <UserCheck className="w-6 h-6 text-chart-3" />
+                    </div>
+                    <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.agentPerformanceComparison')}</h2>
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.agentPerformanceComparison')}</h2>
-                </div>
-                <BarChart
-                  data={stats.agentPerformance.slice(0, 10).map((a: any) => ({
-                    label: a.agentName.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
-                    value: a.completedTickets,
-                    color: 'var(--chart-3)',
-                  }))}
-                  height={200}
-                />
+                  <BarChart
+                    data={stats.agentPerformance.slice(0, 10).map((a: any) => ({
+                      label: a.agentName.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
+                      value: a.completedTickets,
+                      color: 'var(--chart-3)',
+                    }))}
+                    height={expandedChart === 'agent-performance-comparison' ? 400 : 200}
+                  />
+                </ChartWrapper>
               </motion.div>
             )}
           </div>
@@ -1055,40 +1276,42 @@ export default function Analytics() {
               transition={{ duration: 0.6, delay: 1.1 }}
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <BarChart3 className="w-6 h-6 text-primary" />
+              <ChartWrapper id="peak-hours" title={t('admin.analytics.peakHours')}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <BarChart3 className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.peakHours')}</h2>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.peakHours')}</h2>
-              </div>
-              <div className="space-y-4 overflow-x-hidden">
-                <div className="flex items-end justify-between gap-1 h-64">
-                  {Array.from({ length: 24 }, (_, hour) => {
-                    const hourData = stats.peakHours.find((h: any) => h.hour === hour);
-                    const count = hourData?.count || 0;
-                    const maxCount = Math.max(...stats.peakHours.map((h: any) => h.count), 1);
-                    const height = (count / maxCount) * 100;
-                    return (
-                      <div key={hour} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                        <div
-                          className="w-full bg-primary rounded-t"
-                          style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
-                          title={`${hour}:00 - ${count} tickets`}
-                        ></div>
-                        {hour % 4 === 0 && (
-                          <span className="text-[10px] text-muted-foreground mt-1">{hour}h</span>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="space-y-4 overflow-x-hidden">
+                  <div className={`flex items-end justify-between gap-1 ${expandedChart === 'peak-hours' ? 'h-96' : 'h-64'}`}>
+                    {Array.from({ length: 24 }, (_, hour) => {
+                      const hourData = stats.peakHours.find((h: any) => h.hour === hour);
+                      const count = hourData?.count || 0;
+                      const maxCount = Math.max(...stats.peakHours.map((h: any) => h.count), 1);
+                      const height = (count / maxCount) * 100;
+                      return (
+                        <div key={hour} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                          <div
+                            className="w-full bg-primary rounded-t"
+                            style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
+                            title={`${hour}:00 - ${count} tickets`}
+                          ></div>
+                          {hour % 4 === 0 && (
+                            <span className="text-[10px] text-muted-foreground mt-1">{hour}h</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-2xl font-bold text-foreground">
+                      {stats.peakHours.reduce((sum: number, h: any) => sum + h.count, 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{t('admin.analytics.totalTickets')}</p>
+                  </div>
                 </div>
-                <div className="pt-4 border-t border-border">
-                  <p className="text-2xl font-bold text-foreground">
-                    {stats.peakHours.reduce((sum: number, h: any) => sum + h.count, 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{t('admin.analytics.totalTickets')}</p>
-                </div>
-              </div>
+              </ChartWrapper>
             </motion.div>
           )}
         </div>
@@ -1131,6 +1354,123 @@ export default function Analytics() {
             </p>
           </div>
         </motion.div>
+
+        {/* Expanded Chart Modals */}
+        <AnimatePresence>
+          {expandedChart && (
+            <>
+              {expandedChart === 'status-distribution' && (
+                <ExpandedChartModal id="status-distribution" title={t('admin.analytics.statusDistribution')}>
+                  <PieChart
+                    data={stats.statusDistribution?.map((s: any) => ({
+                      label: s.label,
+                      value: s.value,
+                      color: s.status === 'completed' ? 'var(--chart-3)' :
+                        s.status === 'pending' ? '#f59e0b' :
+                          s.status === 'serving' ? '#10b981' :
+                            s.status === 'hold' ? '#ef4444' :
+                              s.status === 'no_show' ? '#8b5cf6' :
+                                'var(--muted-foreground)',
+                    })) || []}
+                    title=""
+                    size={400}
+                  />
+                </ExpandedChartModal>
+              )}
+              {expandedChart === 'daily-trends' && (
+                <ExpandedChartModal id="daily-trends" title={t('admin.analytics.dailyTrends')}>
+                  <AreaChart
+                    data={stats.dailyTrends?.map((d: any) => ({
+                      label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                      value: d.total,
+                    })) || []}
+                    title=""
+                    height={400}
+                    color="var(--chart-2)"
+                  />
+                </ExpandedChartModal>
+              )}
+              {expandedChart === 'hourly-distribution' && (
+                <ExpandedChartModal id="hourly-distribution" title={t('admin.analytics.hourlyDistribution')}>
+                  <BarChart
+                    data={stats.hourlyDistribution?.map((h: any) => ({
+                      label: `${h.hour}:00`,
+                      value: h.count,
+                      color: 'var(--chart-1)',
+                    })) || []}
+                    height={400}
+                  />
+                </ExpandedChartModal>
+              )}
+              {expandedChart === 'day-of-week' && (
+                <ExpandedChartModal id="day-of-week" title={t('admin.analytics.dayOfWeekDistribution')}>
+                  <BarChart
+                    data={stats.dayOfWeekDistribution?.map((d: any) => ({
+                      label: d.day,
+                      value: d.count,
+                      color: 'var(--chart-4)',
+                    })) || []}
+                    height={400}
+                  />
+                </ExpandedChartModal>
+              )}
+              {expandedChart === 'service-performance' && (
+                <ExpandedChartModal id="service-performance" title={t('admin.analytics.servicePerformance')}>
+                  <BarChart
+                    data={stats.servicePerformance?.map((s: any) => ({
+                      label: s.categoryName,
+                      value: s.totalTickets,
+                      color: 'var(--chart-2)',
+                    })) || []}
+                    height={400}
+                  />
+                </ExpandedChartModal>
+              )}
+              {expandedChart === 'agent-performance-comparison' && (
+                <ExpandedChartModal id="agent-performance-comparison" title={t('admin.analytics.agentPerformanceComparison')}>
+                  <BarChart
+                    data={stats.agentPerformance?.map((a: any) => ({
+                      label: a.agentName,
+                      value: a.completedTickets,
+                      color: 'var(--chart-3)',
+                    })) || []}
+                    height={400}
+                  />
+                </ExpandedChartModal>
+              )}
+              {expandedChart === 'peak-hours' && stats.peakHours && (
+                <ExpandedChartModal id="peak-hours" title={t('admin.analytics.peakHours')}>
+                  <div className="space-y-4">
+                    <div className="flex items-end justify-between gap-1 h-96">
+                      {Array.from({ length: 24 }, (_, hour) => {
+                        const hourData = stats.peakHours.find((h: any) => h.hour === hour);
+                        const count = hourData?.count || 0;
+                        const maxCount = Math.max(...stats.peakHours.map((h: any) => h.count), 1);
+                        const height = (count / maxCount) * 100;
+                        return (
+                          <div key={hour} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                            <div
+                              className="w-full bg-primary rounded-t"
+                              style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
+                              title={`${hour}:00 - ${count} tickets`}
+                            ></div>
+                            <span className="text-xs text-muted-foreground mt-1">{hour}h</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="pt-4 border-t border-border">
+                      <p className="text-2xl font-bold text-foreground">
+                        {stats.peakHours.reduce((sum: number, h: any) => sum + h.count, 0)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{t('admin.analytics.totalTickets')}</p>
+                    </div>
+                  </div>
+                </ExpandedChartModal>
+              )}
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
