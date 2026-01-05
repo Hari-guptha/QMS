@@ -21,7 +21,9 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Edit
+  Edit,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -39,6 +41,7 @@ export default function UsersManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -267,28 +270,60 @@ export default function UsersManagement() {
               <h1 className="text-4xl font-bold text-foreground">{t('admin.users.title')}</h1>
             </div>
 
-            {/* Search and Add Button - Combined in One Container */}
-            <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1">
-              <span className="pl-2 pr-1 text-xl text-primary/80">
-                <Search className="w-5 h-5" />
-              </span>
-              <input
-                type="text"
-                placeholder={t('admin.users.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
-              />
-              <span className="mx-2 h-6 w-px bg-border"></span>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-primary-foreground h-9 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-all shadow-none font-semibold text-base"
-              >
-                <span className="hidden sm:inline">{t('admin.users.add')}</span>
-                <span className="sm:hidden text-xl leading-none">+</span>
-              </motion.button>
+            {/* View Toggle - Outside Search Container */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 p-1 bg-card/80 dark:bg-card border border-border rounded-xl">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded transition-colors ${
+                    viewMode === 'table'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                  title="Table View"
+                >
+                  <List className="w-4 h-4" />
+                </motion.button>
+              </div>
+
+              {/* Search and Add Button - Combined in One Container */}
+              <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1">
+                <span className="pl-2 pr-1 text-xl text-primary/80">
+                  <Search className="w-5 h-5" />
+                </span>
+                <input
+                  type="text"
+                  placeholder={t('admin.users.search')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
+                />
+                <span className="mx-2 h-6 w-px bg-border"></span>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowForm(true)}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-primary-foreground h-9 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-all shadow-none font-semibold text-base"
+                >
+                  <span className="hidden sm:inline">{t('admin.users.add')}</span>
+                  <span className="sm:hidden text-xl leading-none">+</span>
+                </motion.button>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -624,20 +659,103 @@ export default function UsersManagement() {
           )}
         </AnimatePresence>
 
-        {/* Users Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden"
-        >
-          <div className="p-6 border-b border-border">
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
-              {t('admin.users.allUsers')} ({filteredUsers.length})
-            </h2>
+        {/* Users Grid View */}
+        {viewMode === 'grid' && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {paginatedUsers.map((user, index) => (
+                <motion.div
+                  key={user.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -4 }}
+                  className="bg-card text-card-foreground border rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all flex flex-col"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <UserCheck className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-foreground">{user.firstName} {user.lastName}</h3>
+                        <p className="text-sm text-muted-foreground">@{user.username}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 mb-4 flex-grow">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="break-all">{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin'
+                        ? 'bg-chart-4/20 text-chart-4 border border-chart-4/30'
+                        : 'bg-primary/20 text-primary border border-primary/30'
+                        }`}>
+                        {user.role === 'admin' ? (
+                          <Shield className="w-3 h-3" />
+                        ) : (
+                          <UserCheck className="w-3 h-3" />
+                        )}
+                        {user.role}
+                      </span>
+                    </div>
+                    {user.employeeId && (
+                      <div className="text-sm text-muted-foreground">
+                        Employee ID: {user.employeeId}
+                      </div>
+                    )}
+                    {user.counterNumber && (
+                      <div className="text-sm text-muted-foreground">
+                        Counter: {user.counterNumber}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t border-border mt-auto">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleEdit(user)}
+                      className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleDelete(user)}
+                      className="flex-1 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg hover:bg-destructive/90 transition-colors shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
-          <div className="overflow-x-auto">
+        )}
+
+        {/* Users Table View */}
+        {viewMode === 'table' && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden"
+          >
+            <div className="p-6 border-b border-border">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Users className="w-6 h-6 text-primary" />
+                {t('admin.users.allUsers')} ({filteredUsers.length})
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
@@ -730,6 +848,7 @@ export default function UsersManagement() {
             </table>
           </div>
         </motion.div>
+        )}
 
         {/* Pagination - Separate Div */}
         {filteredUsers.length > 0 && (

@@ -23,7 +23,11 @@ import {
   Loader2,
   Wifi,
   WifiOff,
-  Search
+  Search,
+  LayoutGrid,
+  List,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -41,6 +45,9 @@ export default function CategoriesManagement() {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [assigningAgent, setAssigningAgent] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -172,6 +179,23 @@ export default function CategoriesManagement() {
     );
   });
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCategories = filteredCategories.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const confirmed = await confirm(
       t('admin.categories.deleteConfirm'),
@@ -211,6 +235,10 @@ export default function CategoriesManagement() {
   };
 
   const handleEdit = (category: any) => {
+    // Switch to grid view if in table view (for inline editing)
+    if (viewMode === 'table') {
+      setViewMode('grid');
+    }
     setEditingCategory(category.id);
     setFormData({
       name: category.name,
@@ -298,28 +326,60 @@ export default function CategoriesManagement() {
               <h1 className="text-4xl font-bold text-foreground">{t('admin.categories.title')}</h1>
             </div>
 
-            {/* Search and Add Button - Combined in One Container */}
-            <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1">
-              <span className="pl-2 pr-1 text-xl text-primary/80">
-                <Search className="w-5 h-5" />
-              </span>
-              <input
-                type="text"
-                placeholder={t('admin.categories.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
-              />
-              <span className="mx-2 h-6 w-px bg-border"></span>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-primary-foreground h-9 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-all shadow-none font-semibold text-base"
-              >
-                <span className="hidden sm:inline">{t('admin.users.add')}</span>
-                <span className="sm:hidden text-xl leading-none">+</span>
-              </motion.button>
+            {/* View Toggle - Outside Search Container */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 p-1 bg-card/80 dark:bg-card border border-border rounded-xl">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded transition-colors ${
+                    viewMode === 'table'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                  title="Table View"
+                >
+                  <List className="w-4 h-4" />
+                </motion.button>
+              </div>
+
+              {/* Search and Add Button - Combined in One Container */}
+              <div className="flex items-center gap-0 bg-card/80 dark:bg-card border border-border rounded-xl px-2 py-1">
+                <span className="pl-2 pr-1 text-xl text-primary/80">
+                  <Search className="w-5 h-5" />
+                </span>
+                <input
+                  type="text"
+                  placeholder={t('admin.categories.search')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
+                />
+                <span className="mx-2 h-6 w-px bg-border"></span>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowForm(true)}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-primary-foreground h-9 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-all shadow-none font-semibold text-base"
+                >
+                  <span className="hidden sm:inline">{t('admin.users.add')}</span>
+                  <span className="sm:hidden text-xl leading-none">+</span>
+                </motion.button>
+              </div>
             </div>
           </div>
           <motion.div
@@ -465,10 +525,11 @@ export default function CategoriesManagement() {
           )}
         </AnimatePresence>
 
-        {/* Categories Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence>
-            {filteredCategories.map((category, index) => (
+        {/* Categories Grid View */}
+        {viewMode === 'grid' && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {paginatedCategories.map((category, index) => (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -685,6 +746,179 @@ export default function CategoriesManagement() {
             ))}
           </AnimatePresence>
         </div>
+        )}
+
+        {/* Categories Table View */}
+        {viewMode === 'table' && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden"
+          >
+            <div className="p-6 border-b border-border">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <FolderOpen className="w-6 h-6 text-chart-2" />
+                {t('admin.categories.title')} ({filteredCategories.length})
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {t('admin.categories.serviceName')}
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {t('admin.categories.description')}
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {t('admin.categories.estWait')}
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {t('admin.categories.assignedAgents')}
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {t('admin.users.table.actions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  <AnimatePresence>
+                    {filteredCategories.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                          {searchQuery ? t('admin.users.noUsersFound') : 'No categories available.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedCategories.map((category, index) => (
+                        <motion.tr
+                          key={category.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-chart-2/10 flex items-center justify-center">
+                                <FolderOpen className="w-5 h-5 text-chart-2" />
+                              </div>
+                              <div className="font-medium text-foreground">{category.name}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-foreground text-sm max-w-md">
+                              {category.description || (
+                                <span className="text-muted-foreground italic">No description</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-foreground text-sm">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              {category.estimatedWaitTime} {t('customer.minutes')}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-foreground text-sm">
+                                {category.agentCategories?.filter((ac: any) => isTruthy(ac.isActive)).length || 0}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleEdit(category)}
+                                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                                Edit
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleDelete(category.id)}
+                                className="inline-flex items-center gap-2 text-destructive hover:text-destructive/80 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </motion.button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Pagination - Separate Div */}
+        {filteredCategories.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mt-6 bg-white dark:bg-[#171717] border border-border rounded-lg p-4"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${currentPage === 1
+                    ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'text-foreground hover:bg-muted'
+                    }`}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  {t('admin.users.previous')}
+                </button>
+                <span className="text-sm text-muted-foreground">
+                  {t('admin.users.page')} {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${currentPage === totalPages
+                    ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'text-foreground hover:bg-muted'
+                    }`}
+                >
+                  {t('common.next')}
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{t('admin.users.limit')}</span>
+                <div className="w-20">
+                  <Select
+                    value={itemsPerPage.toString()}
+                    onChange={(value) => {
+                      setItemsPerPage(parseInt(value));
+                      setCurrentPage(1);
+                    }}
+                    options={[
+                      { value: '10', label: '10' },
+                      { value: '20', label: '20' },
+                      { value: '50', label: '50' },
+                      { value: '100', label: '100' },
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
