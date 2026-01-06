@@ -234,13 +234,13 @@ export default function ServiceAnalytics() {
               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Analytics
+              {t('admin.analytics.backToAnalytics')}
             </Link>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-chart-2/10 rounded-lg">
                 <FolderOpen className="w-6 h-6 text-chart-2" />
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Service-Based Analytics</h1>
+              <h1 className="text-4xl font-bold text-foreground">{t('admin.analytics.serviceBasedAnalytics')}</h1>
             </div>
           </div>
           <motion.button
@@ -251,7 +251,7 @@ export default function ServiceAnalytics() {
             className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg disabled:opacity-50"
           >
             <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('admin.analytics.refresh')}
           </motion.button>
         </motion.div>
 
@@ -266,7 +266,7 @@ export default function ServiceAnalytics() {
             {/* Date Filter */}
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Period:</span>
+              <span className="text-sm font-medium text-foreground">{t('admin.analytics.period')}</span>
               <div className="flex items-center gap-2 border border-border rounded-lg p-1">
                 <button
                   onClick={() => setDateFilter('day')}
@@ -276,7 +276,7 @@ export default function ServiceAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  Today
+                  {t('admin.analytics.today')}
                 </button>
                 <button
                   onClick={() => setDateFilter('week')}
@@ -286,7 +286,7 @@ export default function ServiceAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  This Week
+                  {t('admin.analytics.thisWeek')}
                 </button>
                 <button
                   onClick={() => setDateFilter('month')}
@@ -296,7 +296,7 @@ export default function ServiceAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  This Month
+                  {t('admin.analytics.thisMonth')}
                 </button>
                 <button
                   onClick={() => setDateFilter('custom')}
@@ -306,7 +306,7 @@ export default function ServiceAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  Custom
+                  {t('admin.analytics.custom')}
                 </button>
               </div>
             </div>
@@ -321,7 +321,7 @@ export default function ServiceAnalytics() {
                   onChange={(e) => setStartDate(e.target.value)}
                   className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
-                <span className="text-muted-foreground">to</span>
+                <span className="text-muted-foreground">{t('admin.analytics.to')}</span>
                 <input
                   type="date"
                   value={endDate}
@@ -344,7 +344,7 @@ export default function ServiceAnalytics() {
                     setDateFilter('week');
                   }}
                   className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                  title="Reset to default"
+                  title={t('admin.analytics.resetToDefault')}
                 >
                   <X className="w-4 h-4" />
                 </motion.button>
@@ -357,7 +357,7 @@ export default function ServiceAnalytics() {
                 <Search className="w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search services..."
+                  placeholder={t('admin.analytics.searchServices')}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -378,7 +378,7 @@ export default function ServiceAnalytics() {
                       setSelectedServiceId('');
                     }}
                     className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                    title="Clear filter"
+                    title={t('admin.analytics.clearFilter')}
                   >
                     <X className="w-4 h-4" />
                   </motion.button>
@@ -394,7 +394,7 @@ export default function ServiceAnalytics() {
                 >
                   <div className="p-2">
                     <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
-                      {searchQuery ? 'Suggestions' : 'Top Services'}
+                      {searchQuery ? t('admin.analytics.suggestions') : t('admin.analytics.topServices')}
                     </div>
                     {searchSuggestions.map((service: any) => (
                       <button
@@ -417,10 +417,10 @@ export default function ServiceAnalytics() {
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-semibold text-foreground">
-                            {service.totalTickets || 0} tickets
+                            {service.totalTickets || 0} {t('admin.analytics.tickets')}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {service.completionRate?.toFixed(1) || 0}% completion
+                            {service.completionRate?.toFixed(1) || 0}% {t('admin.analytics.completion')}
                           </div>
                         </div>
                       </button>
@@ -442,14 +442,14 @@ export default function ServiceAnalytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <FolderOpen className="w-5 h-5 text-chart-2" />
-              <span className="text-sm font-medium text-muted-foreground">Total Services</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.analytics.totalServices')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">{filteredServices.length}</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <Ticket className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-muted-foreground">Total Tickets</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.analytics.totalTickets')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {filteredServices.reduce((sum, s) => sum + (s.totalTickets || 0), 0)}
@@ -524,7 +524,7 @@ export default function ServiceAnalytics() {
                   <div className="p-2 bg-chart-3/10 rounded-lg">
                     <Target className="w-6 h-6 text-chart-3" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Completion Rate</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.completionRate')}</h2>
                 </div>
                 <BarChart
                   data={filteredServices.slice(0, 10).map((s: any) => ({
@@ -578,7 +578,7 @@ export default function ServiceAnalytics() {
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <Activity className="w-6 h-6 text-primary" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Status Distribution</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.statusDistribution')}</h2>
                 </div>
                 <PieChart
                   data={[
@@ -630,7 +630,7 @@ export default function ServiceAnalytics() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Total Tickets</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.totalTickets')}</p>
                 <p className="text-2xl font-bold text-foreground">{selectedService.totalTickets || 0}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
@@ -638,7 +638,7 @@ export default function ServiceAnalytics() {
                 <p className="text-2xl font-bold text-foreground">{selectedService.completedTickets || 0}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Completion Rate</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.completionRate')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {selectedService.completionRate?.toFixed(1) || 0}%
                 </p>
@@ -723,7 +723,7 @@ export default function ServiceAnalytics() {
                     Service
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Total Tickets
+                    {t('admin.analytics.totalTickets')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Status Breakdown
@@ -815,7 +815,7 @@ export default function ServiceAnalytics() {
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">Completion Rate</span>
+                          <span className="text-xs text-muted-foreground">{t('admin.analytics.completionRate')}</span>
                           <span className="text-sm font-semibold text-foreground">
                             {service.completionRate?.toFixed(1) || 0}%
                           </span>

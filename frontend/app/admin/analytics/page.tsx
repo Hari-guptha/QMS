@@ -579,7 +579,7 @@ export default function Analytics() {
               className="flex items-center gap-2 bg-chart-3 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
             >
               <Download className="w-5 h-5" />
-              Export
+              {t('admin.analytics.export')}
             </Link>
             
             <motion.button
@@ -608,7 +608,7 @@ export default function Analytics() {
               {/* Date Filter Buttons */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Filter className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Period:</span>
+                <span className="text-sm font-medium text-foreground">{t('admin.analytics.period')}</span>
                 <div className="flex items-center gap-2 border border-border rounded-lg p-1">
                   <button
                     onClick={() => setDateFilter('day')}
@@ -618,7 +618,7 @@ export default function Analytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    Today
+                    {t('admin.analytics.today')}
                   </button>
                   <button
                     onClick={() => setDateFilter('week')}
@@ -628,7 +628,7 @@ export default function Analytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    This Week
+                    {t('admin.analytics.thisWeek')}
                   </button>
                   <button
                     onClick={() => setDateFilter('month')}
@@ -638,7 +638,7 @@ export default function Analytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    This Month
+                    {t('admin.analytics.thisMonth')}
                   </button>
                   <button
                     onClick={() => setDateFilter('custom')}
@@ -648,7 +648,7 @@ export default function Analytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    Custom
+                    {t('admin.analytics.custom')}
                   </button>
                 </div>
               </div>
@@ -663,7 +663,7 @@ export default function Analytics() {
                     onChange={(e) => setStartDate(e.target.value)}
                     className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
-                  <span className="text-muted-foreground">to</span>
+                  <span className="text-muted-foreground">{t('admin.analytics.to')}</span>
                   <input
                     type="date"
                     value={endDate}
@@ -686,7 +686,7 @@ export default function Analytics() {
                       setDateFilter('week');
                     }}
                     className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                    title="Reset to default"
+                    title={t('admin.analytics.resetToDefault')}
                   >
                     <X className="w-4 h-4" />
                   </motion.button>
@@ -701,7 +701,7 @@ export default function Analytics() {
                 <Search className="w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search analytics..."
+                  placeholder={t('admin.analytics.searchAnalytics')}
                   value={analyticsSearchQuery}
                   onChange={(e) => setAnalyticsSearchQuery(e.target.value)}
                   className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
@@ -714,7 +714,7 @@ export default function Analytics() {
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setAnalyticsSearchQuery('')}
                     className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                    title="Clear filter"
+                    title={t('admin.analytics.clearFilter')}
                   >
                     <X className="w-4 h-4" />
                   </motion.button>
@@ -727,13 +727,13 @@ export default function Analytics() {
                   href="/admin/analytics/agents"
                   className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
                 >
-                  Agent Analytics
+                  {t('admin.analytics.agentAnalytics')}
                 </Link>
                 <Link
                   href="/admin/analytics/services"
                   className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
                 >
-                  Service Analytics
+                  {t('admin.analytics.serviceAnalytics')}
                 </Link>
               </div>
             </div>

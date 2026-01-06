@@ -281,7 +281,7 @@ export default function ExportAnalytics() {
         // Service performance
         if (selectedWidgets.has('service-performance') && d.servicePerformance && d.servicePerformance.length > 0) {
           parts.push(t('admin.analytics.servicePerformance') || 'Service Performance');
-          parts.push(['Category', 'Total', 'Pending', 'Serving', 'Hold', 'Completed', 'Avg Total Time', 'Avg Service Time', 'Completion Rate'].join(','));
+          parts.push([t('admin.analytics.category'), t('admin.analytics.total'), t('admin.analytics.pending'), t('admin.analytics.serving'), t('admin.analytics.hold'), t('admin.analytics.completed'), t('admin.analytics.avgTotalTime'), t('admin.analytics.avgServiceTime'), t('admin.analytics.completionRate')].join(','));
           d.servicePerformance.forEach((s: any) => {
             parts.push([
               `"${safeValue(s.categoryName || 'N/A')}"`,
@@ -300,8 +300,8 @@ export default function ExportAnalytics() {
 
         // Category stats
         if (selectedWidgets.has('category-stats') && d.categoryStats && d.categoryStats.length > 0) {
-          parts.push('Category Stats');
-          parts.push(['Category', 'Total Tickets', 'Avg Total Time'].join(','));
+          parts.push(t('admin.analytics.widget.categoryStats'));
+          parts.push([t('admin.analytics.category'), t('admin.analytics.totalTickets'), t('admin.analytics.avgTotalTime')].join(','));
           d.categoryStats.forEach((c: any) => {
             parts.push([
               `"${safeValue(c.categoryName || 'N/A')}"`,
@@ -315,7 +315,7 @@ export default function ExportAnalytics() {
         // Agent detailed performance
         if (selectedWidgets.has('agent-performance') && d.agentPerformance && d.agentPerformance.length > 0) {
           parts.push(t('admin.analytics.agentPerformance') || 'Agent Performance');
-          parts.push(['Agent', 'Total', 'Pending', 'Serving', 'Hold', 'Completed', 'Avg Wait', 'Avg Called→Serving', 'Avg Service', 'Avg Total', 'Completion Rate'].join(','));
+          parts.push([t('admin.analytics.table.agent'), t('admin.analytics.total'), t('admin.analytics.pending'), t('admin.analytics.serving'), t('admin.analytics.hold'), t('admin.analytics.completed'), t('admin.analytics.avgWait'), t('admin.analytics.avgCalledToServing'), t('admin.analytics.avgServiceTime'), t('admin.analytics.avgTotal'), t('admin.analytics.completionRate')].join(','));
           d.agentPerformance.forEach((a: any) => {
             parts.push([
               `"${safeValue(a.agentName || 'N/A')}"`,
@@ -438,9 +438,9 @@ export default function ExportAnalytics() {
             </head>
             <body>
               <h1>${t('admin.analytics.title') || 'Analytics Report'}</h1>
-              <p><strong>Period:</strong> ${startDate} to ${endDate}</p>
-              ${selectedCategories.size > 0 ? `<p><strong>Services:</strong> ${categories.filter((c: any) => selectedCategories.has(c.id)).map((c: any) => c.name).join(', ')}</p>` : ''}
-              ${selectedAgents.size > 0 ? `<p><strong>Agents:</strong> ${agents.filter((a: any) => selectedAgents.has(a.id)).map((a: any) => a.name || a.email || 'Unknown').join(', ')}</p>` : ''}
+              <p><strong>${t('admin.analytics.period')}</strong> ${startDate} ${t('admin.analytics.to')} ${endDate}</p>
+              ${selectedCategories.size > 0 ? `<p><strong>${t('admin.analytics.servicesLabel')}:</strong> ${categories.filter((c: any) => selectedCategories.has(c.id)).map((c: any) => c.name).join(', ')}</p>` : ''}
+              ${selectedAgents.size > 0 ? `<p><strong>${t('admin.analytics.agentsLabel')}:</strong> ${agents.filter((a: any) => selectedAgents.has(a.id)).map((a: any) => a.name || a.email || t('admin.analytics.unknown')).join(', ')}</p>` : ''}
         `;
 
         if (selectedWidgets.has('summary')) {
@@ -473,7 +473,7 @@ export default function ExportAnalytics() {
           htmlContent += `
             <h2>${t('admin.analytics.servicePerformance') || 'Service Performance'}</h2>
             <table>
-              <thead><tr><th>Category</th><th>Total</th><th>Pending</th><th>Serving</th><th>Hold</th><th>Completed</th><th>Avg Total</th><th>Avg Service</th><th>Completion</th></tr></thead>
+              <thead><tr><th>${t('admin.analytics.category')}</th><th>${t('admin.analytics.total')}</th><th>${t('admin.analytics.pending')}</th><th>${t('admin.analytics.serving')}</th><th>${t('admin.analytics.hold')}</th><th>${t('admin.analytics.completed')}</th><th>${t('admin.analytics.avgTotal')}</th><th>${t('admin.analytics.avgService')}</th><th>${t('admin.analytics.completion')}</th></tr></thead>
               <tbody>
                 ${d.servicePerformance.map((s: any) => `
                   <tr>
@@ -497,7 +497,7 @@ export default function ExportAnalytics() {
           htmlContent += `
             <h2>${t('admin.analytics.agentPerformance') || 'Agent Performance'}</h2>
             <table>
-              <thead><tr><th>Agent</th><th>Total</th><th>Pending</th><th>Serving</th><th>Hold</th><th>Completed</th><th>Avg Wait</th><th>Avg Called→Serving</th><th>Avg Service</th><th>Avg Total</th><th>Completion</th></tr></thead>
+              <thead><tr><th>${t('admin.analytics.table.agent')}</th><th>${t('admin.analytics.total')}</th><th>${t('admin.analytics.pending')}</th><th>${t('admin.analytics.serving')}</th><th>${t('admin.analytics.hold')}</th><th>${t('admin.analytics.completed')}</th><th>${t('admin.analytics.avgWait')}</th><th>${t('admin.analytics.avgCalledToServing')}</th><th>${t('admin.analytics.avgServiceTime')}</th><th>${t('admin.analytics.avgTotal')}</th><th>${t('admin.analytics.completion')}</th></tr></thead>
               <tbody>
                 ${d.agentPerformance.map((a: any) => `
                   <tr>
@@ -533,9 +533,9 @@ export default function ExportAnalytics() {
 
         if (selectedWidgets.has('category-stats') && d.categoryStats && d.categoryStats.length > 0) {
           htmlContent += `
-            <h2>Category Stats</h2>
+            <h2>${t('admin.analytics.widget.categoryStats')}</h2>
             <table>
-              <thead><tr><th>Category</th><th>Total Tickets</th><th>Avg Total Time</th></tr></thead>
+              <thead><tr><th>${t('admin.analytics.category')}</th><th>${t('admin.analytics.totalTickets')}</th><th>${t('admin.analytics.avgTotalTime')}</th></tr></thead>
               <tbody>
                 ${d.categoryStats.map((c: any) => `
                   <tr>
@@ -633,13 +633,13 @@ export default function ExportAnalytics() {
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Analytics
+            {t('admin.analytics.backToAnalytics')}
           </Link>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-chart-2/10 rounded-lg">
               <Download className="w-6 h-6 text-chart-2" />
             </div>
-            <h1 className="text-4xl font-bold text-foreground">Export Analytics</h1>
+            <h1 className="text-4xl font-bold text-foreground">{t('admin.analytics.exportAnalytics')}</h1>
           </div>
         </motion.div>
 
@@ -652,27 +652,27 @@ export default function ExportAnalytics() {
         >
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <FolderOpen className="w-5 h-5" />
-            Filter by Services (Optional)
+            {t('admin.analytics.filterByServices')}
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Select specific services to include in the report. Leave empty to include all services.
+            {t('admin.analytics.selectServicesDesc')}
           </p>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-muted-foreground">
-              Selected: {selectedCategories.size} of {categories.length} services
+              {t('admin.analytics.selected')}: {selectedCategories.size} {t('admin.analytics.of')} {categories.length} {t('admin.analytics.services')}
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={selectAllCategories}
                 className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Select All
+                {t('admin.analytics.selectAll')}
               </button>
               <button
                 onClick={deselectAllCategories}
                 className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Clear
+                {t('admin.analytics.clear')}
               </button>
             </div>
           </div>
@@ -682,7 +682,7 @@ export default function ExportAnalytics() {
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
               </div>
             ) : categories.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No services available</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t('admin.analytics.noCategoriesAvailable')}</p>
             ) : (
               categories.map((category) => (
                 <button
@@ -720,27 +720,27 @@ export default function ExportAnalytics() {
         >
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Filter by Agents (Optional)
+            {t('admin.analytics.filterByAgents')}
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Select specific agents to include in the report. Leave empty to include all agents.
+            {t('admin.analytics.selectAgentsDesc')}
           </p>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-muted-foreground">
-              Selected: {selectedAgents.size} of {agents.length} agents
+              {t('admin.analytics.selected')}: {selectedAgents.size} {t('admin.analytics.of')} {agents.length} {t('admin.analytics.agents')}
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={selectAllAgents}
                 className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Select All
+                {t('admin.analytics.selectAll')}
               </button>
               <button
                 onClick={deselectAllAgents}
                 className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Clear
+                {t('admin.analytics.clear')}
               </button>
             </div>
           </div>
@@ -750,7 +750,7 @@ export default function ExportAnalytics() {
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
               </div>
             ) : agents.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No agents available</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t('admin.analytics.noAgentsAvailable')}</p>
             ) : (
               agents.map((agent) => (
                 <button
@@ -769,7 +769,7 @@ export default function ExportAnalytics() {
                   )}
                   <div className="flex-1">
                     <span className="text-sm font-medium text-foreground">
-                      {agent.name || agent.email || 'Unknown Agent'}
+                      {agent.name || agent.email || t('admin.analytics.unknownAgent')}
                     </span>
                     {agent.email && agent.name && (
                       <p className="text-xs text-muted-foreground mt-0.5">{agent.email}</p>
@@ -790,12 +790,12 @@ export default function ExportAnalytics() {
         >
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            Date Range
+            {t('admin.analytics.dateRange')}
           </h2>
           <div className="space-y-4">
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Period:</span>
+              <span className="text-sm font-medium text-foreground">{t('admin.analytics.period')}</span>
               <div className="flex items-center gap-2 border border-border rounded-lg p-1">
                 <button
                   onClick={() => setDateFilter('day')}
@@ -805,7 +805,7 @@ export default function ExportAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  Today
+                  {t('admin.analytics.today')}
                 </button>
                 <button
                   onClick={() => setDateFilter('week')}
@@ -815,7 +815,7 @@ export default function ExportAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  This Week
+                  {t('admin.analytics.thisWeek')}
                 </button>
                 <button
                   onClick={() => setDateFilter('month')}
@@ -825,7 +825,7 @@ export default function ExportAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  This Month
+                  {t('admin.analytics.thisMonth')}
                 </button>
                 <button
                   onClick={() => setDateFilter('custom')}
@@ -835,7 +835,7 @@ export default function ExportAnalytics() {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  Custom
+                  {t('admin.analytics.custom')}
                 </button>
               </div>
             </div>
@@ -849,7 +849,7 @@ export default function ExportAnalytics() {
                   onChange={(e) => setStartDate(e.target.value)}
                   className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
-                <span className="text-muted-foreground">to</span>
+                <span className="text-muted-foreground">{t('admin.analytics.to')}</span>
                 <input
                   type="date"
                   value={endDate}
@@ -871,20 +871,20 @@ export default function ExportAnalytics() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
               <CheckSquare className="w-5 h-5" />
-              Select Widgets to Export
+              {t('admin.analytics.selectWidgetsToExport')}
             </h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={selectAllWidgets}
                 className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Select All
+                {t('admin.analytics.selectAll')}
               </button>
               <button
                 onClick={deselectAllWidgets}
                 className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Deselect All
+                {t('admin.analytics.deselectAll')}
               </button>
             </div>
           </div>
@@ -904,12 +904,28 @@ export default function ExportAnalytics() {
                 ) : (
                   <Square className="w-5 h-5 text-muted-foreground" />
                 )}
-                <span className="text-sm font-medium text-foreground">{widget.label}</span>
+                <span className="text-sm font-medium text-foreground">
+                  {(() => {
+                    const widgetKeyMap: { [key: string]: string } = {
+                      'summary': 'admin.analytics.widget.summary',
+                      'ticket-counts': 'admin.analytics.widget.ticketCounts',
+                      'service-performance': 'admin.analytics.widget.servicePerformance',
+                      'agent-performance': 'admin.analytics.widget.agentPerformance',
+                      'daily-trends': 'admin.analytics.widget.dailyTrends',
+                      'hourly-distribution': 'admin.analytics.widget.hourlyDistribution',
+                      'day-of-week': 'admin.analytics.widget.dayOfWeekDistribution',
+                      'status-distribution': 'admin.analytics.widget.statusDistribution',
+                      'peak-hours': 'admin.analytics.widget.peakHours',
+                      'category-stats': 'admin.analytics.widget.categoryStats',
+                    };
+                    return t(widgetKeyMap[widget.id] || widget.label);
+                  })()}
+                </span>
               </button>
             ))}
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            Selected: {selectedWidgets.size} of {WIDGETS.length} widgets
+            {t('admin.analytics.selected')}: {selectedWidgets.size} {t('admin.analytics.of')} {WIDGETS.length} {t('admin.analytics.widgets')}
           </p>
         </motion.div>
 
@@ -920,7 +936,7 @@ export default function ExportAnalytics() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="bg-card border border-border rounded-xl p-6 mb-6"
         >
-          <h2 className="text-xl font-bold text-foreground mb-4">Export Format</h2>
+          <h2 className="text-xl font-bold text-foreground mb-4">{t('admin.analytics.exportFormat')}</h2>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setExportFormat('excel')}
@@ -931,7 +947,7 @@ export default function ExportAnalytics() {
               }`}
             >
               <FileSpreadsheet className="w-5 h-5" />
-              <span>Excel (CSV)</span>
+              <span>{t('admin.analytics.excelCsv')}</span>
             </button>
             <button
               onClick={() => setExportFormat('pdf')}
@@ -942,7 +958,7 @@ export default function ExportAnalytics() {
               }`}
             >
               <FileText className="w-5 h-5" />
-              <span>PDF</span>
+              <span>{t('admin.analytics.pdf')}</span>
             </button>
           </div>
         </motion.div>
@@ -964,12 +980,12 @@ export default function ExportAnalytics() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Exporting...
+                {t('admin.analytics.exporting')}
               </>
             ) : (
               <>
                 <Download className="w-5 h-5" />
-                Export Analytics
+                {t('admin.analytics.exportAnalyticsButton')}
               </>
             )}
           </motion.button>

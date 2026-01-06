@@ -442,7 +442,7 @@ export default function AgentCalendar() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="Search tickets, updates..."
+                  placeholder={t('agent.calendar.searchTickets')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 w-full min-w-0 border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-10 pl-10 pr-10 rounded-full bg-background border-border"
@@ -556,8 +556,8 @@ export default function AgentCalendar() {
                 <div className="flex items-center gap-2">
                   <List className="h-6 w-6" />
                   <div>
-                    <h2 className="text-xl font-semibold">Ticket History</h2>
-                    <p className="text-sm text-muted-foreground">List view of customer appointments</p>
+                    <h2 className="text-xl font-semibold">{t('agent.calendar.ticketHistory')}</h2>
+                    <p className="text-sm text-muted-foreground">{t('agent.calendar.listViewDesc')}</p>
                   </div>
                 </div>
               </div>
@@ -566,7 +566,7 @@ export default function AgentCalendar() {
               <div className="flex flex-wrap items-center gap-4 p-4 bg-card border rounded-xl mb-4">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-muted-foreground" />
-                  <label className="text-sm font-medium text-foreground">Start Date:</label>
+                  <label className="text-sm font-medium text-foreground">{t('agent.calendar.startDate')}</label>
                   <input
                     type="date"
                     value={startDate}
@@ -575,7 +575,7 @@ export default function AgentCalendar() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-foreground">End Date:</label>
+                  <label className="text-sm font-medium text-foreground">{t('agent.calendar.endDate')}</label>
                   <input
                     type="date"
                     value={endDate}
@@ -587,7 +587,7 @@ export default function AgentCalendar() {
                   <Search className="w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search tickets..."
+                    placeholder={t('agent.calendar.searchTicketsSimple')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
@@ -605,7 +605,7 @@ export default function AgentCalendar() {
                 <div className="p-6 border-b border-border">
                   <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                     <Ticket className="w-6 h-6 text-primary" />
-                    History ({filteredTickets.length})
+                    {t('agent.calendar.history')} ({filteredTickets.length})
                   </h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -613,16 +613,16 @@ export default function AgentCalendar() {
                     <thead className="bg-muted/50 border-b border-border">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Token
+                          {t('agent.calendar.token')}
                         </th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Customer Name
+                          {t('agent.calendar.customerName')}
                         </th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Service
+                          {t('agent.calendar.service')}
                         </th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Actions
+                          {t('agent.calendar.actions')}
                         </th>
                       </tr>
                     </thead>
@@ -630,7 +630,7 @@ export default function AgentCalendar() {
                         {paginatedTickets.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
-                            {searchQuery ? 'No tickets found' : 'No tickets available'}
+                            {searchQuery ? t('agent.calendar.noTicketsFound') : t('agent.calendar.noTicketsAvailable')}
                           </td>
                         </tr>
                       ) : (
@@ -646,10 +646,10 @@ export default function AgentCalendar() {
                               <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                              {ticket.customerName || 'N/A'}
+                              {ticket.customerName || t('common.value')}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                              {ticket.category?.name || 'N/A'}
+                              {ticket.category?.name || t('common.value')}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <motion.button
@@ -690,10 +690,10 @@ export default function AgentCalendar() {
                         }`}
                       >
                         <ChevronLeft className="w-4 h-4 shrink-0" />
-                        <span>Previous</span>
+                        <span>{t('agent.calendar.previous')}</span>
                       </button>
                       <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        Page {currentPage} / {totalPages}
+                        {t('agent.calendar.page')} {currentPage} / {totalPages}
                       </span>
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
@@ -704,12 +704,12 @@ export default function AgentCalendar() {
                             : 'text-foreground hover:bg-muted'
                         }`}
                       >
-                        <span>Next</span>
+                        <span>{t('agent.calendar.next')}</span>
                         <ChevronRight className="w-4 h-4 shrink-0" />
                       </button>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">{t('agent.calendar.itemsPerPage')}</span>
                       <select
                         value={itemsPerPage}
                         onChange={(e) => {
@@ -746,10 +746,10 @@ export default function AgentCalendar() {
                 {hoveredTicket.tokenNumber}
               </h3>
               <p className="text-sm text-muted-foreground mb-1">
-                <span className="font-semibold">Category:</span> {hoveredTicket.category?.name}
+                <span className="font-semibold">{t('agent.calendar.category')}</span> {hoveredTicket.category?.name}
               </p>
               <p className="text-sm text-muted-foreground mb-1">
-                <span className="font-semibold">Status:</span> {hoveredTicket.status}
+                <span className="font-semibold">{t('agent.calendar.status')}</span> {t(`status.${hoveredTicket.status}` as any) || hoveredTicket.status}
               </p>
               <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -827,7 +827,7 @@ export default function AgentCalendar() {
                     {/* Status & Position */}
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                        <span className="text-sm font-medium text-muted-foreground">{t('agent.calendar.status')}</span>
                         <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
                           selectedTicketDetails.status === 'completed'
                             ? 'bg-chart-2/20 text-chart-2 border border-chart-2/30'
@@ -835,12 +835,12 @@ export default function AgentCalendar() {
                             ? 'bg-destructive/20 text-destructive border border-destructive/30'
                             : 'bg-muted text-muted-foreground border border-border'
                         }`}>
-                          {selectedTicketDetails.status}
+                          {t(`agent.calendar.status.${selectedTicketDetails.status}` as any) || selectedTicketDetails.status}
                         </span>
                       </div>
                       {selectedTicketDetails.positionInQueue > 0 && (
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-muted-foreground">Position:</span>
+                          <span className="text-sm font-medium text-muted-foreground">{t('agent.calendar.position')}</span>
                           <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20">
                             #{selectedTicketDetails.positionInQueue}
                           </span>
@@ -853,7 +853,7 @@ export default function AgentCalendar() {
                       <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border rounded-2xl p-5">
                         <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
                           <Users className="w-4 h-4" />
-                          Customer Information
+                          {t('agent.calendar.customerInformation')}
                         </h3>
                         <div className="space-y-3">
                           {selectedTicketDetails.customerName && (
@@ -893,7 +893,7 @@ export default function AgentCalendar() {
                       <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border rounded-2xl p-5">
                         <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
                           <Clock className="w-4 h-4" />
-                          Timeline
+                          {t('agent.calendar.timeline')}
                         </h3>
                         <div className="space-y-3">
                           {selectedTicketDetails.createdAt && (
@@ -902,7 +902,7 @@ export default function AgentCalendar() {
                                 <Clock className="w-4 h-4 text-chart-1" />
                               </div>
                               <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Created At</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.analytics.createdAt')}</p>
                                 <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.createdAt), 'MMM dd, yyyy HH:mm')}</p>
                               </div>
                             </div>
@@ -913,7 +913,7 @@ export default function AgentCalendar() {
                                 <CheckCircle2 className="w-4 h-4 text-chart-2" />
                               </div>
                               <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Completed At</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.analytics.completedAt')}</p>
                                 <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.completedAt), 'MMM dd, yyyy HH:mm')}</p>
                               </div>
                             </div>
@@ -924,7 +924,7 @@ export default function AgentCalendar() {
                                 <X className="w-4 h-4 text-destructive" />
                               </div>
                               <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Hold/No Show At</p>
+                                <p className="text-xs text-muted-foreground">{t('agent.calendar.holdNoShowAt')}</p>
                                 <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.noShowAt), 'MMM dd, yyyy HH:mm')}</p>
                               </div>
                             </div>

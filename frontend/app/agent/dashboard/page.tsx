@@ -972,7 +972,7 @@ export default function AgentDashboard() {
                               <Clock className="w-4 h-4 text-chart-1" />
                             </div>
                             <div className="flex-1">
-                              <p className="text-xs text-muted-foreground">Created At</p>
+                              <p className="text-xs text-muted-foreground">{t('admin.analytics.createdAt')}</p>
                               <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.createdAt), 'MMM dd, yyyy HH:mm')}</p>
                             </div>
                           </div>
@@ -983,7 +983,7 @@ export default function AgentDashboard() {
                               <CheckCircle2 className="w-4 h-4 text-chart-2" />
                             </div>
                             <div className="flex-1">
-                              <p className="text-xs text-muted-foreground">Completed At</p>
+                              <p className="text-xs text-muted-foreground">{t('admin.analytics.completedAt')}</p>
                               <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.completedAt), 'MMM dd, yyyy HH:mm')}</p>
                             </div>
                           </div>

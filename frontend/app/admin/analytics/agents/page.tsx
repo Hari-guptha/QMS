@@ -255,13 +255,13 @@ export default function AgentAnalytics() {
               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Analytics
+              {t('admin.analytics.backToAnalytics')}
             </Link>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
                 <Users className="w-6 h-6 text-primary" />
               </div>
-              <h1 className="text-4xl font-bold text-foreground">Agent-Based Analytics</h1>
+              <h1 className="text-4xl font-bold text-foreground">{t('admin.analytics.agentBasedAnalytics')}</h1>
             </div>
           </div>
           <motion.button
@@ -272,7 +272,7 @@ export default function AgentAnalytics() {
             className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg disabled:opacity-50"
           >
             <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('admin.analytics.refresh')}
           </motion.button>
         </motion.div>
 
@@ -289,7 +289,7 @@ export default function AgentAnalytics() {
               {/* Date Filter */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Filter className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Period:</span>
+                <span className="text-sm font-medium text-foreground">{t('admin.analytics.period')}</span>
                 <div className="flex items-center gap-2 border border-border rounded-lg p-1">
                   <button
                     onClick={() => setDateFilter('day')}
@@ -299,7 +299,7 @@ export default function AgentAnalytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    Today
+                    {t('admin.analytics.today')}
                   </button>
                   <button
                     onClick={() => setDateFilter('week')}
@@ -309,7 +309,7 @@ export default function AgentAnalytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    This Week
+                    {t('admin.analytics.thisWeek')}
                   </button>
                   <button
                     onClick={() => setDateFilter('month')}
@@ -319,7 +319,7 @@ export default function AgentAnalytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    This Month
+                    {t('admin.analytics.thisMonth')}
                   </button>
                   <button
                     onClick={() => setDateFilter('custom')}
@@ -329,7 +329,7 @@ export default function AgentAnalytics() {
                         : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    Custom
+                    {t('admin.analytics.custom')}
                   </button>
                 </div>
               </div>
@@ -344,7 +344,7 @@ export default function AgentAnalytics() {
                     onChange={(e) => setStartDate(e.target.value)}
                     className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
-                  <span className="text-muted-foreground">to</span>
+                  <span className="text-muted-foreground">{t('admin.analytics.to')}</span>
                   <input
                     type="date"
                     value={endDate}
@@ -367,7 +367,7 @@ export default function AgentAnalytics() {
                       setDateFilter('week');
                     }}
                     className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                    title="Reset to default"
+                    title={t('admin.analytics.resetToDefault')}
                   >
                     <X className="w-4 h-4" />
                   </motion.button>
@@ -383,7 +383,7 @@ export default function AgentAnalytics() {
                   <Search className="w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search agents..."
+                    placeholder={t('admin.analytics.searchAgents')}
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -420,7 +420,7 @@ export default function AgentAnalytics() {
                   >
                     <div className="p-2">
                       <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
-                        {searchQuery ? 'Suggestions' : 'Top Agents'}
+                        {searchQuery ? t('admin.analytics.suggestions') : t('admin.analytics.topAgents')}
                       </div>
                       {searchSuggestions.map((agent: any) => (
                         <button
@@ -446,10 +446,10 @@ export default function AgentAnalytics() {
                           </div>
                           <div className="text-right">
                             <div className="text-sm font-semibold text-foreground">
-                              {agent.totalTickets || 0} tickets
+                              {agent.totalTickets || 0} {t('admin.analytics.tickets')}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {agent.completionRate?.toFixed(1) || 0}% completion
+                              {agent.completionRate?.toFixed(1) || 0}% {t('admin.analytics.completion')}
                             </div>
                           </div>
                         </button>
@@ -465,10 +465,10 @@ export default function AgentAnalytics() {
                 <Select
                   value={selectedCategoryId}
                   onChange={(value) => setSelectedCategoryId(value)}
-                  placeholder="All Services"
+                  placeholder={t('admin.analytics.allServices')}
                   buttonClassName="p-3 sm:p-3 pl-11 sm:pl-11"
                   options={[
-                    { value: '', label: 'All Services' },
+                    { value: '', label: t('admin.analytics.allServices') },
                     ...categories.map((cat) => ({
                       value: cat.id,
                       label: cat.name,

@@ -4,8 +4,10 @@ import { useTheme } from 'next-themes';
 import { useThemeStore } from '@/lib/theme-store';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 export function ThemeToggle() {
+  const { t } = useI18n();
   const { theme, setTheme } = useTheme();
   const { setTheme: setStoreTheme } = useThemeStore();
   const [mounted, setMounted] = useState(false);
@@ -19,7 +21,7 @@ export function ThemeToggle() {
     return (
       <button
         className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors"
-        aria-label="Toggle theme"
+        aria-label={t('theme.toggleTheme')}
       >
         <Sun className="w-5 h-5" />
       </button>
@@ -39,9 +41,9 @@ export function ThemeToggle() {
   };
 
   const getCurrentThemeLabel = () => {
-    if (theme === 'light') return 'Light';
-    if (theme === 'dark') return 'Dark';
-    return 'System';
+    if (theme === 'light') return t('theme.light');
+    if (theme === 'dark') return t('theme.dark');
+    return t('theme.system');
   };
 
   return (
@@ -50,8 +52,8 @@ export function ThemeToggle() {
       <button
         onClick={() => setShowMenu(!showMenu)}
         className="p-2 rounded-lg bg-secondary border border-border hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
-        aria-label="Toggle theme"
-        title={`Current theme: ${getCurrentThemeLabel()}`}
+        aria-label={t('theme.toggleTheme')}
+        title={`${t('theme.currentTheme')}: ${getCurrentThemeLabel()}`}
       >
         {getCurrentThemeIcon()}
         <span className="text-sm font-medium hidden sm:inline">{getCurrentThemeLabel()}</span>
@@ -76,10 +78,10 @@ export function ThemeToggle() {
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-accent hover:text-accent-foreground'
                 }`}
-                aria-label="Light mode"
+                aria-label={t('theme.lightMode')}
               >
                 <Sun className="w-4 h-4" />
-                <span>Light</span>
+                <span>{t('theme.light')}</span>
                 {theme === 'light' && (
                   <span className="ml-auto text-xs">✓</span>
                 )}
@@ -92,10 +94,10 @@ export function ThemeToggle() {
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-accent hover:text-accent-foreground'
                 }`}
-                aria-label="Dark mode"
+                aria-label={t('theme.darkMode')}
               >
                 <Moon className="w-4 h-4" />
-                <span>Dark</span>
+                <span>{t('theme.dark')}</span>
                 {theme === 'dark' && (
                   <span className="ml-auto text-xs">✓</span>
                 )}
@@ -108,10 +110,10 @@ export function ThemeToggle() {
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-accent hover:text-accent-foreground'
                 }`}
-                aria-label="System mode"
+                aria-label={t('theme.systemMode')}
               >
                 <Monitor className="w-4 h-4" />
-                <span>System</span>
+                <span>{t('theme.system')}</span>
                 {theme === 'system' && (
                   <span className="ml-auto text-xs">✓</span>
                 )}
