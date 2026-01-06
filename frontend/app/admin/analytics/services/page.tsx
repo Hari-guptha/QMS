@@ -44,6 +44,7 @@ export default function ServiceAnalytics() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month' | 'custom'>('week');
   const [startDate, setStartDate] = useState<string>(() => {
     try {
@@ -137,6 +138,18 @@ export default function ServiceAnalytics() {
     const query = searchQuery.toLowerCase();
     return service.categoryName?.toLowerCase().includes(query);
   });
+
+  // Get search suggestions (top 5 matching services)
+  const searchSuggestions = searchQuery
+    ? servicePerformance
+        .filter((service) => {
+          const query = searchQuery.toLowerCase();
+          return service.categoryName?.toLowerCase().includes(query);
+        })
+        .slice(0, 5)
+    : servicePerformance
+        .sort((a, b) => (b.totalTickets || 0) - (a.totalTickets || 0))
+        .slice(0, 5);
 
   const selectedService = selectedServiceId ? filteredServices.find(s => s.categoryId === selectedServiceId) : null;
 
@@ -315,19 +328,106 @@ export default function ServiceAnalytics() {
                   onChange={(e) => setEndDate(e.target.value)}
                   className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    const today = new Date();
+                    const dayOfWeek = today.getDay();
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - dayOfWeek);
+                    startOfWeek.setHours(0, 0, 0, 0);
+                    setStartDate(startOfWeek.toISOString().split('T')[0]);
+                    setEndDate(today.toISOString().split('T')[0]);
+                    setDateFilter('week');
+                  }}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  title="Reset to default"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
               </div>
             )}
 
-            {/* Search */}
-            <div className="flex-1 flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search services..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
-              />
+            {/* Search with Recommendations */}
+            <div className="flex-1 relative">
+              <div className="flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search services..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSearchSuggestions(true);
+                  }}
+                  onFocus={() => setShowSearchSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
+                  className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
+                />
+                {searchQuery && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedServiceId('');
+                    }}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title="Clear filter"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                )}
+              </div>
+              {/* Search Suggestions Dropdown */}
+              {showSearchSuggestions && searchSuggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-lg max-h-60 overflow-auto"
+                >
+                  <div className="p-2">
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                      {searchQuery ? 'Suggestions' : 'Top Services'}
+                    </div>
+                    {searchSuggestions.map((service: any) => (
+                      <button
+                        key={service.categoryId}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery(service.categoryName);
+                          setSelectedServiceId(service.categoryId);
+                          setShowSearchSuggestions(false);
+                        }}
+                        className="w-full px-4 py-3 text-left rounded-lg hover:bg-accent hover:text-accent-foreground text-foreground transition-colors flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-chart-2/10 flex items-center justify-center">
+                            <FolderOpen className="w-4 h-4 text-chart-2" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{service.categoryName}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-foreground">
+                            {service.totalTickets || 0} tickets
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {service.completionRate?.toFixed(1) || 0}% completion
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -381,26 +481,6 @@ export default function ServiceAnalytics() {
           </div>
         </motion.div>
 
-        {/* Service Selection */}
-        {filteredServices.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-card border border-border rounded-xl p-4 mb-6"
-          >
-            <label className="text-sm font-medium text-foreground mb-2 block">Select Service for Detailed View:</label>
-            <Select
-              value={selectedServiceId}
-              onChange={(value) => setSelectedServiceId(value)}
-              placeholder="Select a service..."
-              options={filteredServices.map((service) => ({
-                value: service.categoryId,
-                label: `${service.categoryName} (${service.totalTickets} tickets)`,
-              }))}
-            />
-          </motion.div>
-        )}
 
         {/* Service Performance Charts */}
         <div className="grid lg:grid-cols-2 gap-6 mb-8">

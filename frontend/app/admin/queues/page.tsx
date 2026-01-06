@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
-import { adminApi } from '@/lib/api';
+import { adminApi, agentApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -88,12 +88,22 @@ export default function AllQueues() {
     customerEmail: '',
   });
   const [viewType, setViewType] = useState<'queue' | 'history'>('queue');
+  const [historyViewType, setHistoryViewType] = useState<'calendar' | 'list'>('calendar');
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [historyTickets, setHistoryTickets] = useState<any[]>([]);
   const [hoveredTicket, setHoveredTicket] = useState<any | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
   const [selectedTicketDetails, setSelectedTicketDetails] = useState<any | null>(null);
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyStartDate, setHistoryStartDate] = useState(() => {
+    const today = new Date();
+    today.setDate(today.getDate() - 90); // Default to last 90 days
+    return format(today, 'yyyy-MM-dd');
+  });
+  const [historyEndDate, setHistoryEndDate] = useState(() => {
+    return format(new Date(), 'yyyy-MM-dd');
+  });
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -109,13 +119,17 @@ export default function AllQueues() {
       if (viewType === 'queue') {
         loadAgentQueue(selectedAgentId);
       } else {
-        loadAgentHistory(selectedAgentId);
+        if (historyViewType === 'calendar') {
+          loadAgentHistory(selectedAgentId);
+        } else {
+          loadAgentHistoryList(selectedAgentId);
+        }
       }
     } else {
       setQueue([]);
       setHistoryTickets([]);
     }
-  }, [selectedAgentId, viewType, currentDate, viewMode]);
+  }, [selectedAgentId, viewType, currentDate, viewMode, historyViewType, historyStartDate, historyEndDate]);
 
   const loadAgents = async () => {
     try {
@@ -168,14 +182,75 @@ export default function AllQueues() {
         end.setHours(23, 59, 59, 999);
       }
 
+      const startDateStr = format(start, 'yyyy-MM-dd');
+      const endDateStr = format(end, 'yyyy-MM-dd');
+      
+      console.log('Loading agent history:', { agentId, startDateStr, endDateStr, viewMode });
+      
       const response = await agentApi.getAgentHistory(
         agentId,
-        format(start, 'yyyy-MM-dd'),
-        format(end, 'yyyy-MM-dd')
+        startDateStr,
+        endDateStr
       );
-      setHistoryTickets(response.data || []);
-    } catch (error) {
+      
+      console.log('Agent history response:', response);
+      
+      // Handle different response structures
+      const tickets = response?.data || response || [];
+      console.log('Parsed tickets:', tickets);
+      
+      setHistoryTickets(Array.isArray(tickets) ? tickets : []);
+    } catch (error: any) {
       console.error('Failed to load agent history:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      });
+      // Show error to user
+      if (error?.response?.status === 403 || error?.response?.status === 401) {
+        alert(t('admin.queues.alert.loadHistory') || 'Access denied. Admin may need special permissions to view agent history.');
+      } else {
+        alert(error?.response?.data?.message || error?.message || 'Failed to load agent history');
+      }
+      setHistoryTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAgentHistoryList = async (agentId: string) => {
+    setLoading(true);
+    try {
+      console.log('Loading agent history list:', { agentId, historyStartDate, historyEndDate });
+      
+      const response = await agentApi.getAgentHistory(
+        agentId,
+        historyStartDate,
+        historyEndDate
+      );
+      
+      console.log('Agent history list response:', response);
+      
+      // Handle different response structures
+      const tickets = response?.data || response || [];
+      console.log('Parsed tickets:', tickets);
+      
+      setHistoryTickets(Array.isArray(tickets) ? tickets : []);
+    } catch (error: any) {
+      console.error('Failed to load agent history list:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      });
+      // Show error to user
+      if (error?.response?.status === 403 || error?.response?.status === 401) {
+        alert(t('admin.queues.alert.loadHistory') || 'Access denied. Admin may need special permissions to view agent history.');
+      } else {
+        alert(error?.response?.data?.message || error?.message || 'Failed to load agent history');
+      }
+      setHistoryTickets([]);
     } finally {
       setLoading(false);
     }
@@ -626,6 +701,23 @@ export default function AllQueues() {
                       onChange={(e) => setAgentSearchQuery(e.target.value)}
                       className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
                     />
+                    {agentSearchQuery && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          setAgentSearchQuery('');
+                          setSelectedAgentId('');
+                          setSelectedCategoryId('');
+                        }}
+                        className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                        title={t('common.clearFilter') || 'Clear filter'}
+                      >
+                        <X className="w-4 h-4" />
+                      </motion.button>
+                    )}
                   </div>
                   {/* Show filtered agents list when searching */}
                   {agentSearchQuery.trim() && filteredAgents.length > 0 && (
@@ -778,123 +870,348 @@ export default function AllQueues() {
 
             {viewType === 'history' ? (
               <>
-                {/* Calendar View Controls */}
-                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-6 w-6" />
-                    <div>
-                      <h3 className="text-xl font-semibold">{t('common.customerHistory')}</h3>
-                      <p className="text-sm text-muted-foreground">{t('common.calendarView')}</p>
+                {/* Filters and View Toggle */}
+                <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 bg-muted/30 border rounded-xl">
+                  <div className="flex flex-wrap items-center gap-4 flex-1">
+                    {historyViewType === 'list' && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                          <label className="text-sm font-medium text-foreground">{t('common.startDate')}:</label>
+                          <input
+                            type="date"
+                            value={historyStartDate}
+                            onChange={(e) => setHistoryStartDate(e.target.value)}
+                            className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-foreground">{t('common.endDate')}:</label>
+                          <input
+                            type="date"
+                            value={historyEndDate}
+                            onChange={(e) => setHistoryEndDate(e.target.value)}
+                            className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="flex-1 flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2 min-w-[200px]">
+                      <Search className="w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder={t('admin.queues.searchTickets') || 'Search tickets...'}
+                        value={historySearchQuery}
+                        onChange={(e) => setHistorySearchQuery(e.target.value)}
+                        className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
+                      />
+                      {(historySearchQuery || (historyViewType === 'list' && (historyStartDate !== format(new Date(new Date().setDate(new Date().getDate() - 90)), 'yyyy-MM-dd') || historyEndDate !== format(new Date(), 'yyyy-MM-dd')))) && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => {
+                            setHistorySearchQuery('');
+                            if (historyViewType === 'list') {
+                              const today = new Date();
+                              today.setDate(today.getDate() - 90);
+                              setHistoryStartDate(format(today, 'yyyy-MM-dd'));
+                              setHistoryEndDate(format(new Date(), 'yyyy-MM-dd'));
+                            }
+                          }}
+                          className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                          title={t('common.clearFilter') || 'Clear filter'}
+                        >
+                          <X className="w-4 h-4" />
+                        </motion.button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 border border-border rounded-lg p-1">
-                      <button
-                        onClick={() => setViewMode('day')}
-                        className={`px-3 py-1 text-sm rounded transition-colors ${
-                          viewMode === 'day'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-muted'
-                        }`}
-                      >
-                        {t('common.day')}
-                      </button>
-                      <button
-                        onClick={() => setViewMode('week')}
-                        className={`px-3 py-1 text-sm rounded transition-colors ${
-                          viewMode === 'week'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-muted'
-                        }`}
-                      >
-                        {t('common.week')}
-                      </button>
-                      <button
-                        onClick={() => setViewMode('month')}
-                        className={`px-3 py-1 text-sm rounded transition-colors ${
-                          viewMode === 'month'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-muted'
-                        }`}
-                      >
-                        {t('common.month')}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handlePrev}
-                        className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={handleToday}
-                        className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
-                      >
-                        {t('common.today')}
-                      </button>
-                      <button
-                        onClick={handleNext}
-                        className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
+                  {/* Calendar/List Toggle */}
+                  <div
+                    role="tablist"
+                    className="text-muted-foreground h-9 w-fit items-center justify-center p-[3px] flex gap-2 rounded-full bg-card border border-border"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setHistoryViewType('calendar')}
+                      className={`inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 border border-transparent text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 p-2 rounded-full border-none cursor-pointer ${
+                        historyViewType === 'calendar'
+                          ? 'bg-accent/20 text-foreground shadow-sm'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      <CalendarIcon className="w-4 h-4" />
+                      {t('common.calendar')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryViewType('list')}
+                      className={`inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 border border-transparent text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 p-2 rounded-full border-none cursor-pointer ${
+                        historyViewType === 'list'
+                          ? 'bg-accent/20 text-foreground shadow-sm'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      <List className="w-4 h-4" />
+                      {t('common.list')}
+                    </button>
                   </div>
                 </div>
 
-                {/* Calendar View */}
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <div className="border rounded-xl overflow-hidden">
-                    {viewMode === 'month' && renderMonthView()}
-                    {viewMode === 'week' && renderWeekView()}
-                    {viewMode === 'day' && renderDayView()}
-                  </div>
-                )}
-
-                {/* Ticket Hover Tooltip */}
-                <AnimatePresence>
-                  {hoveredTicket && hoverPosition && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="fixed z-50 bg-card border border-border rounded-lg shadow-xl p-4 max-w-xs pointer-events-none"
-                      style={{
-                        left: hoverPosition.x + 10,
-                        top: hoverPosition.y + 10,
-                      }}
-                    >
-                      <div className="space-y-2">
-                        <div className="font-bold text-foreground">{hoveredTicket.tokenNumber}</div>
-                        {hoveredTicket.customerName && (
-                          <div className="text-sm text-foreground">{t('common.customer')}: {hoveredTicket.customerName}</div>
-                        )}
-                        {hoveredTicket.category && (
-                          <div className="text-sm text-muted-foreground">{t('common.category')}: {hoveredTicket.category.name}</div>
-                        )}
-                        <div className="text-xs text-muted-foreground">
-                          {format(parseISO(hoveredTicket.createdAt), 'MMM dd, yyyy HH:mm')}
-                        </div>
-                        <div className="text-xs">
-                          <span className={`px-2 py-1 rounded-full ${
-                            hoveredTicket.status === 'completed'
-                              ? 'bg-chart-2/20 text-chart-2'
-                              : hoveredTicket.status === 'no_show' || hoveredTicket.status === 'hold'
-                              ? 'bg-destructive/20 text-destructive'
-                              : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {hoveredTicket.status}
-                          </span>
+                {historyViewType === 'calendar' ? (
+                  <>
+                    {/* Calendar View Controls */}
+                    <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-6 w-6" />
+                        <div>
+                          <h3 className="text-xl font-semibold">{t('common.customerHistory')}</h3>
+                          <p className="text-sm text-muted-foreground">{t('common.calendarView')}</p>
                         </div>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+                          <button
+                            onClick={() => setViewMode('day')}
+                            className={`px-3 py-1 text-sm rounded transition-colors ${
+                              viewMode === 'day'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted'
+                            }`}
+                          >
+                            {t('common.day')}
+                          </button>
+                          <button
+                            onClick={() => setViewMode('week')}
+                            className={`px-3 py-1 text-sm rounded transition-colors ${
+                              viewMode === 'week'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted'
+                            }`}
+                          >
+                            {t('common.week')}
+                          </button>
+                          <button
+                            onClick={() => setViewMode('month')}
+                            className={`px-3 py-1 text-sm rounded transition-colors ${
+                              viewMode === 'month'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted'
+                            }`}
+                          >
+                            {t('common.month')}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handlePrev}
+                            className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={handleToday}
+                            className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+                          >
+                            {t('common.today')}
+                          </button>
+                          <button
+                            onClick={handleNext}
+                            className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Calendar View */}
+                    {loading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <div className="border rounded-xl overflow-hidden">
+                        {viewMode === 'month' && renderMonthView()}
+                        {viewMode === 'week' && renderWeekView()}
+                        {viewMode === 'day' && renderDayView()}
+                      </div>
+                    )}
+
+                    {/* Ticket Hover Tooltip */}
+                    <AnimatePresence>
+                      {hoveredTicket && hoverPosition && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          className="fixed z-50 bg-card border border-border rounded-lg shadow-xl p-4 max-w-xs pointer-events-none"
+                          style={{
+                            left: hoverPosition.x + 10,
+                            top: hoverPosition.y + 10,
+                          }}
+                        >
+                          <div className="space-y-2">
+                            <div className="font-bold text-foreground">{hoveredTicket.tokenNumber}</div>
+                            {hoveredTicket.customerName && (
+                              <div className="text-sm text-foreground">{t('common.customer')}: {hoveredTicket.customerName}</div>
+                            )}
+                            {hoveredTicket.category && (
+                              <div className="text-sm text-muted-foreground">{t('common.category')}: {hoveredTicket.category.name}</div>
+                            )}
+                            <div className="text-xs text-muted-foreground">
+                              {format(parseISO(hoveredTicket.createdAt), 'MMM dd, yyyy HH:mm')}
+                            </div>
+                            <div className="text-xs">
+                              <span className={`px-2 py-1 rounded-full ${
+                                hoveredTicket.status === 'completed'
+                                  ? 'bg-chart-2/20 text-chart-2'
+                                  : hoveredTicket.status === 'no_show' || hoveredTicket.status === 'hold'
+                                  ? 'bg-destructive/20 text-destructive'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}>
+                                {hoveredTicket.status}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  /* List View */
+                  <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden"
+                  >
+                    <div className="p-6 border-b border-border">
+                      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                        <Ticket className="w-6 h-6 text-primary" />
+                        {t('common.history')} ({historyTickets.filter((ticket) => {
+                          const query = historySearchQuery.toLowerCase();
+                          return (
+                            ticket.tokenNumber?.toLowerCase().includes(query) ||
+                            ticket.customerName?.toLowerCase().includes(query) ||
+                            ticket.customerPhone?.toLowerCase().includes(query) ||
+                            ticket.customerEmail?.toLowerCase().includes(query) ||
+                            ticket.category?.name?.toLowerCase().includes(query) ||
+                            ticket.status?.toLowerCase().includes(query)
+                          );
+                        }).length})
+                      </h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-muted/50 border-b border-border">
+                          <tr>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {t('common.token')}
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {t('common.customer')}
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {t('common.service')}
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {t('common.status')}
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {t('common.createdAt')}
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {t('common.actions')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {loading ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-12 text-center">
+                                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+                              </td>
+                            </tr>
+                          ) : historyTickets.filter((ticket) => {
+                            const query = historySearchQuery.toLowerCase();
+                            return (
+                              ticket.tokenNumber?.toLowerCase().includes(query) ||
+                              ticket.customerName?.toLowerCase().includes(query) ||
+                              ticket.customerPhone?.toLowerCase().includes(query) ||
+                              ticket.customerEmail?.toLowerCase().includes(query) ||
+                              ticket.category?.name?.toLowerCase().includes(query) ||
+                              ticket.status?.toLowerCase().includes(query)
+                            );
+                          }).length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                                {t('admin.queues.noTicketsFound') || 'No tickets found for the selected date range.'}
+                              </td>
+                            </tr>
+                          ) : (
+                            historyTickets.filter((ticket) => {
+                              const query = historySearchQuery.toLowerCase();
+                              return (
+                                ticket.tokenNumber?.toLowerCase().includes(query) ||
+                                ticket.customerName?.toLowerCase().includes(query) ||
+                                ticket.customerPhone?.toLowerCase().includes(query) ||
+                                ticket.customerEmail?.toLowerCase().includes(query) ||
+                                ticket.category?.name?.toLowerCase().includes(query) ||
+                                ticket.status?.toLowerCase().includes(query)
+                              );
+                            }).map((ticket, index) => (
+                              <motion.tr
+                                key={ticket.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="hover:bg-muted/30 transition-colors"
+                              >
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="font-mono font-bold text-foreground">{ticket.tokenNumber}</span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                                  {ticket.customerName || 'N/A'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                                  {ticket.category?.name || 'N/A'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    ticket.status === 'completed'
+                                      ? 'bg-chart-2/20 text-chart-2'
+                                      : ticket.status === 'no_show' || ticket.status === 'hold'
+                                      ? 'bg-destructive/20 text-destructive'
+                                      : 'bg-muted text-muted-foreground'
+                                  }`}>
+                                    {ticket.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-foreground text-sm">
+                                  {format(parseISO(ticket.createdAt), 'MMM dd, yyyy HH:mm')}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setSelectedTicketDetails(ticket)}
+                                    className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/80 transition-colors shadow-sm flex items-center gap-2"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    {t('common.viewDetails')}
+                                  </motion.button>
+                                </td>
+                              </motion.tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </motion.div>
+                )}
               </>
             ) : (
               <>
@@ -1162,6 +1479,19 @@ export default function AllQueues() {
                   onChange={(e) => setAgentSearchQuery(e.target.value)}
                   className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
                 />
+                {agentSearchQuery && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setAgentSearchQuery('')}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title={t('common.clearFilter') || 'Clear filter'}
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                )}
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
@@ -1372,141 +1702,181 @@ export default function AllQueues() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
                 onClick={() => setSelectedTicketDetails(null)}
               >
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  transition={{ duration: 0.2 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-card text-card-foreground border rounded-2xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                  className="bg-card text-card-foreground border border-border/50 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                      <Ticket className="w-6 h-6 text-primary" />
-                      {selectedTicketDetails.tokenNumber}
-                    </h2>
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-primary/20 rounded-xl">
+                        <Ticket className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-foreground">{selectedTicketDetails.tokenNumber}</h2>
+                        {selectedTicketDetails.category && (
+                          <p className="text-sm text-muted-foreground mt-0.5">{selectedTicketDetails.category.name}</p>
+                        )}
+                      </div>
+                    </div>
                     <button
                       onClick={() => setSelectedTicketDetails(null)}
-                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                      className="p-2 hover:bg-muted/80 rounded-xl transition-colors"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </div>
 
-                  <div className="space-y-4">
-                    {/* Status */}
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Status</label>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        selectedTicketDetails.status === 'completed'
-                          ? 'bg-chart-2/20 text-chart-2'
-                          : selectedTicketDetails.status === 'hold'
-                          ? 'bg-destructive/20 text-destructive'
-                          : selectedTicketDetails.status === 'serving'
-                          ? 'bg-chart-2/20 text-chart-2'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {selectedTicketDetails.status}
-                      </span>
+                  {/* Content */}
+                  <div className="overflow-y-auto flex-1 p-6 space-y-6">
+                    {/* Status & Position */}
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                        <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
+                          selectedTicketDetails.status === 'completed'
+                            ? 'bg-chart-2/20 text-chart-2 border border-chart-2/30'
+                            : selectedTicketDetails.status === 'hold'
+                            ? 'bg-destructive/20 text-destructive border border-destructive/30'
+                            : selectedTicketDetails.status === 'serving'
+                            ? 'bg-primary/20 text-primary border border-primary/30'
+                            : 'bg-muted text-muted-foreground border border-border'
+                        }`}>
+                          {selectedTicketDetails.status}
+                        </span>
+                      </div>
+                      {selectedTicketDetails.positionInQueue > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-muted-foreground">Position:</span>
+                          <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20">
+                            #{selectedTicketDetails.positionInQueue}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Category */}
-                    {selectedTicketDetails.category && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Category</label>
-                        <p className="text-foreground">{selectedTicketDetails.category.name}</p>
+                    {/* Customer Information Card */}
+                    {(selectedTicketDetails.customerName || selectedTicketDetails.customerPhone || selectedTicketDetails.customerEmail) && (
+                      <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border rounded-2xl p-5">
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Customer Information
+                        </h3>
+                        <div className="space-y-3">
+                          {selectedTicketDetails.customerName && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <Users className="w-4 h-4 text-primary" />
+                              </div>
+                              <span className="text-foreground font-medium">{selectedTicketDetails.customerName}</span>
+                            </div>
+                          )}
+                          {selectedTicketDetails.customerPhone && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <Phone className="w-4 h-4 text-primary" />
+                              </div>
+                              <a href={`tel:${selectedTicketDetails.customerPhone}`} className="text-foreground hover:text-primary transition-colors">
+                                {selectedTicketDetails.customerPhone}
+                              </a>
+                            </div>
+                          )}
+                          {selectedTicketDetails.customerEmail && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <Mail className="w-4 h-4 text-primary" />
+                              </div>
+                              <a href={`mailto:${selectedTicketDetails.customerEmail}`} className="text-foreground hover:text-primary transition-colors break-all">
+                                {selectedTicketDetails.customerEmail}
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 
-                    {/* Customer Information */}
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Customer Information</label>
-                      <div className="space-y-2">
-                        {selectedTicketDetails.customerName && (
-                          <p className="text-foreground flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            {selectedTicketDetails.customerName}
-                          </p>
-                        )}
-                        {selectedTicketDetails.customerPhone && (
-                          <p className="text-foreground flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-muted-foreground" />
-                            {selectedTicketDetails.customerPhone}
-                          </p>
-                        )}
-                        {selectedTicketDetails.customerEmail && (
-                          <p className="text-foreground flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-muted-foreground" />
-                            {selectedTicketDetails.customerEmail}
-                          </p>
-                        )}
+                    {/* Timeline Card */}
+                    {(selectedTicketDetails.createdAt || selectedTicketDetails.calledAt || selectedTicketDetails.servingStartedAt || selectedTicketDetails.completedAt || selectedTicketDetails.noShowAt) && (
+                      <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border rounded-2xl p-5">
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          Timeline
+                        </h3>
+                        <div className="space-y-3">
+                          {selectedTicketDetails.createdAt && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <Clock className="w-4 h-4 text-chart-1" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs text-muted-foreground">Created At</p>
+                                <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+                              </div>
+                            </div>
+                          )}
+                          {selectedTicketDetails.calledAt && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <Phone className="w-4 h-4 text-primary" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs text-muted-foreground">Called At</p>
+                                <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.calledAt), 'MMM dd, yyyy HH:mm')}</p>
+                              </div>
+                            </div>
+                          )}
+                          {selectedTicketDetails.servingStartedAt && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <UserCheck className="w-4 h-4 text-chart-2" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs text-muted-foreground">Serving Started At</p>
+                                <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.servingStartedAt), 'MMM dd, yyyy HH:mm')}</p>
+                              </div>
+                            </div>
+                          )}
+                          {selectedTicketDetails.completedAt && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <CheckCircle2 className="w-4 h-4 text-chart-2" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs text-muted-foreground">Completed At</p>
+                                <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.completedAt), 'MMM dd, yyyy HH:mm')}</p>
+                              </div>
+                            </div>
+                          )}
+                          {selectedTicketDetails.noShowAt && (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-background rounded-lg">
+                                <X className="w-4 h-4 text-destructive" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs text-muted-foreground">Hold/No Show At</p>
+                                <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.noShowAt), 'MMM dd, yyyy HH:mm')}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Dates */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedTicketDetails.createdAt && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Created At</label>
-                          <p className="text-foreground flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            {format(parseISO(selectedTicketDetails.createdAt), 'yyyy-MM-dd HH:mm')}
-                          </p>
-                        </div>
-                      )}
-                      {selectedTicketDetails.completedAt && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Completed At</label>
-                          <p className="text-foreground flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            {format(parseISO(selectedTicketDetails.completedAt), 'yyyy-MM-dd HH:mm')}
-                          </p>
-                        </div>
-                      )}
-                      {selectedTicketDetails.noShowAt && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Hold/No Show At</label>
-                          <p className="text-foreground flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            {format(parseISO(selectedTicketDetails.noShowAt), 'yyyy-MM-dd HH:mm')}
-                          </p>
-                        </div>
-                      )}
-                      {selectedTicketDetails.calledAt && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Called At</label>
-                          <p className="text-foreground flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            {format(parseISO(selectedTicketDetails.calledAt), 'yyyy-MM-dd HH:mm')}
-                          </p>
-                        </div>
-                      )}
-                      {selectedTicketDetails.servingStartedAt && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Serving Started At</label>
-                          <p className="text-foreground flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            {format(parseISO(selectedTicketDetails.servingStartedAt), 'yyyy-MM-dd HH:mm')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Note */}
+                    {/* Note Card */}
                     {selectedTicketDetails.note && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Note</label>
-                        <p className="text-foreground bg-muted/50 p-3 rounded-lg">{selectedTicketDetails.note}</p>
-                      </div>
-                    )}
-
-                    {/* Position in Queue */}
-                    {selectedTicketDetails.positionInQueue > 0 && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Position in Queue</label>
-                        <p className="text-foreground">#{selectedTicketDetails.positionInQueue}</p>
+                      <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-2xl p-5">
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          Note
+                        </h3>
+                        <p className="text-foreground leading-relaxed">{selectedTicketDetails.note}</p>
                       </div>
                     )}
                   </div>

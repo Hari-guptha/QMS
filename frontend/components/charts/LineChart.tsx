@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
 
 interface LineChartProps {
   data: { label: string; value: number }[];
@@ -14,6 +15,9 @@ export function LineChart({ data, title, height = 200, color = 'var(--primary)',
   const maxValue = Math.max(...data.map(d => d.value), 1);
   const minValue = Math.min(...data.map(d => d.value), 0);
   const range = maxValue - minValue || 1;
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const points = data.map((item, index) => {
     const x = (index / (data.length - 1 || 1)) * 100;
@@ -25,10 +29,51 @@ export function LineChart({ data, title, height = 200, color = 'var(--primary)',
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
     .join(' ');
 
+  const updateTooltipPosition = (e: React.MouseEvent, index: number) => {
+    if (!containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - containerRect.left;
+    const mouseY = e.clientY - containerRect.top;
+    
+    setTooltipPosition({
+      x: mouseX,
+      y: mouseY - 50,
+    });
+    setHoveredIndex(index);
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent, index: number) => {
+    updateTooltipPosition(e, index);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent, index: number) => {
+    if (hoveredIndex === index) {
+      updateTooltipPosition(e, index);
+    }
+  };
+
   return (
     <div className="w-full">
       {title && <h3 className="text-sm font-semibold text-foreground mb-4">{title}</h3>}
-      <div className="relative" style={{ height: `${height}px` }}>
+      <div ref={containerRef} className="relative" style={{ height: `${height}px` }}>
+        {hoveredIndex !== null && (
+          <div
+            className="absolute z-50 bg-card border border-border rounded-lg shadow-lg px-3 py-2 pointer-events-none"
+            style={{
+              left: `${tooltipPosition.x}px`,
+              top: `${tooltipPosition.y}px`,
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <div className="text-sm font-semibold text-foreground">
+              {data[hoveredIndex].label}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Value: <span className="font-medium text-foreground">{data[hoveredIndex].value}</span>
+            </div>
+          </div>
+        )}
         <svg width="100%" height={height} className="overflow-visible">
           <defs>
             <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -63,6 +108,11 @@ export function LineChart({ data, title, height = 200, color = 'var(--primary)',
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
+                onMouseEnter={(e) => handleMouseEnter(e, index)}
+                onMouseMove={(e) => handleMouseMove(e, index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                className="cursor-pointer"
+                style={{ r: hoveredIndex === index ? 6 : 4 }}
               />
             ))}
         </svg>

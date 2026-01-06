@@ -43,6 +43,7 @@ export default function CategoriesManagement() {
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryModal, setEditingCategoryModal] = useState<any | null>(null);
   const [assigningAgent, setAssigningAgent] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -53,6 +54,12 @@ export default function CategoriesManagement() {
     description: '',
     estimatedWaitTime: 0,
   });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    estimatedWaitTime: 0,
+  });
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -101,6 +108,13 @@ export default function CategoriesManagement() {
         console.log('Category updated event received:', category);
         // Reload to handle activation/deactivation
         loadCategories();
+        // Update modal if editing this category
+        setEditingCategoryModal((prev) => {
+          if (prev && prev.id === category.id) {
+            return category;
+          }
+          return prev;
+        });
       };
 
       const handleCategoryDeleted = (categoryId: string) => {
@@ -235,10 +249,17 @@ export default function CategoriesManagement() {
   };
 
   const handleEdit = (category: any) => {
-    // Switch to grid view if in table view (for inline editing)
+    // If in table view, open modal instead of switching to grid view
     if (viewMode === 'table') {
-      setViewMode('grid');
+      setEditingCategoryModal(category);
+      setEditFormData({
+        name: category.name,
+        description: category.description || '',
+        estimatedWaitTime: category.estimatedWaitTime || 0,
+      });
+      return;
     }
+    // For grid view, use inline editing
     setEditingCategory(category.id);
     setFormData({
       name: category.name,
@@ -259,12 +280,43 @@ export default function CategoriesManagement() {
     }
   };
 
+  const handleUpdateModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategoryModal) return;
+    setUpdating(true);
+    try {
+      await adminApi.updateCategory(editingCategoryModal.id, editFormData);
+      setEditingCategoryModal(null);
+      setEditFormData({ name: '', description: '', estimatedWaitTime: 0 });
+      loadCategories();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update service');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingCategoryModal(null);
+    setEditFormData({ name: '', description: '', estimatedWaitTime: 0 });
+    setAssigningAgent(null);
+  };
+
   const handleAssignAgent = async (categoryId: string, agentId: string) => {
     try {
       await adminApi.assignAgent(categoryId, agentId);
       // Reload to get updated category with agent
-      loadCategories();
+      const response = await adminApi.getCategories();
+      const activeCategories = response.data.filter((cat: any) => !isFalsy(cat.isActive));
+      setCategories(activeCategories);
       setAssigningAgent(null);
+      // Update the modal's category data if it's open
+      if (editingCategoryModal && editingCategoryModal.id === categoryId) {
+        const updatedCategory = activeCategories.find((cat: any) => cat.id === categoryId);
+        if (updatedCategory) {
+          setEditingCategoryModal(updatedCategory);
+        }
+      }
       // Note: Backend should emit 'category:agent-assigned' socket event
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to assign agent');
@@ -276,7 +328,17 @@ export default function CategoriesManagement() {
     if (!confirmed) return;
     try {
       await adminApi.removeAgent(categoryId, agentId);
-      loadCategories();
+      // Reload to get updated category
+      const response = await adminApi.getCategories();
+      const activeCategories = response.data.filter((cat: any) => !isFalsy(cat.isActive));
+      setCategories(activeCategories);
+      // Update the modal's category data if it's open
+      if (editingCategoryModal && editingCategoryModal.id === categoryId) {
+        const updatedCategory = activeCategories.find((cat: any) => cat.id === categoryId);
+        if (updatedCategory) {
+          setEditingCategoryModal(updatedCategory);
+        }
+      }
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to remove agent');
     }
@@ -369,6 +431,19 @@ export default function CategoriesManagement() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
                 />
+                {searchQuery && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSearchQuery('')}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title={t('common.clearFilter') || 'Clear filter'}
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                )}
                 <span className="mx-2 h-6 w-px bg-border"></span>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -401,6 +476,230 @@ export default function CategoriesManagement() {
             </span>
           </motion.div>
         </motion.div>
+
+        {/* Edit Form Modal */}
+        <AnimatePresence>
+          {editingCategoryModal && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleCloseEditModal}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              />
+
+              {/* Modal */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-20"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="bg-card text-card-foreground border rounded-2xl shadow-xl w-full max-w-3xl max-h-[75vh] overflow-y-auto">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between p-6 border-b border-border">
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground">{t('admin.categories.editTitle')}</h2>
+                      <p className="text-sm text-muted-foreground mt-1">{t('admin.categories.editDesc')}</p>
+                    </div>
+                    <button
+                      onClick={handleCloseEditModal}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-foreground" />
+                    </button>
+                  </div>
+
+                  {/* Modal Body */}
+                  <form onSubmit={handleUpdateModal} className="p-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground block">
+                          {t('admin.categories.serviceName')}
+                        </label>
+                        <motion.input
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 }}
+                          type="text"
+                          placeholder={t('admin.categories.serviceName')}
+                          value={editFormData.name}
+                          onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                          className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground block">
+                          {t('admin.categories.description')}
+                        </label>
+                        <motion.textarea
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          placeholder={t('admin.categories.description')}
+                          value={editFormData.description}
+                          onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                          className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition min-h-[100px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground block">
+                          {t('admin.categories.estWaitTime')}
+                        </label>
+                        <motion.input
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          type="number"
+                          placeholder={t('admin.categories.estWaitTime')}
+                          value={editFormData.estimatedWaitTime}
+                          onChange={(e) => setEditFormData({ ...editFormData, estimatedWaitTime: parseInt(e.target.value) || 0 })}
+                          className="w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                          min="0"
+                        />
+                      </div>
+
+                      {/* Agent Assignment Section */}
+                      <div className="border-t border-border pt-4 mt-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            {t('admin.categories.assignedAgents')}
+                          </h4>
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setAssigningAgent(assigningAgent === editingCategoryModal.id ? null : editingCategoryModal.id)}
+                            className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-1"
+                          >
+                            {assigningAgent === editingCategoryModal.id ? (
+                              <>
+                                <X className="w-3 h-3" />
+                                {t('common.cancel')}
+                              </>
+                            ) : (
+                              <>
+                                <UserPlus className="w-3 h-3" />
+                                {t('admin.categories.assign')}
+                              </>
+                            )}
+                          </motion.button>
+                        </div>
+
+                        <AnimatePresence>
+                          {assigningAgent === editingCategoryModal.id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="mb-3 p-3 bg-muted border rounded-xl"
+                            >
+                              <Select
+                                value=""
+                                onChange={(value) => {
+                                  if (value) {
+                                    handleAssignAgent(editingCategoryModal.id, value);
+                                  }
+                                }}
+                                placeholder={t('admin.categories.selectAgent')}
+                                options={[
+                                  { value: '', label: t('admin.categories.selectAgent') },
+                                  ...agents
+                                    .filter((agent) => {
+                                      // Check if agent is assigned to ANY service (not just the current one)
+                                      // Handle MSSQL bit type (1/0) for isActive
+                                      const assignedToAnyService = categories.some((cat) =>
+                                        cat.agentCategories?.some(
+                                          (ac: any) => ac.agentId === agent.id && isTruthy(ac.isActive)
+                                        )
+                                      );
+                                      return !assignedToAnyService;
+                                    })
+                                    .map((agent) => ({
+                                      value: agent.id,
+                                      label: `${agent.firstName} ${agent.lastName}`,
+                                    })),
+                                ]}
+                                className="text-sm"
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="space-y-2">
+                          {editingCategoryModal.agentCategories?.filter((ac: any) => isTruthy(ac.isActive)).length > 0 ? (
+                            editingCategoryModal.agentCategories
+                              .filter((ac: any) => isTruthy(ac.isActive))
+                              .map((ac: any, idx: number) => (
+                                <motion.div
+                                  key={ac.id}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: idx * 0.1 }}
+                                  className="flex justify-between items-center p-3 bg-muted border rounded-xl text-sm"
+                                >
+                                  <span className="text-foreground">
+                                    {ac.agent?.firstName} {ac.agent?.lastName}
+                                  </span>
+                                  <motion.button
+                                    type="button"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => handleRemoveAgent(editingCategoryModal.id, ac.agentId)}
+                                    className="text-destructive hover:text-destructive/80 text-xs"
+                                  >
+                                    {t('admin.categories.remove')}
+                                  </motion.button>
+                                </motion.div>
+                              ))
+                          ) : (
+                            <p className="text-xs text-muted-foreground text-center py-2">{t('admin.categories.noAgents')}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Modal Footer */}
+                    <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-border">
+                      <button
+                        type="button"
+                        onClick={handleCloseEditModal}
+                        className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="submit"
+                        disabled={updating}
+                        className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {updating ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            {t('common.updating')}
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-5 h-5" />
+                            {t('common.save')}
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Create Form Modal */}
         <AnimatePresence>

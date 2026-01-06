@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
 
 interface PieChartProps {
   data: { label: string; value: number; color?: string }[];
@@ -11,6 +12,10 @@ interface PieChartProps {
 
 export function PieChart({ data, title, size = 200, showLegend = true }: PieChartProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
   if (total === 0) {
     return (
       <div className="w-full text-center py-8 text-muted-foreground">
@@ -63,11 +68,56 @@ export function PieChart({ data, title, size = 200, showLegend = true }: PieChar
     };
   });
 
+  const updateTooltipPosition = (e: React.MouseEvent<SVGPathElement>, index: number) => {
+    if (!containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    // Use mouse position relative to container
+    const mouseX = e.clientX - containerRect.left;
+    const mouseY = e.clientY - containerRect.top;
+    
+    setTooltipPosition({
+      x: mouseX,
+      y: mouseY - 60,
+    });
+    setHoveredIndex(index);
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent<SVGPathElement>, index: number) => {
+    updateTooltipPosition(e, index);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGPathElement>, index: number) => {
+    if (hoveredIndex === index) {
+      updateTooltipPosition(e, index);
+    }
+  };
+
   return (
     <div className="w-full">
       {title && <h3 className="text-sm font-semibold text-foreground mb-4">{title}</h3>}
       <div className="flex flex-col md:flex-row items-center gap-6">
-        <div className="relative" style={{ width: size, height: size }}>
+        <div ref={containerRef} className="relative" style={{ width: size, height: size }}>
+          {hoveredIndex !== null && (
+            <div
+              className="absolute z-50 bg-card border border-border rounded-lg shadow-lg px-3 py-2 pointer-events-none"
+              style={{
+                left: `${tooltipPosition.x}px`,
+                top: `${tooltipPosition.y}px`,
+                transform: 'translateX(-50%)',
+              }}
+            >
+              <div className="text-sm font-semibold text-foreground">
+                {segments[hoveredIndex].label}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Value: <span className="font-medium text-foreground">{segments[hoveredIndex].value}</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Percentage: <span className="font-medium text-foreground">{segments[hoveredIndex].percentage.toFixed(1)}%</span>
+              </div>
+            </div>
+          )}
           <svg width={size} height={size}>
             {segments.map((segment, index) => (
               <motion.path
@@ -77,6 +127,11 @@ export function PieChart({ data, title, size = 200, showLegend = true }: PieChar
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
+                onMouseEnter={(e) => handleMouseEnter(e, index)}
+                onMouseMove={(e) => handleMouseMove(e, index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                className="cursor-pointer"
+                style={{ opacity: hoveredIndex !== null && hoveredIndex !== index ? 0.6 : 1 }}
               />
             ))}
           </svg>

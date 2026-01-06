@@ -71,17 +71,17 @@ export class QueueController {
 
   @Get('agent/:agentId/history')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.AGENT)
-  @ApiTags('agent')
+  @Roles(UserRole.AGENT, UserRole.ADMIN)
+  @ApiTags('agent', 'admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get agent ticket history (Agent only)' })
+  @ApiOperation({ summary: 'Get agent ticket history (Agent or Admin)' })
   async getAgentHistory(
     @Param('agentId') agentId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @GetUser() user?: User,
   ) {
-    // Ensure agent can only access their own history
+    // Ensure agent can only access their own history, but admins can access any agent's history
     if (user && user.id !== agentId && user.role !== UserRole.ADMIN) {
       throw new BadRequestException('You can only access your own history');
     }

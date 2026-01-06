@@ -50,14 +50,21 @@ export function HeatmapChart({ data, xLabels, yLabels, title }: HeatmapChartProp
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: (yIndex * xLabels.length + xIndex) * 0.02 }}
-                      className="aspect-square rounded p-2 flex items-center justify-center text-xs font-medium"
+                      className="aspect-square rounded p-2 flex items-center justify-center text-xs font-medium group relative cursor-pointer"
                       style={{
                         backgroundColor: `rgba(59, 130, 246, ${intensity / 100})`,
                         color: intensity > 50 ? 'white' : 'var(--foreground)',
                       }}
-                      title={`${xLabel} / ${yLabel}: ${value}`}
                     >
                       {value > 0 && value}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-card border border-border rounded-lg shadow-lg px-3 py-2 whitespace-nowrap">
+                        <div className="text-xs font-semibold text-foreground">
+                          {xLabel} / {yLabel}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Value: <span className="font-medium text-foreground">{value}</span>
+                        </div>
+                      </div>
                     </motion.div>
                   );
                 })}

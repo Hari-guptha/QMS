@@ -313,6 +313,19 @@ export default function UsersManagement() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex h-9 w-full min-w-0 py-1 outline-none border-0 bg-transparent rounded-lg focus:ring-0 focus-visible:ring-0 shadow-none text-base px-2 text-foreground placeholder:text-muted-foreground transition-[color,box-shadow]"
                 />
+                {searchQuery && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSearchQuery('')}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title={t('common.clearFilter') || 'Clear filter'}
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                )}
                 <span className="mx-2 h-6 w-px bg-border"></span>
                 <motion.button
                   whileHover={{ scale: 1.02 }}

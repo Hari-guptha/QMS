@@ -19,6 +19,8 @@ import {
   FileSpreadsheet,
   FileText,
   X,
+  Users,
+  FolderOpen,
 } from 'lucide-react';
 import React from 'react';
 
@@ -63,6 +65,11 @@ export default function ExportAnalytics() {
   const [selectedWidgets, setSelectedWidgets] = useState<Set<string>>(
     new Set(WIDGETS.filter(w => w.default).map(w => w.id))
   );
+  const [categories, setCategories] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -70,7 +77,65 @@ export default function ExportAnalytics() {
       return;
     }
     updateDateRange();
+    loadCategories();
+    loadAgents();
   }, [dateFilter]);
+
+  const loadCategories = async () => {
+    try {
+      const response = await adminApi.getCategories();
+      setCategories(response.data || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const loadAgents = async () => {
+    try {
+      const response = await adminApi.getAgents();
+      setAgents(response.data || []);
+    } catch (error) {
+      console.error('Failed to load agents:', error);
+    }
+  };
+
+  const toggleCategory = (categoryId: string) => {
+    const newSet = new Set(selectedCategories);
+    if (newSet.has(categoryId)) {
+      newSet.delete(categoryId);
+    } else {
+      newSet.add(categoryId);
+    }
+    setSelectedCategories(newSet);
+  };
+
+  const toggleAgent = (agentId: string) => {
+    const newSet = new Set(selectedAgents);
+    if (newSet.has(agentId)) {
+      newSet.delete(agentId);
+    } else {
+      newSet.add(agentId);
+    }
+    setSelectedAgents(newSet);
+  };
+
+  const selectAllCategories = () => {
+    setSelectedCategories(new Set(categories.map(c => c.id)));
+  };
+
+  const deselectAllCategories = () => {
+    setSelectedCategories(new Set());
+  };
+
+  const selectAllAgents = () => {
+    setSelectedAgents(new Set(agents.map(a => a.id)));
+  };
+
+  const deselectAllAgents = () => {
+    setSelectedAgents(new Set());
+  };
 
   const updateDateRange = () => {
     const today = new Date();
@@ -137,32 +202,68 @@ export default function ExportAnalytics() {
       const response = await adminApi.exportAnalytics(params);
       const data = response.data;
 
-      // Helper: convert array of objects to CSV
-      const toCSV = (rows: any[], headers?: string[]) => {
-        if (!rows || rows.length === 0) return '';
-        const keys = headers || Object.keys(rows[0]);
-        const lines = [keys.join(',')];
-        rows.forEach((row) => {
-          const vals = keys.map((k) => {
-            const v = row[k];
-            if (v === null || v === undefined) return '';
-            return `"${String(v).replace(/"/g, '""')}"`;
-          });
-          lines.push(vals.join(','));
-        });
-        return lines.join('\n');
+      // Helper: safely format value for CSV/display
+      const safeValue = (v: any): string => {
+        if (v === null || v === undefined || v === '') return '';
+        if (typeof v === 'number') {
+          if (isNaN(v)) return '';
+          return String(v);
+        }
+        return String(v).replace(/"/g, '""');
       };
+
+      // Helper: format number with 2 decimals if needed
+      const formatNumber = (v: any): string => {
+        if (v === null || v === undefined || v === '') return '';
+        if (typeof v === 'number') {
+          if (isNaN(v)) return '';
+          return v % 1 === 0 ? String(v) : v.toFixed(2);
+        }
+        return String(v);
+      };
+
+      let d = data.dashboard || {};
+
+      // Filter data based on selected categories
+      if (selectedCategories.size > 0) {
+        const categoryIds = Array.from(selectedCategories);
+        if (d.servicePerformance) {
+          d.servicePerformance = d.servicePerformance.filter((s: any) => 
+            categoryIds.includes(s.categoryId)
+          );
+        }
+        if (d.categoryStats) {
+          d.categoryStats = d.categoryStats.filter((c: any) => 
+            categoryIds.includes(c.categoryId)
+          );
+        }
+      }
+
+      // Filter data based on selected agents
+      if (selectedAgents.size > 0) {
+        const agentIds = Array.from(selectedAgents);
+        if (d.agentPerformance) {
+          d.agentPerformance = d.agentPerformance.filter((a: any) => 
+            agentIds.includes(a.agentId)
+          );
+        }
+      }
 
       if (exportFormat === 'excel') {
         const parts: string[] = [];
-        const d = data.dashboard || {};
 
         // Summary metrics
         if (selectedWidgets.has('summary')) {
           parts.push(`${t('admin.analytics.table.totals') || 'Metric'},${t('common.value') || 'Value'}`);
-          if (d.avgWaitTime !== undefined) parts.push(`${t('admin.avgWaitTime') || 'Avg Wait Time'},${d.avgWaitTime}`);
-          if (d.avgServiceTime !== undefined) parts.push(`${t('admin.avgServiceTime') || 'Avg Service Time'},${d.avgServiceTime}`);
-          if (d.abandonmentRate !== undefined) parts.push(`${t('admin.abandonmentRate') || 'Abandonment Rate'},${d.abandonmentRate}`);
+          if (d.avgWaitTime !== undefined && d.avgWaitTime !== null) {
+            parts.push(`${t('admin.avgWaitTime') || 'Avg Wait Time'},${formatNumber(d.avgWaitTime)}`);
+          }
+          if (d.avgServiceTime !== undefined && d.avgServiceTime !== null) {
+            parts.push(`${t('admin.avgServiceTime') || 'Avg Service Time'},${formatNumber(d.avgServiceTime)}`);
+          }
+          if (d.abandonmentRate !== undefined && d.abandonmentRate !== null) {
+            parts.push(`${t('admin.abandonmentRate') || 'Abandonment Rate'},${formatNumber(d.abandonmentRate)}`);
+          }
           parts.push('');
         }
 
@@ -170,7 +271,10 @@ export default function ExportAnalytics() {
         if (selectedWidgets.has('ticket-counts') && d.ticketCounts) {
           parts.push(t('admin.analytics.statusDistribution') || 'Ticket Status Distribution');
           parts.push('Status,Count');
-          Object.entries(d.ticketCounts).forEach(([k, v]) => parts.push(`${k},${v}`));
+          Object.entries(d.ticketCounts).forEach(([k, v]) => {
+            const count = v !== null && v !== undefined ? String(v) : '0';
+            parts.push(`"${safeValue(k)}",${count}`);
+          });
           parts.push('');
         }
 
@@ -180,15 +284,15 @@ export default function ExportAnalytics() {
           parts.push(['Category', 'Total', 'Pending', 'Serving', 'Hold', 'Completed', 'Avg Total Time', 'Avg Service Time', 'Completion Rate'].join(','));
           d.servicePerformance.forEach((s: any) => {
             parts.push([
-              s.categoryName,
-              s.totalTickets,
-              s.pendingTickets,
-              s.servingTickets,
-              s.holdTickets,
-              s.completedTickets,
-              s.avgTotalTime,
-              s.avgServiceTime,
-              s.completionRate?.toFixed(2) + '%',
+              `"${safeValue(s.categoryName || 'N/A')}"`,
+              safeValue(s.totalTickets || 0),
+              safeValue(s.pendingTickets || 0),
+              safeValue(s.servingTickets || 0),
+              safeValue(s.holdTickets || 0),
+              safeValue(s.completedTickets || 0),
+              formatNumber(s.avgTotalTime),
+              formatNumber(s.avgServiceTime),
+              s.completionRate !== null && s.completionRate !== undefined ? formatNumber(s.completionRate) + '%' : '0%',
             ].join(','));
           });
           parts.push('');
@@ -199,7 +303,11 @@ export default function ExportAnalytics() {
           parts.push('Category Stats');
           parts.push(['Category', 'Total Tickets', 'Avg Total Time'].join(','));
           d.categoryStats.forEach((c: any) => {
-            parts.push([c.categoryName, c.totalTickets, c.avgTotalTime].join(','));
+            parts.push([
+              `"${safeValue(c.categoryName || 'N/A')}"`,
+              safeValue(c.totalTickets || 0),
+              formatNumber(c.avgTotalTime),
+            ].join(','));
           });
           parts.push('');
         }
@@ -210,17 +318,17 @@ export default function ExportAnalytics() {
           parts.push(['Agent', 'Total', 'Pending', 'Serving', 'Hold', 'Completed', 'Avg Wait', 'Avg Called→Serving', 'Avg Service', 'Avg Total', 'Completion Rate'].join(','));
           d.agentPerformance.forEach((a: any) => {
             parts.push([
-              a.agentName,
-              a.totalTickets,
-              a.pendingTickets,
-              a.servingTickets,
-              a.holdTickets,
-              a.completedTickets,
-              a.avgWaitTime,
-              a.avgCalledToServingTime,
-              a.avgServiceTime,
-              a.avgTotalTime,
-              a.completionRate?.toFixed(2) + '%',
+              `"${safeValue(a.agentName || 'N/A')}"`,
+              safeValue(a.totalTickets || 0),
+              safeValue(a.pendingTickets || 0),
+              safeValue(a.servingTickets || 0),
+              safeValue(a.holdTickets || 0),
+              safeValue(a.completedTickets || 0),
+              formatNumber(a.avgWaitTime),
+              formatNumber(a.avgCalledToServingTime),
+              formatNumber(a.avgServiceTime),
+              formatNumber(a.avgTotalTime),
+              a.completionRate !== null && a.completionRate !== undefined ? formatNumber(a.completionRate) + '%' : '0%',
             ].join(','));
           });
           parts.push('');
@@ -230,7 +338,14 @@ export default function ExportAnalytics() {
         if (selectedWidgets.has('daily-trends') && d.dailyTrends && d.dailyTrends.length > 0) {
           parts.push(t('admin.analytics.dailyTrends') || 'Daily Ticket Trends');
           parts.push(['Date', 'Total', 'Completed', 'Pending'].join(','));
-          d.dailyTrends.forEach((r: any) => parts.push([r.date, r.total, r.completed, r.pending].join(',')));
+          d.dailyTrends.forEach((r: any) => {
+            parts.push([
+              safeValue(r.date || ''),
+              safeValue(r.total || 0),
+              safeValue(r.completed || 0),
+              safeValue(r.pending || 0),
+            ].join(','));
+          });
           parts.push('');
         }
 
@@ -238,7 +353,12 @@ export default function ExportAnalytics() {
         if (selectedWidgets.has('hourly-distribution') && d.hourlyDistribution && d.hourlyDistribution.length > 0) {
           parts.push(t('admin.analytics.hourlyDistribution') || 'Hourly Distribution');
           parts.push(['Hour', 'Count'].join(','));
-          d.hourlyDistribution.forEach((h: any) => parts.push([h.hour, h.count].join(',')));
+          d.hourlyDistribution.forEach((h: any) => {
+            parts.push([
+              safeValue(h.hour || ''),
+              safeValue(h.count || 0),
+            ].join(','));
+          });
           parts.push('');
         }
 
@@ -246,15 +366,25 @@ export default function ExportAnalytics() {
         if (selectedWidgets.has('day-of-week') && d.dayOfWeekDistribution && d.dayOfWeekDistribution.length > 0) {
           parts.push(t('admin.analytics.dayOfWeekDistribution') || 'Day of Week Distribution');
           parts.push(['Day', 'Count'].join(','));
-          d.dayOfWeekDistribution.forEach((d2: any) => parts.push([d2.day, d2.count].join(',')));
+          d.dayOfWeekDistribution.forEach((d2: any) => {
+            parts.push([
+              `"${safeValue(d2.day || '')}"`,
+              safeValue(d2.count || 0),
+            ].join(','));
+          });
           parts.push('');
         }
 
         // Status distribution
         if (selectedWidgets.has('status-distribution') && d.statusDistribution && d.statusDistribution.length > 0) {
           parts.push(t('admin.analytics.statusDistribution') || 'Status Distribution');
-          parts.push(['Label', 'Value'].join(','));
-          d.statusDistribution.forEach((s: any) => parts.push([s.label, s.value].join(',')));
+          parts.push(['Status', 'Count'].join(','));
+          d.statusDistribution.forEach((s: any) => {
+            parts.push([
+              `"${safeValue(s.label || s.status || '')}"`,
+              safeValue(s.value || s.count || 0),
+            ].join(','));
+          });
           parts.push('');
         }
 
@@ -262,13 +392,24 @@ export default function ExportAnalytics() {
         if (selectedWidgets.has('peak-hours') && d.peakHours && d.peakHours.length > 0) {
           parts.push(t('admin.analytics.peakHours') || 'Peak Hours');
           parts.push(['Hour', 'Count'].join(','));
-          d.peakHours.forEach((p: any) => parts.push([p.hour, p.count].join(',')));
+          d.peakHours.forEach((p: any) => {
+            parts.push([
+              safeValue(p.hour || ''),
+              safeValue(p.count || 0),
+            ].join(','));
+          });
           parts.push('');
         }
 
         const csv = parts.join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const fileNameSuffix = startDate && endDate ? `${startDate}_to_${endDate}` : new Date().toISOString().split('T')[0];
+        let fileNameSuffix = startDate && endDate ? `${startDate}_to_${endDate}` : new Date().toISOString().split('T')[0];
+        if (selectedCategories.size > 0) {
+          fileNameSuffix += `_${selectedCategories.size}services`;
+        }
+        if (selectedAgents.size > 0) {
+          fileNameSuffix += `_${selectedAgents.size}agents`;
+        }
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -281,7 +422,6 @@ export default function ExportAnalytics() {
         if (!popup) throw new Error('Unable to open print window');
         const dir = document.documentElement.dir || 'ltr';
         const lang = document.documentElement.lang || 'en';
-        const d = data.dashboard || {};
         
         let htmlContent = `
           <html dir="${dir}" lang="${lang}">
@@ -299,6 +439,8 @@ export default function ExportAnalytics() {
             <body>
               <h1>${t('admin.analytics.title') || 'Analytics Report'}</h1>
               <p><strong>Period:</strong> ${startDate} to ${endDate}</p>
+              ${selectedCategories.size > 0 ? `<p><strong>Services:</strong> ${categories.filter((c: any) => selectedCategories.has(c.id)).map((c: any) => c.name).join(', ')}</p>` : ''}
+              ${selectedAgents.size > 0 ? `<p><strong>Agents:</strong> ${agents.filter((a: any) => selectedAgents.has(a.id)).map((a: any) => a.name || a.email || 'Unknown').join(', ')}</p>` : ''}
         `;
 
         if (selectedWidgets.has('summary')) {
@@ -307,9 +449,9 @@ export default function ExportAnalytics() {
             <table>
               <tbody>
                 <tr><th>${t('admin.analytics.table.totals') || 'Metric'}</th><th>${t('common.value') || 'Value'}</th></tr>
-                ${d.avgWaitTime !== undefined ? `<tr><td>${t('admin.avgWaitTime') || 'Avg Wait Time'}</td><td>${d.avgWaitTime}</td></tr>` : ''}
-                ${d.avgServiceTime !== undefined ? `<tr><td>${t('admin.avgServiceTime') || 'Avg Service Time'}</td><td>${d.avgServiceTime}</td></tr>` : ''}
-                ${d.abandonmentRate !== undefined ? `<tr><td>${t('admin.abandonmentRate') || 'Abandonment Rate'}</td><td>${d.abandonmentRate}</td></tr>` : ''}
+                ${d.avgWaitTime !== undefined && d.avgWaitTime !== null ? `<tr><td>${t('admin.avgWaitTime') || 'Avg Wait Time'}</td><td>${formatNumber(d.avgWaitTime)}</td></tr>` : ''}
+                ${d.avgServiceTime !== undefined && d.avgServiceTime !== null ? `<tr><td>${t('admin.avgServiceTime') || 'Avg Service Time'}</td><td>${formatNumber(d.avgServiceTime)}</td></tr>` : ''}
+                ${d.abandonmentRate !== undefined && d.abandonmentRate !== null ? `<tr><td>${t('admin.abandonmentRate') || 'Abandonment Rate'}</td><td>${formatNumber(d.abandonmentRate)}</td></tr>` : ''}
               </tbody>
             </table>
           `;
@@ -321,7 +463,7 @@ export default function ExportAnalytics() {
             <table>
               <thead><tr><th>${t('common.status') || 'Status'}</th><th>${t('common.value') || 'Value'}</th></tr></thead>
               <tbody>
-                ${Object.entries(d.ticketCounts).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}
+                ${Object.entries(d.ticketCounts).map(([k, v]) => `<tr><td>${k || 'N/A'}</td><td>${v !== null && v !== undefined ? v : 0}</td></tr>`).join('')}
               </tbody>
             </table>
           `;
@@ -335,15 +477,15 @@ export default function ExportAnalytics() {
               <tbody>
                 ${d.servicePerformance.map((s: any) => `
                   <tr>
-                    <td>${s.categoryName}</td>
-                    <td>${s.totalTickets}</td>
-                    <td>${s.pendingTickets}</td>
-                    <td>${s.servingTickets}</td>
-                    <td>${s.holdTickets}</td>
-                    <td>${s.completedTickets}</td>
-                    <td>${s.avgTotalTime}</td>
-                    <td>${s.avgServiceTime}</td>
-                    <td>${s.completionRate?.toFixed(2)}%</td>
+                    <td>${s.categoryName || 'N/A'}</td>
+                    <td>${s.totalTickets !== null && s.totalTickets !== undefined ? s.totalTickets : 0}</td>
+                    <td>${s.pendingTickets !== null && s.pendingTickets !== undefined ? s.pendingTickets : 0}</td>
+                    <td>${s.servingTickets !== null && s.servingTickets !== undefined ? s.servingTickets : 0}</td>
+                    <td>${s.holdTickets !== null && s.holdTickets !== undefined ? s.holdTickets : 0}</td>
+                    <td>${s.completedTickets !== null && s.completedTickets !== undefined ? s.completedTickets : 0}</td>
+                    <td>${formatNumber(s.avgTotalTime)}</td>
+                    <td>${formatNumber(s.avgServiceTime)}</td>
+                    <td>${s.completionRate !== null && s.completionRate !== undefined ? formatNumber(s.completionRate) + '%' : '0%'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -359,17 +501,17 @@ export default function ExportAnalytics() {
               <tbody>
                 ${d.agentPerformance.map((a: any) => `
                   <tr>
-                    <td>${a.agentName}</td>
-                    <td>${a.totalTickets}</td>
-                    <td>${a.pendingTickets}</td>
-                    <td>${a.servingTickets}</td>
-                    <td>${a.holdTickets}</td>
-                    <td>${a.completedTickets}</td>
-                    <td>${a.avgWaitTime}</td>
-                    <td>${a.avgCalledToServingTime}</td>
-                    <td>${a.avgServiceTime}</td>
-                    <td>${a.avgTotalTime}</td>
-                    <td>${a.completionRate?.toFixed(2)}%</td>
+                    <td>${a.agentName || 'N/A'}</td>
+                    <td>${a.totalTickets !== null && a.totalTickets !== undefined ? a.totalTickets : 0}</td>
+                    <td>${a.pendingTickets !== null && a.pendingTickets !== undefined ? a.pendingTickets : 0}</td>
+                    <td>${a.servingTickets !== null && a.servingTickets !== undefined ? a.servingTickets : 0}</td>
+                    <td>${a.holdTickets !== null && a.holdTickets !== undefined ? a.holdTickets : 0}</td>
+                    <td>${a.completedTickets !== null && a.completedTickets !== undefined ? a.completedTickets : 0}</td>
+                    <td>${formatNumber(a.avgWaitTime)}</td>
+                    <td>${formatNumber(a.avgCalledToServingTime)}</td>
+                    <td>${formatNumber(a.avgServiceTime)}</td>
+                    <td>${formatNumber(a.avgTotalTime)}</td>
+                    <td>${a.completionRate !== null && a.completionRate !== undefined ? formatNumber(a.completionRate) + '%' : '0%'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -383,7 +525,73 @@ export default function ExportAnalytics() {
             <table>
               <thead><tr><th>Date</th><th>Total</th><th>Completed</th><th>Pending</th></tr></thead>
               <tbody>
-                ${d.dailyTrends.map((r: any) => `<tr><td>${r.date}</td><td>${r.total}</td><td>${r.completed}</td><td>${r.pending}</td></tr>`).join('')}
+                ${d.dailyTrends.map((r: any) => `<tr><td>${r.date || 'N/A'}</td><td>${r.total !== null && r.total !== undefined ? r.total : 0}</td><td>${r.completed !== null && r.completed !== undefined ? r.completed : 0}</td><td>${r.pending !== null && r.pending !== undefined ? r.pending : 0}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+
+        if (selectedWidgets.has('category-stats') && d.categoryStats && d.categoryStats.length > 0) {
+          htmlContent += `
+            <h2>Category Stats</h2>
+            <table>
+              <thead><tr><th>Category</th><th>Total Tickets</th><th>Avg Total Time</th></tr></thead>
+              <tbody>
+                ${d.categoryStats.map((c: any) => `
+                  <tr>
+                    <td>${c.categoryName || 'N/A'}</td>
+                    <td>${c.totalTickets !== null && c.totalTickets !== undefined ? c.totalTickets : 0}</td>
+                    <td>${formatNumber(c.avgTotalTime)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+
+        if (selectedWidgets.has('hourly-distribution') && d.hourlyDistribution && d.hourlyDistribution.length > 0) {
+          htmlContent += `
+            <h2>${t('admin.analytics.hourlyDistribution') || 'Hourly Distribution'}</h2>
+            <table>
+              <thead><tr><th>Hour</th><th>Count</th></tr></thead>
+              <tbody>
+                ${d.hourlyDistribution.map((h: any) => `<tr><td>${h.hour || 'N/A'}</td><td>${h.count !== null && h.count !== undefined ? h.count : 0}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+
+        if (selectedWidgets.has('day-of-week') && d.dayOfWeekDistribution && d.dayOfWeekDistribution.length > 0) {
+          htmlContent += `
+            <h2>${t('admin.analytics.dayOfWeekDistribution') || 'Day of Week Distribution'}</h2>
+            <table>
+              <thead><tr><th>Day</th><th>Count</th></tr></thead>
+              <tbody>
+                ${d.dayOfWeekDistribution.map((d2: any) => `<tr><td>${d2.day || 'N/A'}</td><td>${d2.count !== null && d2.count !== undefined ? d2.count : 0}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+
+        if (selectedWidgets.has('status-distribution') && d.statusDistribution && d.statusDistribution.length > 0) {
+          htmlContent += `
+            <h2>${t('admin.analytics.statusDistribution') || 'Status Distribution'}</h2>
+            <table>
+              <thead><tr><th>Status</th><th>Count</th></tr></thead>
+              <tbody>
+                ${d.statusDistribution.map((s: any) => `<tr><td>${s.label || s.status || 'N/A'}</td><td>${s.value !== null && s.value !== undefined ? s.value : (s.count !== null && s.count !== undefined ? s.count : 0)}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+
+        if (selectedWidgets.has('peak-hours') && d.peakHours && d.peakHours.length > 0) {
+          htmlContent += `
+            <h2>${t('admin.analytics.peakHours') || 'Peak Hours'}</h2>
+            <table>
+              <thead><tr><th>Hour</th><th>Count</th></tr></thead>
+              <tbody>
+                ${d.peakHours.map((p: any) => `<tr><td>${p.hour || 'N/A'}</td><td>${p.count !== null && p.count !== undefined ? p.count : 0}</td></tr>`).join('')}
               </tbody>
             </table>
           `;
@@ -435,11 +643,149 @@ export default function ExportAnalytics() {
           </div>
         </motion.div>
 
-        {/* Date Filters */}
+        {/* Service/Category Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
+          className="bg-card border border-border rounded-xl p-6 mb-6"
+        >
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <FolderOpen className="w-5 h-5" />
+            Filter by Services (Optional)
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Select specific services to include in the report. Leave empty to include all services.
+          </p>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-muted-foreground">
+              Selected: {selectedCategories.size} of {categories.length} services
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={selectAllCategories}
+                className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Select All
+              </button>
+              <button
+                onClick={deselectAllCategories}
+                className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-3 space-y-2">
+            {loadingData ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : categories.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No services available</p>
+            ) : (
+              categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => toggleCategory(category.id)}
+                  className={`w-full flex items-center gap-3 p-3 border rounded-lg transition-colors text-left ${
+                    selectedCategories.has(category.id)
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:bg-muted/50'
+                  }`}
+                >
+                  {selectedCategories.has(category.id) ? (
+                    <CheckSquare className="w-5 h-5 text-primary" />
+                  ) : (
+                    <Square className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-foreground">{category.name}</span>
+                    {category.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{category.description}</p>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </motion.div>
+
+        {/* Agent Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="bg-card border border-border rounded-xl p-6 mb-6"
+        >
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Filter by Agents (Optional)
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Select specific agents to include in the report. Leave empty to include all agents.
+          </p>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-muted-foreground">
+              Selected: {selectedAgents.size} of {agents.length} agents
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={selectAllAgents}
+                className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Select All
+              </button>
+              <button
+                onClick={deselectAllAgents}
+                className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-3 space-y-2">
+            {loadingData ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : agents.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No agents available</p>
+            ) : (
+              agents.map((agent) => (
+                <button
+                  key={agent.id}
+                  onClick={() => toggleAgent(agent.id)}
+                  className={`w-full flex items-center gap-3 p-3 border rounded-lg transition-colors text-left ${
+                    selectedAgents.has(agent.id)
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:bg-muted/50'
+                  }`}
+                >
+                  {selectedAgents.has(agent.id) ? (
+                    <CheckSquare className="w-5 h-5 text-primary" />
+                  ) : (
+                    <Square className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-foreground">
+                      {agent.name || agent.email || 'Unknown Agent'}
+                    </span>
+                    {agent.email && agent.name && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{agent.email}</p>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </motion.div>
+
+        {/* Date Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
           className="bg-card border border-border rounded-xl p-6 mb-6"
         >
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
@@ -519,7 +865,7 @@ export default function ExportAnalytics() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
           className="bg-card border border-border rounded-xl p-6 mb-6"
         >
           <div className="flex items-center justify-between mb-4">
@@ -571,7 +917,7 @@ export default function ExportAnalytics() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
           className="bg-card border border-border rounded-xl p-6 mb-6"
         >
           <h2 className="text-xl font-bold text-foreground mb-4">Export Format</h2>
@@ -605,7 +951,7 @@ export default function ExportAnalytics() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
           className="flex justify-end"
         >
           <motion.button

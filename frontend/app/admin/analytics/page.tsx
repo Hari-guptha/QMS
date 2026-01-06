@@ -578,8 +578,8 @@ export default function Analytics() {
               href="/admin/analytics/export"
               className="flex items-center gap-2 bg-chart-3 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
             >
-              <ExternalLink className="w-5 h-5" />
-              Advanced Export
+              <Download className="w-5 h-5" />
+              Export
             </Link>
             
             <motion.button
@@ -592,16 +592,6 @@ export default function Analytics() {
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
               {t('admin.analytics.refresh')}
             </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsExportOpen(true)}
-              className="flex items-center gap-2 bg-chart-2 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
-            >
-              <Download className="w-5 h-5" />
-              {t('admin.analytics.export')}
-            </motion.button>
           </div>
         </motion.div>
 
@@ -612,101 +602,140 @@ export default function Analytics() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="bg-card border border-border rounded-xl p-4 mb-6"
         >
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-            {/* Date Filter Buttons */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Period:</span>
-              <div className="flex items-center gap-2 border border-border rounded-lg p-1">
-                <button
-                  onClick={() => setDateFilter('day')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'day'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  Today
-                </button>
-                <button
-                  onClick={() => setDateFilter('week')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'week'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  This Week
-                </button>
-                <button
-                  onClick={() => setDateFilter('month')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'month'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  This Month
-                </button>
-                <button
-                  onClick={() => setDateFilter('custom')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'custom'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  Custom
-                </button>
+          <div className="flex flex-col gap-4">
+            {/* First Row: Date Filter and Custom Date Range */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
+              {/* Date Filter Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Period:</span>
+                <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+                  <button
+                    onClick={() => setDateFilter('day')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'day'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('week')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'week'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    This Week
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('month')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'month'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    This Month
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('custom')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'custom'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    Custom
+                  </button>
+                </div>
               </div>
+
+              {/* Custom Date Range */}
+              {dateFilter === 'custom' && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <span className="text-muted-foreground">to</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      const today = new Date();
+                      const dayOfWeek = today.getDay();
+                      const startOfWeek = new Date(today);
+                      startOfWeek.setDate(today.getDate() - dayOfWeek);
+                      startOfWeek.setHours(0, 0, 0, 0);
+                      setStartDate(startOfWeek.toISOString().split('T')[0]);
+                      setEndDate(today.toISOString().split('T')[0]);
+                      setDateFilter('week');
+                    }}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title="Reset to default"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              )}
             </div>
 
-            {/* Custom Date Range */}
-            {dateFilter === 'custom' && (
+            {/* Second Row: Search and Quick Links */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              {/* Search */}
+              <div className="flex-1 flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search analytics..."
+                  value={analyticsSearchQuery}
+                  onChange={(e) => setAnalyticsSearchQuery(e.target.value)}
+                  className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
+                />
+                {analyticsSearchQuery && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setAnalyticsSearchQuery('')}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title="Clear filter"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                )}
+              </div>
+
+              {/* Quick Links */}
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-                <span className="text-muted-foreground">to</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
+                <Link
+                  href="/admin/analytics/agents"
+                  className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+                >
+                  Agent Analytics
+                </Link>
+                <Link
+                  href="/admin/analytics/services"
+                  className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+                >
+                  Service Analytics
+                </Link>
               </div>
-            )}
-
-            {/* Search */}
-            <div className="flex-1 flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search analytics..."
-                value={analyticsSearchQuery}
-                onChange={(e) => setAnalyticsSearchQuery(e.target.value)}
-                className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            {/* Quick Links */}
-            <div className="flex items-center gap-2">
-              <Link
-                href="/admin/analytics/agents"
-                className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
-              >
-                Agent Analytics
-              </Link>
-              <Link
-                href="/admin/analytics/services"
-                className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
-              >
-                Service Analytics
-              </Link>
             </div>
           </div>
           {/* Export Modal */}
@@ -866,12 +895,11 @@ export default function Analytics() {
                 />
               </div>
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Select
                   value={selectedCategoryId}
                   onChange={(value) => setSelectedCategoryId(value)}
                   placeholder={t('admin.analytics.allServices')}
-                  buttonClassName="pl-11 sm:pl-11"
+                  buttonClassName="p-3 sm:p-3 pl-11 sm:pl-11 relative"
                   options={[
                     { value: '', label: t('admin.analytics.allServices') },
                     ...categories.map((cat) => ({
@@ -880,6 +908,7 @@ export default function Analytics() {
                     })),
                   ]}
                 />
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none z-20" />
               </div>
             </div>
 

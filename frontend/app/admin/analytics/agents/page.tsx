@@ -49,6 +49,7 @@ export default function AgentAnalytics() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedAgentId, setSelectedAgentId] = useState('');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month' | 'custom'>('week');
   const [startDate, setStartDate] = useState<string>(() => {
     try {
@@ -154,6 +155,22 @@ export default function AgentAnalytics() {
       agent.employeeId?.toLowerCase().includes(query);
     return matchesSearch;
   });
+
+  // Get search suggestions (top 5 matching agents)
+  const searchSuggestions = searchQuery
+    ? agentPerformance
+        .filter((agent) => {
+          const query = searchQuery.toLowerCase();
+          return (
+            agent.agentName?.toLowerCase().includes(query) ||
+            agent.agentEmail?.toLowerCase().includes(query) ||
+            agent.employeeId?.toLowerCase().includes(query)
+          );
+        })
+        .slice(0, 5)
+    : agentPerformance
+        .sort((a, b) => (b.totalTickets || 0) - (a.totalTickets || 0))
+        .slice(0, 5);
 
   const selectedAgent = selectedAgentId ? filteredAgents.find(a => a.agentId === selectedAgentId) : null;
 
@@ -266,103 +283,199 @@ export default function AgentAnalytics() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="bg-card border border-border rounded-xl p-4 mb-6"
         >
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-            {/* Date Filter */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Period:</span>
-              <div className="flex items-center gap-2 border border-border rounded-lg p-1">
-                <button
-                  onClick={() => setDateFilter('day')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'day'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  Today
-                </button>
-                <button
-                  onClick={() => setDateFilter('week')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'week'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  This Week
-                </button>
-                <button
-                  onClick={() => setDateFilter('month')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'month'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  This Month
-                </button>
-                <button
-                  onClick={() => setDateFilter('custom')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    dateFilter === 'custom'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  Custom
-                </button>
+          <div className="flex flex-col gap-4">
+            {/* First Row: Date Filter and Custom Date Range */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
+              {/* Date Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Period:</span>
+                <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+                  <button
+                    onClick={() => setDateFilter('day')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'day'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('week')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'week'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    This Week
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('month')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'month'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    This Month
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('custom')}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      dateFilter === 'custom'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    Custom
+                  </button>
+                </div>
               </div>
+
+              {/* Custom Date Range */}
+              {dateFilter === 'custom' && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <span className="text-muted-foreground">to</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      const today = new Date();
+                      const dayOfWeek = today.getDay();
+                      const startOfWeek = new Date(today);
+                      startOfWeek.setDate(today.getDate() - dayOfWeek);
+                      startOfWeek.setHours(0, 0, 0, 0);
+                      setStartDate(startOfWeek.toISOString().split('T')[0]);
+                      setEndDate(today.toISOString().split('T')[0]);
+                      setDateFilter('week');
+                    }}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title="Reset to default"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              )}
             </div>
 
-            {/* Custom Date Range */}
-            {dateFilter === 'custom' && (
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-                <span className="text-muted-foreground">to</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            {/* Second Row: Search and Category Filter */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              {/* Search with Recommendations */}
+              <div className="flex-1 relative">
+                <div className="flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search agents..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSearchSuggestions(true);
+                    }}
+                    onFocus={() => setShowSearchSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
+                    className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
+                  />
+                  {(searchQuery || selectedCategoryId) && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCategoryId('');
+                      }}
+                      className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                      title="Clear filter"
+                    >
+                      <X className="w-4 h-4" />
+                    </motion.button>
+                  )}
+                </div>
+                {/* Search Suggestions Dropdown */}
+                {showSearchSuggestions && searchSuggestions.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-lg max-h-60 overflow-auto"
+                  >
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        {searchQuery ? 'Suggestions' : 'Top Agents'}
+                      </div>
+                      {searchSuggestions.map((agent: any) => (
+                        <button
+                          key={agent.agentId}
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery(agent.agentName);
+                            setSelectedAgentId(agent.agentId);
+                            setShowSearchSuggestions(false);
+                          }}
+                          className="w-full px-4 py-3 text-left rounded-lg hover:bg-accent hover:text-accent-foreground text-foreground transition-colors flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Users className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm">{agent.agentName}</div>
+                              {agent.agentEmail && (
+                                <div className="text-xs text-muted-foreground">{agent.agentEmail}</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-foreground">
+                              {agent.totalTickets || 0} tickets
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {agent.completionRate?.toFixed(1) || 0}% completion
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Category Filter */}
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-20" />
+                <Select
+                  value={selectedCategoryId}
+                  onChange={(value) => setSelectedCategoryId(value)}
+                  placeholder="All Services"
+                  buttonClassName="p-3 sm:p-3 pl-11 sm:pl-11"
+                  options={[
+                    { value: '', label: 'All Services' },
+                    ...categories.map((cat) => ({
+                      value: cat.id,
+                      label: cat.name,
+                    })),
+                  ]}
                 />
               </div>
-            )}
-
-            {/* Search */}
-            <div className="flex-1 flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search agents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
-              <Select
-                value={selectedCategoryId}
-                onChange={(value) => setSelectedCategoryId(value)}
-                placeholder="All Services"
-                buttonClassName="pl-11"
-                options={[
-                  { value: '', label: 'All Services' },
-                  ...categories.map((cat) => ({
-                    value: cat.id,
-                    label: cat.name,
-                  })),
-                ]}
-              />
             </div>
           </div>
         </motion.div>
@@ -416,26 +529,6 @@ export default function AgentAnalytics() {
           </div>
         </motion.div>
 
-        {/* Agent Selection */}
-        {filteredAgents.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-card border border-border rounded-xl p-4 mb-6"
-          >
-            <label className="text-sm font-medium text-foreground mb-2 block">Select Agent for Detailed View:</label>
-            <Select
-              value={selectedAgentId}
-              onChange={(value) => setSelectedAgentId(value)}
-              placeholder="Select an agent..."
-              options={filteredAgents.map((agent) => ({
-                value: agent.agentId,
-                label: `${agent.agentName} (${agent.totalTickets} tickets)`,
-              }))}
-            />
-          </motion.div>
-        )}
 
         {/* Agent Performance Charts */}
         <div className="grid lg:grid-cols-2 gap-6 mb-8">

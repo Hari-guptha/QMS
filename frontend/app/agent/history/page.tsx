@@ -430,6 +430,27 @@ export default function AgentHistory() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
                 />
+                {(searchQuery || (viewType === 'list' && (startDate !== new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0] || endDate !== new Date().toISOString().split('T')[0]))) && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setSearchQuery('');
+                      if (viewType === 'list') {
+                        const today = new Date();
+                        today.setDate(today.getDate() - 30);
+                        setStartDate(today.toISOString().split('T')[0]);
+                        setEndDate(new Date().toISOString().split('T')[0]);
+                      }
+                    }}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                    title={t('common.clearFilter') || 'Clear filter'}
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                )}
               </div>
             </div>
             {/* Calendar/List Toggle */}
@@ -672,123 +693,157 @@ export default function AgentHistory() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
               onClick={() => setSelectedTicketDetails(null)}
             >
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.2 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-card text-card-foreground border rounded-2xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-card text-card-foreground border border-border/50 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                    <Ticket className="w-6 h-6 text-primary" />
-                    {selectedTicketDetails.tokenNumber}
-                  </h2>
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-primary/20 rounded-xl">
+                      <Ticket className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground">{selectedTicketDetails.tokenNumber}</h2>
+                      {selectedTicketDetails.category && (
+                        <p className="text-sm text-muted-foreground mt-0.5">{selectedTicketDetails.category.name}</p>
+                      )}
+                    </div>
+                  </div>
                   <button
                     onClick={() => setSelectedTicketDetails(null)}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    className="p-2 hover:bg-muted/80 rounded-xl transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 text-muted-foreground" />
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  {/* Status */}
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground mb-1 block">Status</label>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      selectedTicketDetails.status === 'completed'
-                        ? 'bg-chart-2/20 text-chart-2'
-                        : selectedTicketDetails.status === 'hold'
-                        ? 'bg-destructive/20 text-destructive'
-                        : selectedTicketDetails.status === 'no_show'
-                        ? 'bg-destructive/20 text-destructive'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {selectedTicketDetails.status}
-                    </span>
+                {/* Content */}
+                <div className="overflow-y-auto flex-1 p-6 space-y-6">
+                  {/* Status & Position */}
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                      <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
+                        selectedTicketDetails.status === 'completed'
+                          ? 'bg-chart-2/20 text-chart-2 border border-chart-2/30'
+                          : selectedTicketDetails.status === 'hold' || selectedTicketDetails.status === 'no_show'
+                          ? 'bg-destructive/20 text-destructive border border-destructive/30'
+                          : 'bg-muted text-muted-foreground border border-border'
+                      }`}>
+                        {selectedTicketDetails.status}
+                      </span>
+                    </div>
+                    {selectedTicketDetails.positionInQueue > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-muted-foreground">Position:</span>
+                        <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20">
+                          #{selectedTicketDetails.positionInQueue}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Category */}
-                  {selectedTicketDetails.category && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Category</label>
-                      <p className="text-foreground">{selectedTicketDetails.category.name}</p>
+                  {/* Customer Information Card */}
+                  {(selectedTicketDetails.customerName || selectedTicketDetails.customerPhone || selectedTicketDetails.customerEmail) && (
+                    <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border rounded-2xl p-5">
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Customer Information
+                      </h3>
+                      <div className="space-y-3">
+                        {selectedTicketDetails.customerName && (
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-background rounded-lg">
+                              <Users className="w-4 h-4 text-primary" />
+                            </div>
+                            <span className="text-foreground font-medium">{selectedTicketDetails.customerName}</span>
+                          </div>
+                        )}
+                        {selectedTicketDetails.customerPhone && (
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-background rounded-lg">
+                              <Phone className="w-4 h-4 text-primary" />
+                            </div>
+                            <a href={`tel:${selectedTicketDetails.customerPhone}`} className="text-foreground hover:text-primary transition-colors">
+                              {selectedTicketDetails.customerPhone}
+                            </a>
+                          </div>
+                        )}
+                        {selectedTicketDetails.customerEmail && (
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-background rounded-lg">
+                              <Mail className="w-4 h-4 text-primary" />
+                            </div>
+                            <a href={`mailto:${selectedTicketDetails.customerEmail}`} className="text-foreground hover:text-primary transition-colors break-all">
+                              {selectedTicketDetails.customerEmail}
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {/* Customer Information */}
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground mb-2 block">Customer Information</label>
-                    <div className="space-y-2">
-                      {selectedTicketDetails.customerName && (
-                        <p className="text-foreground flex items-center gap-2">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          {selectedTicketDetails.customerName}
-                        </p>
-                      )}
-                      {selectedTicketDetails.customerPhone && (
-                        <p className="text-foreground flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-muted-foreground" />
-                          {selectedTicketDetails.customerPhone}
-                        </p>
-                      )}
-                      {selectedTicketDetails.customerEmail && (
-                        <p className="text-foreground flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          {selectedTicketDetails.customerEmail}
-                        </p>
-                      )}
+                  {/* Timeline Card */}
+                  {(selectedTicketDetails.createdAt || selectedTicketDetails.completedAt || selectedTicketDetails.noShowAt) && (
+                    <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border rounded-2xl p-5">
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Timeline
+                      </h3>
+                      <div className="space-y-3">
+                        {selectedTicketDetails.createdAt && (
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-background rounded-lg">
+                              <Clock className="w-4 h-4 text-chart-1" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-muted-foreground">Created At</p>
+                              <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedTicketDetails.completedAt && (
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-background rounded-lg">
+                              <CheckCircle2 className="w-4 h-4 text-chart-2" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-muted-foreground">Completed At</p>
+                              <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.completedAt), 'MMM dd, yyyy HH:mm')}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedTicketDetails.noShowAt && (
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-background rounded-lg">
+                              <X className="w-4 h-4 text-destructive" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-muted-foreground">Hold/No Show At</p>
+                              <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.noShowAt), 'MMM dd, yyyy HH:mm')}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Dates */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {selectedTicketDetails.createdAt && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Created At</label>
-                        <p className="text-foreground flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          {format(parseISO(selectedTicketDetails.createdAt), 'yyyy-MM-dd HH:mm')}
-                        </p>
-                      </div>
-                    )}
-                    {selectedTicketDetails.completedAt && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Completed At</label>
-                        <p className="text-foreground flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          {format(parseISO(selectedTicketDetails.completedAt), 'yyyy-MM-dd HH:mm')}
-                        </p>
-                      </div>
-                    )}
-                    {selectedTicketDetails.noShowAt && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Hold/No Show At</label>
-                        <p className="text-foreground flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          {format(parseISO(selectedTicketDetails.noShowAt), 'yyyy-MM-dd HH:mm')}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Note */}
+                  {/* Note Card */}
                   {selectedTicketDetails.note && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Note</label>
-                      <p className="text-foreground bg-muted/50 p-3 rounded-lg">{selectedTicketDetails.note}</p>
-                    </div>
-                  )}
-
-                  {/* Position in Queue */}
-                  {selectedTicketDetails.positionInQueue > 0 && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Position in Queue</label>
-                      <p className="text-foreground">#{selectedTicketDetails.positionInQueue}</p>
+                    <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-2xl p-5">
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        Note
+                      </h3>
+                      <p className="text-foreground leading-relaxed">{selectedTicketDetails.note}</p>
                     </div>
                   )}
                 </div>
