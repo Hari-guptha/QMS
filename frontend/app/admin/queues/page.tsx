@@ -1090,6 +1090,7 @@ export default function AllQueues() {
                               onDelete={handleDeleteTicket}
                               onReassign={(t) => setReassigningTicket(t)}
                               index={index}
+                              t={t}
                             />
                           ))}
                         </div>
@@ -1345,7 +1346,8 @@ function SortableTicketItem({
   onHold,
   onDelete,
   onReassign,
-  index
+  index,
+  t
 }: {
   ticket: any;
   onComplete: (id: string) => void;
@@ -1353,6 +1355,7 @@ function SortableTicketItem({
   onDelete: (id: string) => void;
   onReassign: (ticket: any) => void;
   index: number;
+  t: (key: string) => string;
 }) {
   const {
     attributes,
