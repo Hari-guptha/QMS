@@ -373,24 +373,42 @@ export default function CustomerCheckIn() {
                     </label>
                       <div className="flex gap-2">
                         <div className="w-48">
-                          <Select
-                            value={`${COUNTRIES.find(c => c.dial_code === countryDial)?.code || 'US'}|${countryDial}`}
-                            onChange={(val) => {
-                              const parts = val.split('|');
-                              const dial = parts[1] || parts[0] || '+1';
-                              setCountryDial(dial);
-                            }}
-                            options={COUNTRIES.map((c) => ({ value: `${c.code}|${c.dial_code}`, label: `${c.name} (${c.dial_code})` }))}
-                            searchable
-                            searchPlaceholder={t('customer.searchCountry')}
-                          />
+                          <div className="relative group">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                              <Phone className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            </div>
+                            <Select
+                              value={`${COUNTRIES.find(c => c.dial_code === countryDial)?.code || 'US'}|${countryDial}`}
+                              onChange={(val) => {
+                                const parts = val.split('|');
+                                const dial = parts[1] || parts[0] || '+1';
+                                setCountryDial(dial);
+                              }}
+                              options={COUNTRIES.map((c) => ({ value: `${c.code}|${c.dial_code}`, label: `${c.dial_code} ${c.name}` }))}
+                              searchable
+                              searchPlaceholder={t('customer.searchCountry')}
+                              buttonClassName="pt-3 pb-3 pr-3 pl-11"
+                            />
+                          </div>
                         </div>
                         <input
                           type="tel"
                           value={formData.customerPhone}
-                          onChange={(e) =>
-                            setFormData({ ...formData, customerPhone: e.target.value })
-                          }
+                          onChange={(e) => {
+                            // Only allow numbers
+                            const value = e.target.value.replace(/\D/g, '');
+                            // Limit to 15 characters
+                            if (value.length <= 15) {
+                              setFormData({ ...formData, customerPhone: value });
+                            }
+                          }}
+                          onKeyPress={(e) => {
+                            // Prevent non-numeric characters
+                            if (!/[0-9]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          maxLength={15}
                           required
                           className="flex-1 p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm bg-white dark:bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                           placeholder={t('customer.enterPhone')}

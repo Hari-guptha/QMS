@@ -66,13 +66,13 @@ export function Select({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={`
-          w-full p-3 sm:p-3 border border-border rounded-lg text-xs sm:text-sm
+          w-full border border-border rounded-lg text-xs sm:text-sm
           bg-white dark:bg-background text-foreground
           focus:outline-none focus:ring-2 focus:ring-primary/40
           transition
           flex items-center justify-between
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-ring'}
-          ${buttonClassName}
+          ${buttonClassName || 'p-3 sm:p-3'}
         `}
       >
         <span className={isEmpty ? 'text-muted-foreground' : 'text-foreground'}>
@@ -96,7 +96,7 @@ export function Select({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-lg max-h-60 overflow-auto"
+              className="absolute z-50 w-full min-w-[280px] mt-2 bg-card border border-border rounded-xl shadow-lg max-h-60 overflow-auto"
             >
               <div className="p-2">
                 {searchable && (
@@ -125,7 +125,7 @@ export function Select({
                       }}
                       className={`
                         w-full px-4 py-2 text-left rounded-lg
-                        flex items-center justify-between
+                        flex items-center justify-between gap-2
                         transition-colors
                         ${isSelected
                           ? 'bg-primary text-primary-foreground'
@@ -135,7 +135,7 @@ export function Select({
                         }
                       `}
                     >
-                      <span>{option.label}</span>
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">{option.label}</span>
                       {isSelected && !isEmptyOption && (
                         <Check className="w-4 h-4" />
                       )}

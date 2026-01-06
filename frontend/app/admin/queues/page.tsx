@@ -45,6 +45,10 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Eye,
+  Mail,
+  Ticket,
 } from 'lucide-react';
 import {
   format,
@@ -89,6 +93,7 @@ export default function AllQueues() {
   const [historyTickets, setHistoryTickets] = useState<any[]>([]);
   const [hoveredTicket, setHoveredTicket] = useState<any | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const [selectedTicketDetails, setSelectedTicketDetails] = useState<any | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -421,19 +426,18 @@ export default function AllQueues() {
                 </div>
                 <div className="space-y-1">
                   {dayTickets.slice(0, maxVisible).map(ticket => (
-                    <div
+                    <span
                       key={ticket.id}
-                      className="cursor-pointer"
+                      className="inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 text-[10px] px-1.5 py-0.5 text-foreground hover:bg-accent hover:text-accent-foreground transition cursor-pointer"
                       onMouseEnter={(e) => {
                         setHoveredTicket(ticket);
                         setHoverPosition({ x: e.clientX, y: e.clientY });
                       }}
                       onMouseLeave={() => setHoveredTicket(null)}
+                      onClick={() => setSelectedTicketDetails(ticket)}
                     >
-                      <span className="inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 text-[10px] px-1.5 py-0.5 text-foreground hover:bg-accent hover:text-accent-foreground transition">
-                        {ticket.tokenNumber || formatTime(ticket.createdAt)}
-                      </span>
-                    </div>
+                      {ticket.tokenNumber || formatTime(ticket.createdAt)}
+                    </span>
                   ))}
                   {dayTickets.length > maxVisible && (
                     <div className="text-[11px] text-primary cursor-pointer">
@@ -475,20 +479,24 @@ export default function AllQueues() {
                 return (
                   <div
                     key={`${day.toISOString()}-${hour}`}
-                    className="border-r border-b relative h-16 cursor-pointer hover:bg-muted/40 transition"
-                    onMouseEnter={(e) => {
-                      if (hourTickets.length > 0) {
-                        setHoveredTicket(hourTickets[0]);
-                        setHoverPosition({ x: e.clientX, y: e.clientY });
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredTicket(null)}
+                    className="border-r border-b relative h-16 overflow-y-auto"
                   >
                     {hourTickets.length > 0 && (
-                      <div className="absolute top-1 left-1 right-1 rounded bg-primary/10 p-1 text-[10px]">
-                        {hourTickets.length === 1 
-                          ? hourTickets[0].tokenNumber || t('common.ticket')
-                          : `${hourTickets.length} ${t('common.tickets')}`}
+                      <div className="absolute top-1 left-1 right-1 space-y-0.5">
+                        {hourTickets.map((ticket) => (
+                          <span
+                            key={ticket.id}
+                            className="inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 text-[10px] px-1.5 py-0.5 text-foreground hover:bg-accent hover:text-accent-foreground transition bg-primary/10 cursor-pointer"
+                            onMouseEnter={(e) => {
+                              setHoveredTicket(ticket);
+                              setHoverPosition({ x: e.clientX, y: e.clientY });
+                            }}
+                            onMouseLeave={() => setHoveredTicket(null)}
+                            onClick={() => setSelectedTicketDetails(ticket)}
+                          >
+                            {ticket.tokenNumber || formatTime(ticket.createdAt)}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -519,20 +527,24 @@ export default function AllQueues() {
                   {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
                 </div>
                 <div
-                  className="border-b h-16 relative cursor-pointer hover:bg-muted/30 transition"
-                  onMouseEnter={(e) => {
-                    if (hourTickets.length > 0) {
-                      setHoveredTicket(hourTickets[0]);
-                      setHoverPosition({ x: e.clientX, y: e.clientY });
-                    }
-                  }}
-                  onMouseLeave={() => setHoveredTicket(null)}
+                  className="border-b h-16 relative overflow-y-auto"
                 >
                   {hourTickets.length > 0 && (
-                    <div className="absolute top-1 left-1 right-1 rounded bg-primary/10 p-1 text-[10px]">
-                      {hourTickets.length === 1 
-                        ? hourTickets[0].tokenNumber || 'Ticket'
-                        : `${hourTickets.length} tickets`}
+                    <div className="absolute top-1 left-1 right-1 space-y-0.5">
+                      {hourTickets.map((ticket) => (
+                        <span
+                          key={ticket.id}
+                          className="inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 text-[10px] px-1.5 py-0.5 text-foreground hover:bg-accent hover:text-accent-foreground transition bg-primary/10 cursor-pointer"
+                          onMouseEnter={(e) => {
+                            setHoveredTicket(ticket);
+                            setHoverPosition({ x: e.clientX, y: e.clientY });
+                          }}
+                          onMouseLeave={() => setHoveredTicket(null)}
+                          onClick={() => setSelectedTicketDetails(ticket)}
+                        >
+                          {ticket.tokenNumber || formatTime(ticket.createdAt)}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -912,27 +924,35 @@ export default function AllQueues() {
                           transition={{ delay: index * 0.05 }}
                           className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl flex justify-between items-center hover:shadow-md transition-all"
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="p-2 bg-destructive/20 rounded-lg">
-                              <X className="w-4 h-4 text-destructive" />
-                            </div>
+                          <div className="flex items-center gap-4 flex-1">
                             <div>
                               <div className="flex items-center gap-3">
                                 <span className="font-mono font-bold text-lg text-foreground">
                                   {ticket.tokenNumber}
                                 </span>
-                                <span className="px-3 py-1 rounded-full text-xs font-medium border bg-destructive/20 text-destructive border-destructive/30">
-                                  {t('common.hold')}
-                                </span>
+                                {ticket.customerName && (
+                                  <span className="text-sm text-foreground">
+                                    {ticket.customerName}
+                                  </span>
+                                )}
+                                {ticket.category && (
+                                  <span className="px-2 py-1 bg-destructive/20 text-destructive rounded-full text-xs">
+                                    {ticket.category.name}
+                                  </span>
+                                )}
                               </div>
-                              {ticket.customerName && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {ticket.customerName}
-                                </p>
-                              )}
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setSelectedTicketDetails(ticket)}
+                              className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/80 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              {t('common.viewDetails')}
+                            </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
@@ -974,27 +994,35 @@ export default function AllQueues() {
                           transition={{ delay: index * 0.05 }}
                           className="p-4 bg-gradient-to-r from-muted to-muted/50 border border-border rounded-xl flex justify-between items-center hover:shadow-md transition-all"
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                              {getStatusIcon(ticket.status)}
-                            </div>
+                          <div className="flex items-center gap-4 flex-1">
                             <div>
                               <div className="flex items-center gap-3">
                                 <span className="font-mono font-bold text-lg text-foreground">
                                   {ticket.tokenNumber}
                                 </span>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
-                                  {ticket.status}
-                                </span>
+                                {ticket.customerName && (
+                                  <span className="text-sm text-foreground">
+                                    {ticket.customerName}
+                                  </span>
+                                )}
+                                {ticket.category && (
+                                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(ticket.status)}`}>
+                                    {ticket.category.name}
+                                  </span>
+                                )}
                               </div>
-                              {ticket.customerName && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {ticket.customerName}
-                                </p>
-                              )}
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setSelectedTicketDetails(ticket)}
+                              className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/80 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              {t('common.viewDetails')}
+                            </motion.button>
                             {(ticket.status === 'completed' || ticket.status === 'no_show' || ticket.status === 'hold') && (
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
@@ -1089,6 +1117,7 @@ export default function AllQueues() {
                               onHold={handleAdminHold}
                               onDelete={handleDeleteTicket}
                               onReassign={(t) => setReassigningTicket(t)}
+                              onViewDetails={(t) => setSelectedTicketDetails(t)}
                               index={index}
                               t={t}
                             />
@@ -1334,6 +1363,158 @@ export default function AllQueues() {
             </>
           )}
         </AnimatePresence>
+
+        {/* Ticket Details Modal */}
+        <AnimatePresence>
+          {selectedTicketDetails && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={() => setSelectedTicketDetails(null)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-card text-card-foreground border rounded-2xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                      <Ticket className="w-6 h-6 text-primary" />
+                      {selectedTicketDetails.tokenNumber}
+                    </h2>
+                    <button
+                      onClick={() => setSelectedTicketDetails(null)}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Status */}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Status</label>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        selectedTicketDetails.status === 'completed'
+                          ? 'bg-chart-2/20 text-chart-2'
+                          : selectedTicketDetails.status === 'hold'
+                          ? 'bg-destructive/20 text-destructive'
+                          : selectedTicketDetails.status === 'serving'
+                          ? 'bg-chart-2/20 text-chart-2'
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {selectedTicketDetails.status}
+                      </span>
+                    </div>
+
+                    {/* Category */}
+                    {selectedTicketDetails.category && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Category</label>
+                        <p className="text-foreground">{selectedTicketDetails.category.name}</p>
+                      </div>
+                    )}
+
+                    {/* Customer Information */}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Customer Information</label>
+                      <div className="space-y-2">
+                        {selectedTicketDetails.customerName && (
+                          <p className="text-foreground flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            {selectedTicketDetails.customerName}
+                          </p>
+                        )}
+                        {selectedTicketDetails.customerPhone && (
+                          <p className="text-foreground flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            {selectedTicketDetails.customerPhone}
+                          </p>
+                        )}
+                        {selectedTicketDetails.customerEmail && (
+                          <p className="text-foreground flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            {selectedTicketDetails.customerEmail}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Dates */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedTicketDetails.createdAt && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Created At</label>
+                          <p className="text-foreground flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {format(parseISO(selectedTicketDetails.createdAt), 'yyyy-MM-dd HH:mm')}
+                          </p>
+                        </div>
+                      )}
+                      {selectedTicketDetails.completedAt && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Completed At</label>
+                          <p className="text-foreground flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {format(parseISO(selectedTicketDetails.completedAt), 'yyyy-MM-dd HH:mm')}
+                          </p>
+                        </div>
+                      )}
+                      {selectedTicketDetails.noShowAt && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Hold/No Show At</label>
+                          <p className="text-foreground flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {format(parseISO(selectedTicketDetails.noShowAt), 'yyyy-MM-dd HH:mm')}
+                          </p>
+                        </div>
+                      )}
+                      {selectedTicketDetails.calledAt && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Called At</label>
+                          <p className="text-foreground flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {format(parseISO(selectedTicketDetails.calledAt), 'yyyy-MM-dd HH:mm')}
+                          </p>
+                        </div>
+                      )}
+                      {selectedTicketDetails.servingStartedAt && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground mb-1 block">Serving Started At</label>
+                          <p className="text-foreground flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {format(parseISO(selectedTicketDetails.servingStartedAt), 'yyyy-MM-dd HH:mm')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Note */}
+                    {selectedTicketDetails.note && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Note</label>
+                        <p className="text-foreground bg-muted/50 p-3 rounded-lg">{selectedTicketDetails.note}</p>
+                      </div>
+                    )}
+
+                    {/* Position in Queue */}
+                    {selectedTicketDetails.positionInQueue > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Position in Queue</label>
+                        <p className="text-foreground">#{selectedTicketDetails.positionInQueue}</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -1346,6 +1527,7 @@ function SortableTicketItem({
   onHold,
   onDelete,
   onReassign,
+  onViewDetails,
   index,
   t
 }: {
@@ -1354,6 +1536,7 @@ function SortableTicketItem({
   onHold: (id: string) => void;
   onDelete: (id: string) => void;
   onReassign: (ticket: any) => void;
+  onViewDetails: (ticket: any) => void;
   index: number;
   t: (key: string) => string;
 }) {
@@ -1391,21 +1574,39 @@ function SortableTicketItem({
           style={{ touchAction: 'none' }}
         >
           <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-3">
               <span className="font-mono font-bold text-xl text-foreground">{ticket.tokenNumber}</span>
+              {ticket.customerName && (
+                <span className="text-sm text-foreground">
+                  {ticket.customerName}
+                </span>
+              )}
+              {ticket.category && (
+                <span className="px-2 py-1 bg-primary/20 text-primary rounded-full text-xs">
+                  {ticket.category.name}
+                </span>
+              )}
               <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-xs font-medium">
                 #{ticket.positionInQueue}
               </span>
             </div>
-            {ticket.category && (
-              <span className="text-sm text-muted-foreground mt-1 block">
-                {ticket.category.name}
-              </span>
-            )}
           </div>
         </div>
         <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onViewDetails(ticket);
+            }}
+            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/80 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            {t('common.viewDetails')}
+          </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

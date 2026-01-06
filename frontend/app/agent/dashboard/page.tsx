@@ -43,9 +43,11 @@ import {
   Mail,
   FolderOpen,
   History,
-  Calendar
+  Calendar,
+  Eye
 } from 'lucide-react';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { format, parseISO } from 'date-fns';
 
 export default function AgentDashboard() {
   const { t } = useI18n();
@@ -60,6 +62,7 @@ export default function AgentDashboard() {
   const [showHoldDialog, setShowHoldDialog] = useState(false);
   const [holdReason, setHoldReason] = useState('');
   const [ticketToHold, setTicketToHold] = useState<string | null>(null);
+  const [selectedTicketDetails, setSelectedTicketDetails] = useState<any | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -324,15 +327,12 @@ export default function AgentDashboard() {
   const pendingTickets = todayTickets.filter((t: any) => t.status === 'pending');
   const holdTickets = todayTickets.filter((t: any) => t.status === 'hold');
   const completedTickets = todayTickets.filter((t: any) => t.status === 'completed' || t.status === 'no_show');
+  // Filter out hold tickets from completed (they should be in hold section)
+  const actualCompletedTickets = completedTickets.filter((t: any) => t.status !== 'hold');
   
   // Get current date and day name
   const currentDate = new Date();
-  const dateString = currentDate.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  const dateString = format(currentDate, 'EEE, MMM d, yyyy');
 
   return (
     <div className="min-h-screen bg-background">
@@ -353,7 +353,6 @@ export default function AgentDashboard() {
                 </div>
                 <div className="flex flex-col">
                   <h1 className="text-4xl font-bold text-foreground">{t('dashboard.agent')}</h1>
-                  <p className="text-lg font-medium text-muted-foreground mt-1">{dateString}</p>
                 </div>
               </div>
               {assignedService && (
@@ -368,6 +367,7 @@ export default function AgentDashboard() {
                   <span className="text-sm font-semibold text-foreground">{assignedService.name}</span>
                 </motion.div>
               )}
+              <p className="text-xs text-muted-foreground/70 ml-11 font-normal">{dateString}</p>
             </div>
             <div className="flex items-center gap-3">
               <motion.button
@@ -555,7 +555,7 @@ export default function AgentDashboard() {
                     >
                       <div className="space-y-3">
                         {pendingTickets.map((ticket: any, index: number) => (
-                          <SortableTicketItem key={ticket.id} ticket={ticket} index={index} />
+                          <SortableTicketItem key={ticket.id} ticket={ticket} index={index} onViewDetails={setSelectedTicketDetails} />
                         ))}
                       </div>
                     </SortableContext>
@@ -579,50 +579,44 @@ export default function AgentDashboard() {
                         transition={{ delay: index * 0.05 }}
                         className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl hover:shadow-md transition-all"
                       >
-                        <div className="flex justify-between items-start mb-3">
+                        <div className="flex justify-between items-center">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3">
                               <span className="font-mono font-bold text-xl text-foreground">
                                 {ticket.tokenNumber}
                               </span>
+                              {ticket.customerName && (
+                                <span className="text-sm text-foreground">
+                                  {ticket.customerName}
+                                </span>
+                              )}
                               {ticket.category && (
                                 <span className="px-2 py-1 bg-destructive/20 text-destructive rounded-full text-xs">
                                   {ticket.category.name}
                                 </span>
                               )}
                             </div>
-                            {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
-                              <div className="space-y-1">
-                                {ticket.customerName && (
-                                  <p className="text-sm text-foreground flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-muted-foreground" />
-                                    {ticket.customerName}
-                                  </p>
-                                )}
-                                {ticket.customerPhone && (
-                                  <p className="text-sm text-foreground flex items-center gap-2">
-                                    <Phone className="w-4 h-4 text-muted-foreground" />
-                                    {ticket.customerPhone}
-                                  </p>
-                                )}
-                                {ticket.customerEmail && (
-                                  <p className="text-sm text-foreground flex items-center gap-2">
-                                    <Mail className="w-4 h-4 text-muted-foreground" />
-                                    {ticket.customerEmail}
-                                  </p>
-                                )}
-                              </div>
-                            )}
                           </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleReopen(ticket.id)}
-                            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 ml-4"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                            {t('admin.queues.reopen')}
-                          </motion.button>
+                          <div className="flex gap-2 ml-4">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setSelectedTicketDetails(ticket)}
+                              className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/80 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              {t('common.viewDetails')}
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleReopen(ticket.id)}
+                              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                              {t('admin.queues.reopen')}
+                            </motion.button>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -631,14 +625,14 @@ export default function AgentDashboard() {
               )}
 
               {/* Completed Tickets */}
-              {completedTickets.length > 0 && (
+              {actualCompletedTickets.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-chart-3" />
-                    {t('status.completed')} ({completedTickets.length})
+                    {t('status.completed')} ({actualCompletedTickets.length})
                   </h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {completedTickets.map((ticket: any, index: number) => (
+                    {actualCompletedTickets.map((ticket: any, index: number) => (
                       <motion.div
                         key={ticket.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -646,53 +640,44 @@ export default function AgentDashboard() {
                         transition={{ delay: index * 0.05 }}
                         className="p-4 bg-muted border rounded-xl hover:shadow-md transition-all"
                       >
-                        <div className="flex justify-between items-start mb-3">
+                        <div className="flex justify-between items-center">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3">
                               <span className="font-mono font-bold text-xl text-foreground">
                                 {ticket.tokenNumber}
                               </span>
+                              {ticket.customerName && (
+                                <span className="text-sm text-foreground">
+                                  {ticket.customerName}
+                                </span>
+                              )}
                               {ticket.category && (
                                 <span className="px-2 py-1 bg-chart-3/20 text-chart-3 rounded-full text-xs">
                                   {ticket.category.name}
                                 </span>
                               )}
-                              <span className="px-2 py-1 bg-muted-foreground/20 text-muted-foreground rounded-full text-xs">
-                                {ticket.status}
-                              </span>
                             </div>
-                            {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
-                              <div className="space-y-1">
-                                {ticket.customerName && (
-                                  <p className="text-sm text-foreground flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-muted-foreground" />
-                                    {ticket.customerName}
-                                  </p>
-                                )}
-                                {ticket.customerPhone && (
-                                  <p className="text-sm text-foreground flex items-center gap-2">
-                                    <Phone className="w-4 h-4 text-muted-foreground" />
-                                    {ticket.customerPhone}
-                                  </p>
-                                )}
-                                {ticket.customerEmail && (
-                                  <p className="text-sm text-foreground flex items-center gap-2">
-                                    <Mail className="w-4 h-4 text-muted-foreground" />
-                                    {ticket.customerEmail}
-                                  </p>
-                                )}
-                              </div>
-                            )}
                           </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleReopen(ticket.id)}
-                            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 ml-4"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                            {t('admin.queues.reopen')}
-                          </motion.button>
+                          <div className="flex gap-2 ml-4">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setSelectedTicketDetails(ticket)}
+                              className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/80 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              {t('common.viewDetails')}
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleReopen(ticket.id)}
+                              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                              {t('admin.queues.reopen')}
+                            </motion.button>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -866,12 +851,144 @@ export default function AgentDashboard() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Ticket Details Modal */}
+      <AnimatePresence>
+        {selectedTicketDetails && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setSelectedTicketDetails(null)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-card text-card-foreground border rounded-2xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Ticket className="w-6 h-6 text-primary" />
+                    {selectedTicketDetails.tokenNumber}
+                  </h2>
+                  <button
+                    onClick={() => setSelectedTicketDetails(null)}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Status */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-1 block">Status</label>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedTicketDetails.status === 'completed'
+                        ? 'bg-chart-2/20 text-chart-2'
+                        : selectedTicketDetails.status === 'hold'
+                        ? 'bg-destructive/20 text-destructive'
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {selectedTicketDetails.status}
+                    </span>
+                  </div>
+
+                  {/* Category */}
+                  {selectedTicketDetails.category && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Category</label>
+                      <p className="text-foreground">{selectedTicketDetails.category.name}</p>
+                    </div>
+                  )}
+
+                  {/* Customer Information */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-2 block">Customer Information</label>
+                    <div className="space-y-2">
+                      {selectedTicketDetails.customerName && (
+                        <p className="text-foreground flex items-center gap-2">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          {selectedTicketDetails.customerName}
+                        </p>
+                      )}
+                      {selectedTicketDetails.customerPhone && (
+                        <p className="text-foreground flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          {selectedTicketDetails.customerPhone}
+                        </p>
+                      )}
+                      {selectedTicketDetails.customerEmail && (
+                        <p className="text-foreground flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          {selectedTicketDetails.customerEmail}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dates */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedTicketDetails.createdAt && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Created At</label>
+                        <p className="text-foreground flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          {format(parseISO(selectedTicketDetails.createdAt), 'yyyy-MM-dd HH:mm')}
+                        </p>
+                      </div>
+                    )}
+                    {selectedTicketDetails.completedAt && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Completed At</label>
+                        <p className="text-foreground flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          {format(parseISO(selectedTicketDetails.completedAt), 'yyyy-MM-dd HH:mm')}
+                        </p>
+                      </div>
+                    )}
+                    {selectedTicketDetails.noShowAt && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-1 block">Hold/No Show At</label>
+                        <p className="text-foreground flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          {format(parseISO(selectedTicketDetails.noShowAt), 'yyyy-MM-dd HH:mm')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Note */}
+                  {selectedTicketDetails.note && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Note</label>
+                      <p className="text-foreground bg-muted/50 p-3 rounded-lg">{selectedTicketDetails.note}</p>
+                    </div>
+                  )}
+
+                  {/* Position in Queue */}
+                  {selectedTicketDetails.positionInQueue > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-1 block">Position in Queue</label>
+                      <p className="text-foreground">#{selectedTicketDetails.positionInQueue}</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // Sortable Ticket Item Component
-function SortableTicketItem({ ticket, index }: { ticket: any; index: number }) {
+function SortableTicketItem({ ticket, index, onViewDetails }: { ticket: any; index: number; onViewDetails: (ticket: any) => void }) {
   const {
     attributes,
     listeners,
@@ -908,42 +1025,40 @@ function SortableTicketItem({ ticket, index }: { ticket: any; index: number }) {
         >
           <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-3">
               <span className="font-mono font-bold text-xl text-foreground">
                 {ticket.tokenNumber}
               </span>
+              {ticket.customerName && (
+                <span className="text-sm text-foreground">
+                  {ticket.customerName}
+                </span>
+              )}
+              {ticket.category && (
+                <span className="px-2 py-1 bg-primary/20 text-primary rounded-full text-xs">
+                  {ticket.category.name}
+                </span>
+              )}
               <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-xs font-medium">
                 #{ticket.positionInQueue}
               </span>
             </div>
-            {ticket.category && (
-              <p className="text-sm text-muted-foreground mb-1">
-                {ticket.category.name}
-              </p>
-            )}
-            {(ticket.customerName || ticket.customerPhone || ticket.customerEmail) && (
-              <div className="mt-2 space-y-1">
-                {ticket.customerName && (
-                  <p className="text-xs text-foreground flex items-center gap-1">
-                    <Users className="w-3 h-3 text-muted-foreground" />
-                    {ticket.customerName}
-                  </p>
-                )}
-                {ticket.customerPhone && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    {ticket.customerPhone}
-                  </p>
-                )}
-                {ticket.customerEmail && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Mail className="w-3 h-3" />
-                    {ticket.customerEmail}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
+        </div>
+        <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onViewDetails(ticket);
+            }}
+            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/80 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            View Details
+          </motion.button>
         </div>
       </div>
     </motion.div>

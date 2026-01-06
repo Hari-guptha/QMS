@@ -442,7 +442,7 @@ export class QueueService {
     if (ticket.agentId !== agentId) throw new BadRequestException('You can only mark your own tickets');
 
     const updateData: any = {
-      status: TicketStatus.NO_SHOW,
+      status: TicketStatus.HOLD,
       noShowAt: new Date(),
       positionInQueue: 0,
     };

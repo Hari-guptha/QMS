@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useI18n } from '@/lib/i18n';
+import { format, parseISO } from 'date-fns';
 
 export default function StatusPage() {
   const { t } = useI18n();
@@ -202,20 +203,6 @@ export default function StatusPage() {
         <ThemeToggle />
       </div>
       
-      {/* Current Date Display - At Top */}
-      <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b">
-        <div className="max-w-7xl mx-auto px-4 pt-8 pb-4">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center"
-          >
-            <p className="text-xl font-semibold text-foreground">{dateString}</p>
-          </motion.div>
-        </div>
-      </div>
-      
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b">
         <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
@@ -306,7 +293,7 @@ export default function StatusPage() {
           </div>
 
           {/* Connection Status */}
-          <div className="flex items-center justify-center gap-4 text-sm">
+          <div className="flex items-center justify-center gap-4 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
               <span className="text-muted-foreground">
@@ -324,6 +311,9 @@ export default function StatusPage() {
             >
               <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </button>
+            <span className="text-muted-foreground text-xs">
+              {format(currentDate, 'yyyy-MM-dd')}
+            </span>
           </div>
         </div>
       </div>
@@ -340,15 +330,9 @@ export default function StatusPage() {
               <AlertCircle className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">{t('status.noActiveQueues')}</h3>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground">
               {t('status.noActiveQueuesDesc')}
             </p>
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-            >
-              ← {t('customer.backToHome')}
-            </a>
           </motion.div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -439,6 +423,12 @@ export default function StatusPage() {
                                         <div className="text-xs text-muted-foreground">
                                           {t('status.position')} #{ticket.positionInQueue}
                                         </div>
+                                        {ticket.createdAt && (
+                                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                            <Clock className="w-3 h-3" />
+                                            {format(parseISO(ticket.createdAt), 'yyyy-MM-dd HH:mm')}
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>

@@ -30,6 +30,7 @@ const translations: Translations = {
   'common.pending': { en: 'Pending', ar: 'قيد الانتظار' },
   'common.hold': { en: 'Hold', ar: 'تعليق' },
   'common.edit': { en: 'Edit', ar: 'تعديل' },
+  'common.viewDetails': { en: 'View Details', ar: 'عرض التفاصيل' },
 
   // Navigation
   'nav.queueManagement': { en: 'Queue Management System', ar: 'نظام إدارة الطوابير' },
