@@ -51,7 +51,7 @@ export default function MicrosoftCallbackClient() {
           sessionStorage.removeItem('microsoftAuthRole');
 
           if (user.role === 'admin') {
-            window.location.href = '/admin/dashboard';
+            window.location.href = '/admin/analytics';
           } else if (user.role === 'agent' || intendedRole === 'agent') {
             window.location.href = '/agent/dashboard';
           } else {

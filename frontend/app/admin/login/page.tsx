@@ -52,7 +52,7 @@ export default function AdminLogin() {
     try {
       const response = await auth.login(username, password);
       if (response.user.role === 'admin') {
-        window.location.href = '/admin/dashboard';
+        window.location.href = '/admin/analytics';
       } else {
         setError(t('login.accessDeniedAdmin'));
         auth.logout();

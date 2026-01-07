@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
-import { Navbar } from '@/components/Navbar';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { getAdminNavItems } from '@/lib/admin-nav-items';
 import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -199,10 +200,11 @@ export default function ServiceAnalytics() {
     );
   };
 
+  const adminNavItems = getAdminNavItems(t);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <DashboardLayout navItems={adminNavItems} role="admin">
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <motion.div
             initial={{ opacity: 0 }}
@@ -213,14 +215,13 @@ export default function ServiceAnalytics() {
             <div className="text-lg text-muted-foreground">Loading service analytics...</div>
           </motion.div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto p-6">
+    <DashboardLayout navItems={adminNavItems} role="admin">
+      <div className="p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -908,7 +909,7 @@ export default function ServiceAnalytics() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

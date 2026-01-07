@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi, agentApi } from '@/lib/api';
-import { Navbar } from '@/components/Navbar';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { getAdminNavItems } from '@/lib/admin-nav-items';
 import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -644,10 +645,11 @@ export default function AllQueues() {
     }
   };
 
+  const adminNavItems = getAdminNavItems(t);
+
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto p-6">
+    <DashboardLayout navItems={adminNavItems} role="admin">
+      <div className="p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -1886,7 +1888,7 @@ export default function AllQueues() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

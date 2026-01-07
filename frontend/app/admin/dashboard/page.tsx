@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { adminApi } from '@/lib/api';
-import { Navbar } from '@/components/Navbar';
+import { DashboardLayout } from '@/components/DashboardLayout';
 import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import {
@@ -22,7 +22,8 @@ import {
   UserCheck,
   X,
   CheckCircle2,
-  Pause
+  Pause,
+  LayoutDashboard
 } from 'lucide-react';
 
 const cardVariants = {
@@ -66,7 +67,8 @@ export default function AdminDashboard() {
       return;
     }
 
-    loadDashboard();
+    // Redirect to analytics instead of showing dashboard
+    router.push('/admin/analytics');
   }, [router]);
 
   const loadDashboard = async () => {
@@ -80,10 +82,37 @@ export default function AdminDashboard() {
     }
   };
 
+  const adminNavItems = [
+    {
+      href: '/admin/dashboard',
+      label: t('dashboard.admin'),
+      icon: LayoutDashboard,
+    },
+    {
+      href: '/admin/users',
+      label: t('admin.usersManagement'),
+      icon: Users,
+    },
+    {
+      href: '/admin/categories',
+      label: t('admin.categories'),
+      icon: FolderOpen,
+    },
+    {
+      href: '/admin/queues',
+      label: t('admin.allQueues'),
+      icon: List,
+    },
+    {
+      href: '/admin/analytics',
+      label: t('admin.analytics'),
+      icon: BarChart3,
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <DashboardLayout navItems={adminNavItems} role="admin">
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <motion.div
             initial={{ opacity: 0 }}
@@ -94,7 +123,7 @@ export default function AdminDashboard() {
             <div className="text-lg text-muted-foreground">{t('admin.loadingDashboard')}</div>
           </motion.div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -138,9 +167,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto p-6">
+    <DashboardLayout navItems={adminNavItems} role="admin">
+      <div className="p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -418,6 +446,6 @@ export default function AdminDashboard() {
           </motion.div>
         )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
