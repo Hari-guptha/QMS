@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { SessionTimeoutWarning } from "@/components/SessionTimeoutWarning";
 import { ConfirmDialogProvider } from "@/components/ConfirmDialog";
 import { I18nProvider } from "@/lib/i18n";
+import { DynamicTitle } from "@/components/DynamicTitle";
 
 const roboto = Roboto({ 
   subsets: ["latin"],
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={roboto.className}>
+        <DynamicTitle />
         <I18nProvider>
           <ThemeProvider>
             <ConfirmDialogProvider>

@@ -9,6 +9,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { NotificationModule } from './notification/notification.module';
 import { EncryptionModule } from './encryption/encryption.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ApplicationSettingsModule } from './application-settings/application-settings.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AnalyticsModule,
     RealtimeModule,
     NotificationModule,
+    ApplicationSettingsModule,
   ],
 })
 export class AppModule { }

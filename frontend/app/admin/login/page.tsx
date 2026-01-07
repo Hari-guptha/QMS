@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useEffect, useState as useStateReact } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { authApi } from '@/lib/api';
+import { authApi, adminApi } from '@/lib/api';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useI18n } from '@/lib/i18n';
@@ -20,11 +20,28 @@ export default function AdminLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [appSettings, setAppSettings] = useState<{ appName: string; logoUrl: string | null; showLogo: boolean } | null>(null);
 
   // Microsoft login visibility flag
   const [showMicrosoftLogin, setShowMicrosoftLogin] = useStateReact(false);
   useEffect(() => {
     setShowMicrosoftLogin(process.env.NEXT_PUBLIC_SHOW_MICROSOFT_LOGIN === 'true');
+    
+    // Load application settings
+    const loadAppSettings = async () => {
+      try {
+        const res = await adminApi.getApplicationSettings();
+        setAppSettings(res.data);
+      } catch (err) {
+        setAppSettings({
+          appName: 'Queue Management System',
+          logoUrl: null,
+          showLogo: false,
+        });
+      }
+    };
+    
+    loadAppSettings();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,9 +91,20 @@ export default function AdminLogin() {
       >
         {/* Logo */}
         <div className="flex items-center justify-center mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-4xl font-bold text-red-600 dark:text-red-500">Q</span>
-            <span className="text-4xl font-bold text-foreground">MS</span>
+          <div className="flex items-center gap-3">
+            {appSettings?.showLogo && appSettings?.logoUrl && (
+              <img
+                src={appSettings.logoUrl}
+                alt="Logo"
+                className="h-12 w-12 object-contain flex-shrink-0"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
+            <span className="text-2xl font-bold text-foreground whitespace-nowrap">
+              {appSettings?.appName || 'Queue Management System'}
+            </span>
           </div>
         </div>
 

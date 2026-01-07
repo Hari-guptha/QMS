@@ -9,6 +9,7 @@ import { User as UserIcon, ChevronDown, LogOut, UserCircle, Palette, Lock, Moon,
 import { AnimatePresence, motion } from 'framer-motion';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useI18n } from '@/lib/i18n';
+import { adminApi } from '@/lib/api';
 
 export function Navbar() {
   const { t } = useI18n();
@@ -19,12 +20,30 @@ export function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [appSettings, setAppSettings] = useState<{ appName: string; logoUrl: string | null; showLogo: boolean } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
     setUser(auth.getUser());
+    
+    // Load application settings
+    const loadAppSettings = async () => {
+      try {
+        const res = await adminApi.getApplicationSettings();
+        setAppSettings(res.data);
+      } catch (err) {
+        // If not authenticated or not admin, use defaults
+        setAppSettings({
+          appName: 'Queue Management System',
+          logoUrl: null,
+          showLogo: false,
+        });
+      }
+    };
+    
+    loadAppSettings();
   }, []);
 
   useEffect(() => {
@@ -97,12 +116,22 @@ export function Navbar() {
     <nav className="bg-card text-card-foreground border-b shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            {appSettings?.showLogo && appSettings?.logoUrl && (
+              <img
+                src={appSettings.logoUrl}
+                alt="Logo"
+                className="h-8 w-8 object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
             <a
               href={getDashboardPath()}
               className="text-xl font-bold text-foreground hover:text-primary transition-colors"
             >
-              {t('nav.queueManagement')}
+              {appSettings?.appName || t('nav.queueManagement')}
             </a>
           </div>
 
@@ -256,6 +285,17 @@ export function Navbar() {
                         >
                           <span className="w-full text-left">{t('nav.themeLayout')}</span>
                         </a>
+                        {user.role === 'admin' && (
+                          <a
+                            href="/settings/application"
+                            className="relative flex w-full cursor-default items-center gap-2 rounded-sm px-4 py-2 text-sm outline-none select-none hover:bg-muted transition-colors"
+                            role="menuitem"
+                            tabIndex={-1}
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            <span className="w-full text-left">{t('nav.applicationSettings')}</span>
+                          </a>
+                        )}
                         <a
                           href="/settings/password"
                           className="relative flex w-full cursor-default items-center gap-2 rounded-sm px-4 py-2 text-sm outline-none select-none hover:bg-muted transition-colors"

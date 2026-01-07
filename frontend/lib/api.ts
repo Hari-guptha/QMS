@@ -175,6 +175,11 @@ export const adminApi = {
   getNotificationConfig: () => api.get('/notification/config'),
   setNotificationConfig: (data: any) => api.post('/notification/config', data),
 
+  // Application settings
+  getApplicationSettings: () => api.get('/application-settings'),
+  updateApplicationSettings: (data: { appName?: string; logoUrl?: string | null; showLogo?: boolean }) =>
+    api.post('/application-settings', data),
+
   // Analytics
   getDashboard: (startDate?: string, endDate?: string) =>
     api.get('/analytics/dashboard', { params: { startDate, endDate } }),

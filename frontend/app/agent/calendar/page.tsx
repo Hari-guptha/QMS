@@ -23,6 +23,7 @@ import {
   Eye,
   X,
   CheckCircle2,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   format,
@@ -404,6 +405,21 @@ export default function AgentCalendar() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Back to Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-4"
+        >
+          <Link
+            href="/agent/dashboard"
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {t('admin.users.backToDashboard')}
+          </Link>
+        </motion.div>
         <div className="flex flex-col gap-4 w-full">
           {/* Top Header */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center mt-2 lg:mt-5 justify-end w-full gap-4">

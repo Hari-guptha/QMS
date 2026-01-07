@@ -107,3 +107,14 @@ model NotificationSetting {
 
   @@map("notification_settings")
 }
+
+model ApplicationSetting {
+  id        String   @id @default(uuid()) @db.UniqueIdentifier
+  appName   String   @default("Queue Management System") @db.NVarChar(255)
+  logoUrl   String?  @db.NVarChar(1000)
+  showLogo  Boolean  @default(false) @db.Bit
+  createdAt DateTime @default(now()) @db.DateTime2
+  updatedAt DateTime @updatedAt @db.DateTime2
+
+  @@map("application_settings")
+}
