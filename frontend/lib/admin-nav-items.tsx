@@ -5,6 +5,7 @@ import {
   List,
   BarChart3,
   LayoutDashboard,
+  UserCheck,
 } from 'lucide-react';
 
 export function getAdminNavItems(t: (key: string) => string) {
@@ -28,6 +29,11 @@ export function getAdminNavItems(t: (key: string) => string) {
       href: '/admin/queues',
       label: t('admin.allQueues'),
       icon: List,
+    },
+    {
+      href: '/admin/visitors',
+      label: t('admin.visitors'),
+      icon: UserCheck,
     },
   ];
 }

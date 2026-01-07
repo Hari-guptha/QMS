@@ -18,7 +18,6 @@ import {
   X,
   Save,
   UserPlus,
-  ArrowLeft,
   Clock,
   Users,
   Loader2,
@@ -374,13 +373,6 @@ export default function CategoriesManagement() {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <Link
-            href="/admin/dashboard"
-            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('admin.users.backToDashboard')}
-          </Link>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-chart-2/10 rounded-lg">

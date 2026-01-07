@@ -15,7 +15,6 @@ import {
   Clock,
   TrendingUp,
   AlertCircle,
-  ArrowLeft,
   RefreshCw,
   Download,
   UserCheck,
@@ -35,6 +34,7 @@ import {
   Minimize2,
   ExternalLink
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { Select } from '@/components/ui/Select';
 import { BarChart } from '@/components/charts/BarChart';
 import { LineChart } from '@/components/charts/LineChart';
@@ -50,8 +50,6 @@ export default function Analytics() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
   const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month' | 'custom'>('week');
   const [startDate, setStartDate] = useState<string>(() => {
@@ -77,6 +75,7 @@ export default function Analytics() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
   const [analyticsSearchQuery, setAnalyticsSearchQuery] = useState('');
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -94,9 +93,18 @@ export default function Analytics() {
     loadCategories();
   }, [router, startDate, endDate]);
 
+  // Update current date and time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     loadAgentPerformance();
-  }, [selectedCategoryId, startDate, endDate]);
+  }, [startDate, endDate]);
 
   const updateDateRange = () => {
     const today = new Date();
@@ -156,7 +164,7 @@ export default function Analytics() {
 
   const loadAgentPerformance = async () => {
     try {
-      const response = await adminApi.getDetailedAgentPerformance(startDate, endDate, selectedCategoryId || undefined);
+      const response = await adminApi.getDetailedAgentPerformance(startDate, endDate);
       setAgentPerformance(response.data || []);
     } catch (error: any) {
       console.error('Failed to load agent performance:', error);
@@ -475,15 +483,6 @@ export default function Analytics() {
     }
   };
 
-  // Filter agents based on search query
-  const filteredAgents = agentPerformance.filter((agent) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      agent.agentName?.toLowerCase().includes(query) ||
-      agent.agentEmail?.toLowerCase().includes(query) ||
-      agent.employeeId?.toLowerCase().includes(query);
-    return matchesSearch;
-  });
 
   // Chart expand component
   const ChartWrapper = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => {
@@ -560,13 +559,6 @@ export default function Analytics() {
           className="flex justify-between items-center mb-8"
         >
           <div>
-            <Link
-              href="/admin/dashboard"
-              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t('admin.users.backToDashboard')}
-            </Link>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-chart-4/10 rounded-lg">
                 <BarChart3 className="w-6 h-6 text-chart-4" />
@@ -577,7 +569,7 @@ export default function Analytics() {
           <div className="flex items-center gap-3">
             <Link
               href="/admin/analytics/export"
-              className="flex items-center gap-2 bg-chart-3 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-lg"
             >
               <Download className="w-5 h-5" />
               {t('admin.analytics.export')}
@@ -605,94 +597,104 @@ export default function Analytics() {
         >
           <div className="flex flex-col gap-4">
             {/* First Row: Date Filter and Custom Date Range */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
-              {/* Date Filter Buttons */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">{t('admin.analytics.period')}</span>
-                <div className="flex items-center gap-2 border border-border rounded-lg p-1">
-                  <button
-                    onClick={() => setDateFilter('day')}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                      dateFilter === 'day'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {t('admin.analytics.today')}
-                  </button>
-                  <button
-                    onClick={() => setDateFilter('week')}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                      dateFilter === 'week'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {t('admin.analytics.thisWeek')}
-                  </button>
-                  <button
-                    onClick={() => setDateFilter('month')}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                      dateFilter === 'month'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {t('admin.analytics.thisMonth')}
-                  </button>
-                  <button
-                    onClick={() => setDateFilter('custom')}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                      dateFilter === 'custom'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {t('admin.analytics.custom')}
-                  </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
+                {/* Date Filter Buttons */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">{t('admin.analytics.period')}</span>
+                  <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+                    <button
+                      onClick={() => setDateFilter('day')}
+                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                        dateFilter === 'day'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {t('admin.analytics.today')}
+                    </button>
+                    <button
+                      onClick={() => setDateFilter('week')}
+                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                        dateFilter === 'week'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {t('admin.analytics.thisWeek')}
+                    </button>
+                    <button
+                      onClick={() => setDateFilter('month')}
+                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                        dateFilter === 'month'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {t('admin.analytics.thisMonth')}
+                    </button>
+                    <button
+                      onClick={() => setDateFilter('custom')}
+                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                        dateFilter === 'custom'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {t('admin.analytics.custom')}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Custom Date Range */}
+                {dateFilter === 'custom' && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                    <span className="text-muted-foreground">{t('admin.analytics.to')}</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        const today = new Date();
+                        const dayOfWeek = today.getDay();
+                        const startOfWeek = new Date(today);
+                        startOfWeek.setDate(today.getDate() - dayOfWeek);
+                        startOfWeek.setHours(0, 0, 0, 0);
+                        setStartDate(startOfWeek.toISOString().split('T')[0]);
+                        setEndDate(today.toISOString().split('T')[0]);
+                        setDateFilter('week');
+                      }}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                      title={t('admin.analytics.resetToDefault')}
+                    >
+                      <X className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+                )}
               </div>
 
-              {/* Custom Date Range */}
-              {dateFilter === 'custom' && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                  <span className="text-muted-foreground">{t('admin.analytics.to')}</span>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => {
-                      const today = new Date();
-                      const dayOfWeek = today.getDay();
-                      const startOfWeek = new Date(today);
-                      startOfWeek.setDate(today.getDate() - dayOfWeek);
-                      startOfWeek.setHours(0, 0, 0, 0);
-                      setStartDate(startOfWeek.toISOString().split('T')[0]);
-                      setEndDate(today.toISOString().split('T')[0]);
-                      setDateFilter('week');
-                    }}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                    title={t('admin.analytics.resetToDefault')}
-                  >
-                    <X className="w-4 h-4" />
-                  </motion.button>
-                </div>
-              )}
+              {/* Current Date and Time */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span className="font-medium text-foreground">
+                  {format(currentDateTime, 'MMM dd, yyyy')} {format(currentDateTime, 'HH:mm:ss')}
+                </span>
+              </div>
             </div>
 
             {/* Second Row: Search and Quick Links */}
@@ -810,7 +812,7 @@ export default function Analytics() {
                         await handleExport();
                         setIsExportOpen(false);
                       }}
-                      className="px-6 py-2 bg-chart-2 text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg"
+                      className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-lg"
                     >
                       {t('admin.analytics.export')}
                     </button>
@@ -863,254 +865,6 @@ export default function Analytics() {
             <p className="text-3xl font-bold text-foreground">
               {stats.ticketCounts?.completed || 0}
             </p>
-          </div>
-        </motion.div>
-
-        {/* Agent Performance Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden mb-8"
-        >
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <UserCheck className="w-6 h-6 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.agentPerformance')}</h2>
-              </div>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('admin.analytics.searchAgents')}
-                  className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </div>
-              <div className="relative">
-                <Select
-                  value={selectedCategoryId}
-                  onChange={(value) => setSelectedCategoryId(value)}
-                  placeholder={t('admin.analytics.allServices')}
-                  buttonClassName="p-3 sm:p-3 pl-11 sm:pl-11 relative"
-                  options={[
-                    { value: '', label: t('admin.analytics.allServices') },
-                    ...categories.map((cat) => ({
-                      value: cat.id,
-                      label: cat.name,
-                    })),
-                  ]}
-                />
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none z-20" />
-              </div>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.totalAgents')}</p>
-                <p className="text-2xl font-bold text-foreground">{filteredAgents.length}</p>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.totalTickets')}</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {filteredAgents.reduce((sum, a) => sum + (a.totalTickets || 0), 0)}
-                </p>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.completed')}</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {filteredAgents.reduce((sum, a) => sum + (a.completedTickets || 0), 0)}
-                </p>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.avgServiceTime')}</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {filteredAgents.length > 0
-                    ? Math.round(
-                      filteredAgents.reduce((sum, a) => sum + (a.avgServiceTime || 0), 0) /
-                      filteredAgents.length
-                    )
-                    : 0}{' '}
-                  {t('customer.minutes')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Agent Performance Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t('admin.analytics.table.agent')}
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t('admin.analytics.table.totals')}
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t('admin.analytics.table.statusBreakdown')}
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t('admin.analytics.table.timeMetrics')}
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t('admin.analytics.table.performance')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredAgents.map((agent: any, idx: number) => (
-                  <motion.tr
-                    key={agent.agentId}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{agent.agentName}</p>
-                          {agent.agentEmail && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {agent.agentEmail}
-                            </p>
-                          )}
-                          {agent.employeeId && (
-                            <p className="text-xs text-primary font-mono mt-0.5">
-                              ID: {agent.employeeId}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Ticket className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-foreground font-semibold">
-                            {agent.totalTickets || 0}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{t('admin.analytics.total')}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-chart-3" />
-                          <span className="text-foreground">
-                            {agent.completedTickets || 0}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{t('admin.analytics.completed')}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3 h-3 text-yellow-600" />
-                          <span className="text-foreground">
-                            {t('common.pending')}: {agent.pendingTickets || 0}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="w-3 h-3 text-green-600" />
-                          <span className="text-foreground">
-                            {t('common.serving')}: {agent.servingTickets || 0}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Pause className="w-3 h-3 text-red-600" />
-                          <span className="text-foreground">
-                            {t('common.hold')}: {agent.holdTickets || 0}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3 h-3 text-blue-600" />
-                          <span className="text-foreground">
-                            {t('admin.analytics.wait')}: {agent.avgWaitTime || 0} {t('customer.minutes')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="w-3 h-3 text-green-600" />
-                          <span className="text-foreground">
-                            {t('admin.analytics.service')}: {agent.avgServiceTime || 0} {t('customer.minutes')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <BarChart3 className="w-3 h-3 text-purple-600" />
-                          <span className="text-foreground">
-                            {t('admin.analytics.total')}: {agent.avgTotalTime || 0} {t('customer.minutes')}
-                          </span>
-                        </div>
-                        {agent.avgCalledToServingTime !== undefined && (
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="w-3 h-3 text-orange-600" />
-                            <span className="text-foreground">
-                              {t('admin.analytics.calledToServing')}: {agent.avgCalledToServingTime || 0} {t('customer.minutes')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{t('admin.completionRate')}</span>
-                          <span className="text-sm font-semibold text-foreground">
-                            {agent.completionRate?.toFixed(1) || 0}%
-                          </span>
-                        </div>
-                        {agent.serviceBreakdown && agent.serviceBreakdown.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-xs text-muted-foreground mb-1">{t('admin.analytics.services')}:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {agent.serviceBreakdown.slice(0, 3).map((service: any, sIdx: number) => (
-                                <span
-                                  key={sIdx}
-                                  className="text-xs px-2 py-1 bg-primary/10 text-primary rounded"
-                                >
-                                  {service.categoryName} ({service.totalTickets})
-                                </span>
-                              ))}
-                              {agent.serviceBreakdown.length > 3 && (
-                                <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded">
-                                  +{agent.serviceBreakdown.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-                {filteredAgents.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                      {searchQuery || selectedCategoryId
-                        ? t('admin.analytics.noAgentsFound')
-                        : t('admin.analytics.noData')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
           </div>
         </motion.div>
 

@@ -977,7 +977,7 @@ export default function ExportAnalytics() {
             whileTap={{ scale: 0.95 }}
             onClick={handleExport}
             disabled={loading || selectedWidgets.size === 0}
-            className="flex items-center gap-2 bg-chart-2 text-white px-8 py-4 rounded-xl hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl hover:bg-primary/90 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
