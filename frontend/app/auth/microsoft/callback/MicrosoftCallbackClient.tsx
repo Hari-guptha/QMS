@@ -46,16 +46,13 @@ export default function MicrosoftCallbackClient() {
           // Apply preferences
           auth.applyUserPreferences(user);
 
-          // Redirect based on role and intended destination
-          const intendedRole = sessionStorage.getItem('microsoftAuthRole');
-          sessionStorage.removeItem('microsoftAuthRole');
-
+          // Redirect based on user role
           if (user.role === 'admin') {
             window.location.href = '/admin/analytics';
-          } else if (user.role === 'agent' || intendedRole === 'agent') {
+          } else if (user.role === 'agent') {
             window.location.href = '/agent/dashboard';
           } else {
-            window.location.href = '/';
+            window.location.href = '/login';
           }
         } else {
           setError('Failed to complete Microsoft authentication. Missing tokens.');
@@ -95,12 +92,7 @@ export default function MicrosoftCallbackClient() {
           <p className="text-gray-600 dark:text-muted-foreground mb-6">{error}</p>
           <button
             onClick={() => {
-              const intendedRole = sessionStorage.getItem('microsoftAuthRole');
-              if (intendedRole === 'admin') {
-                router.push('/admin/login');
-              } else {
-                router.push('/agent/login');
-              }
+              router.push('/login');
             }}
             className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition-colors"
           >

@@ -32,24 +32,8 @@ api.interceptors.response.use(
         const { auth } = await import('./auth');
         auth.logout();
 
-        // Redirect to appropriate login
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            if (user.role === 'admin') {
-              window.location.href = '/admin/login';
-            } else if (user.role === 'agent') {
-              window.location.href = '/agent/login';
-            } else {
-              window.location.href = '/';
-            }
-          } catch {
-            window.location.href = '/';
-          }
-        } else {
-          window.location.href = '/';
-        }
+        // Redirect to unified login page
+        window.location.href = '/login';
         return Promise.reject(error);
       }
 
@@ -65,13 +49,13 @@ api.interceptors.response.use(
         } catch {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
-          window.location.href = '/';
+          window.location.href = '/login';
         }
       } else {
         // No refresh token, logout
         const { auth } = await import('./auth');
         auth.logout();
-        window.location.href = '/';
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

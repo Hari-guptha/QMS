@@ -27,15 +27,8 @@ export function SessionTimeoutWarning() {
       setShowWarning(false);
       auth.logout();
       
-      // Redirect to appropriate login page
-      const user = auth.getUser();
-      if (user?.role === 'admin') {
-        router.push('/admin/login');
-      } else if (user?.role === 'agent') {
-        router.push('/agent/login');
-      } else {
-        router.push('/');
-      }
+      // Redirect to unified login page
+      router.push('/login');
     });
 
     // Update time left periodically
