@@ -27,9 +27,16 @@ import {
   ArrowLeft,
   Calendar,
   X,
+  Activity,
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { format } from 'date-fns';
+import { ServicePerformanceChart } from '@/components/charts/ServicePerformanceChart';
+import { DailyTrendsChart } from '@/components/charts/DailyTrendsChart';
+import { HourlyDistributionChart } from '@/components/charts/HourlyDistributionChart';
+import { StatusDistributionChart } from '@/components/charts/StatusDistributionChart';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 
 export default function AgentAnalytics() {
   const router = useRouter();
@@ -61,6 +68,7 @@ export default function AgentAnalytics() {
     }
   });
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  const [expandedChart, setExpandedChart] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -318,11 +326,306 @@ export default function AgentAnalytics() {
           </div>
         </motion.div>
 
+        {/* Charts Section */}
+        <div className="space-y-6 mb-8">
+          {/* Top Row: Agent Performance (Radial) and Status Distribution */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Agent Performance Chart - Radial Bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-card border border-border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/20 rounded-lg border border-primary/30">
+                    <UserCheck className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.agentPerformance')}</h2>
+                </div>
+                <button
+                  onClick={() => setExpandedChart(expandedChart === 'agent-performance' ? null : 'agent-performance')}
+                  className="p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors"
+                  title="Expand chart"
+                >
+                  {expandedChart === 'agent-performance' ? (
+                    <Minimize2 className="w-4 h-4 text-foreground" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4 text-foreground" />
+                  )}
+                </button>
+              </div>
+              {agentPerformance.length > 0 ? (
+                <ServicePerformanceChart
+                  data={agentPerformance
+                    .sort((a: any, b: any) => (b.totalTickets || 0) - (a.totalTickets || 0))
+                    .slice(0, 8)
+                    .map((a: any) => ({
+                      label: a.agentName.length > 15 ? a.agentName.substring(0, 15) + '...' : a.agentName,
+                      value: a.totalTickets || 0,
+                    }))}
+                  height={expandedChart === 'agent-performance' ? 500 : 300}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                  <p>No data available</p>
+                </div>
+              )}
+            </motion.div>
+
+            {/* Status Distribution Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="bg-card border border-border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-chart-4/20 rounded-lg border border-chart-4/30">
+                    <Activity className="w-6 h-6 text-chart-4" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.statusDistribution')}</h2>
+                </div>
+                <button
+                  onClick={() => setExpandedChart(expandedChart === 'status-distribution' ? null : 'status-distribution')}
+                  className="p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors"
+                  title="Expand chart"
+                >
+                  {expandedChart === 'status-distribution' ? (
+                    <Minimize2 className="w-4 h-4 text-foreground" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4 text-foreground" />
+                  )}
+                </button>
+              </div>
+              {agentPerformance.length > 0 ? (
+                <StatusDistributionChart
+                  data={[
+                    {
+                      label: t('common.pending'),
+                      value: agentPerformance.reduce((sum: number, a: any) => sum + (a.pendingTickets || 0), 0),
+                    },
+                    {
+                      label: t('common.serving'),
+                      value: agentPerformance.reduce((sum: number, a: any) => sum + (a.servingTickets || 0), 0),
+                    },
+                    {
+                      label: t('common.hold'),
+                      value: agentPerformance.reduce((sum: number, a: any) => sum + (a.holdTickets || 0), 0),
+                    },
+                    {
+                      label: t('admin.analytics.completed'),
+                      value: agentPerformance.reduce((sum: number, a: any) => sum + (a.completedTickets || 0), 0),
+                    },
+                  ]}
+                  size={expandedChart === 'status-distribution' ? 500 : 300}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                  <p>No data available</p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Second Row: Completion Rate Trends and Service Time Distribution */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Completion Rate Trend */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="bg-card border border-border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-chart-3/20 rounded-lg border border-chart-3/30">
+                    <TrendingUp className="w-6 h-6 text-chart-3" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">Completion Rate Trend</h2>
+                </div>
+                <button
+                  onClick={() => setExpandedChart(expandedChart === 'completion-trend' ? null : 'completion-trend')}
+                  className="p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors"
+                  title="Expand chart"
+                >
+                  {expandedChart === 'completion-trend' ? (
+                    <Minimize2 className="w-4 h-4 text-foreground" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4 text-foreground" />
+                  )}
+                </button>
+              </div>
+              {agentPerformance.length > 0 ? (
+                <DailyTrendsChart
+                  data={agentPerformance
+                    .sort((a: any, b: any) => (b.completionRate || 0) - (a.completionRate || 0))
+                    .slice(0, 10)
+                    .map((a: any) => ({
+                      label: a.agentName.length > 12 ? a.agentName.substring(0, 12) + '...' : a.agentName,
+                      value: a.completionRate || 0,
+                    }))}
+                  height={expandedChart === 'completion-trend' ? 500 : 300}
+                  color="#10b981"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                  <p>No data available</p>
+                </div>
+              )}
+            </motion.div>
+
+            {/* Service Time Distribution */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="bg-card border border-border rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-chart-1/20 rounded-lg border border-chart-1/30">
+                    <Clock className="w-6 h-6 text-chart-1" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">Service Time Distribution</h2>
+                </div>
+                <button
+                  onClick={() => setExpandedChart(expandedChart === 'service-time' ? null : 'service-time')}
+                  className="p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors"
+                  title="Expand chart"
+                >
+                  {expandedChart === 'service-time' ? (
+                    <Minimize2 className="w-4 h-4 text-foreground" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4 text-foreground" />
+                  )}
+                </button>
+              </div>
+              {agentPerformance.length > 0 ? (
+                <div className="w-full overflow-hidden">
+                  <HourlyDistributionChart
+                    data={agentPerformance
+                      .sort((a: any, b: any) => (a.avgServiceTime || 0) - (b.avgServiceTime || 0))
+                      .slice(0, 10)
+                      .map((a: any, index: number) => ({
+                        label: a.agentName.length > 8 ? a.agentName.substring(0, 8) + '...' : a.agentName,
+                        value: Math.round(a.avgServiceTime || 0),
+                      }))}
+                    height={expandedChart === 'service-time' ? 400 : 250}
+                    color="#3b82f6"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                  <p>No data available</p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Expanded Chart Modals */}
+        <AnimatePresence>
+          {expandedChart && (
+            <>
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setExpandedChart(null)} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed inset-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {expandedChart === 'agent-performance' && t('admin.analytics.agentPerformance')}
+                    {expandedChart === 'status-distribution' && t('admin.analytics.statusDistribution')}
+                    {expandedChart === 'completion-trend' && 'Completion Rate Trend'}
+                    {expandedChart === 'service-time' && 'Service Time Distribution'}
+                  </h2>
+                  <button
+                    onClick={() => setExpandedChart(null)}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-foreground" />
+                  </button>
+                </div>
+                <div className="h-[calc(100vh-12rem)]">
+                  {expandedChart === 'agent-performance' && agentPerformance.length > 0 && (
+                    <ServicePerformanceChart
+                      data={agentPerformance
+                        .sort((a: any, b: any) => (b.totalTickets || 0) - (a.totalTickets || 0))
+                        .slice(0, 8)
+                        .map((a: any) => ({
+                          label: a.agentName.length > 15 ? a.agentName.substring(0, 15) + '...' : a.agentName,
+                          value: a.totalTickets || 0,
+                        }))}
+                      height={500}
+                    />
+                  )}
+                  {expandedChart === 'status-distribution' && agentPerformance.length > 0 && (
+                    <StatusDistributionChart
+                      data={[
+                        {
+                          label: t('common.pending'),
+                          value: agentPerformance.reduce((sum: number, a: any) => sum + (a.pendingTickets || 0), 0),
+                        },
+                        {
+                          label: t('common.serving'),
+                          value: agentPerformance.reduce((sum: number, a: any) => sum + (a.servingTickets || 0), 0),
+                        },
+                        {
+                          label: t('common.hold'),
+                          value: agentPerformance.reduce((sum: number, a: any) => sum + (a.holdTickets || 0), 0),
+                        },
+                        {
+                          label: t('admin.analytics.completed'),
+                          value: agentPerformance.reduce((sum: number, a: any) => sum + (a.completedTickets || 0), 0),
+                        },
+                      ]}
+                      size={500}
+                    />
+                  )}
+                  {expandedChart === 'completion-trend' && agentPerformance.length > 0 && (
+                    <DailyTrendsChart
+                      data={agentPerformance
+                        .sort((a: any, b: any) => (b.completionRate || 0) - (a.completionRate || 0))
+                        .slice(0, 10)
+                        .map((a: any) => ({
+                          label: a.agentName.length > 12 ? a.agentName.substring(0, 12) + '...' : a.agentName,
+                          value: a.completionRate || 0,
+                        }))}
+                      height={500}
+                      color="#10b981"
+                    />
+                  )}
+                  {expandedChart === 'service-time' && agentPerformance.length > 0 && (
+                    <div className="w-full overflow-hidden">
+                      <HourlyDistributionChart
+                        data={agentPerformance
+                          .sort((a: any, b: any) => (a.avgServiceTime || 0) - (b.avgServiceTime || 0))
+                          .slice(0, 10)
+                          .map((a: any) => ({
+                            label: a.agentName.length > 12 ? a.agentName.substring(0, 12) + '...' : a.agentName,
+                            value: Math.round(a.avgServiceTime || 0),
+                          }))}
+                        height={400}
+                        color="#3b82f6"
+                      />
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         {/* Agent Performance Section */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
           className="bg-card text-card-foreground border rounded-2xl shadow-lg overflow-hidden mb-8"
         >
           <div className="p-6 border-b border-border">
