@@ -31,9 +31,10 @@ import {
   Ticket,
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
-import { BarChart } from '@/components/charts/BarChart';
-import { PieChart } from '@/components/charts/PieChart';
-import { AreaChart } from '@/components/charts/AreaChart';
+import { ServicePerformanceChart } from '@/components/charts/ServicePerformanceChart';
+import { StatusDistributionChart } from '@/components/charts/StatusDistributionChart';
+import { DailyTrendsChart } from '@/components/charts/DailyTrendsChart';
+import { HourlyDistributionChart } from '@/components/charts/HourlyDistributionChart';
 import React from 'react';
 
 export default function ServiceAnalytics() {
@@ -500,13 +501,13 @@ export default function ServiceAnalytics() {
                   </div>
                   <h2 className="text-xl font-bold text-foreground">Tickets by Service</h2>
                 </div>
-                <BarChart
+                <ServicePerformanceChart
                   data={filteredServices.slice(0, 10).map((s: any) => ({
-                    label: s.categoryName.length > 15 ? s.categoryName.substring(0, 15) + '...' : s.categoryName,
+                    label: s.categoryName,
                     value: s.totalTickets,
-                    color: 'var(--chart-2)',
                   }))}
                   height={expandedChart === 'tickets-by-service' ? 400 : 250}
+                  color="#f59e0b"
                 />
               </ChartWrapper>
             </motion.div>
@@ -527,13 +528,13 @@ export default function ServiceAnalytics() {
                   </div>
                   <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.completionRate')}</h2>
                 </div>
-                <BarChart
+                <HourlyDistributionChart
                   data={filteredServices.slice(0, 10).map((s: any) => ({
                     label: s.categoryName.length > 15 ? s.categoryName.substring(0, 15) + '...' : s.categoryName,
                     value: s.completionRate || 0,
-                    color: 'var(--chart-3)',
                   }))}
                   height={expandedChart === 'completion-rate' ? 400 : 250}
+                  color="#8b5cf6"
                 />
               </ChartWrapper>
             </motion.div>
@@ -554,13 +555,13 @@ export default function ServiceAnalytics() {
                   </div>
                   <h2 className="text-xl font-bold text-foreground">Avg Service Time</h2>
                 </div>
-                <BarChart
+                <DailyTrendsChart
                   data={filteredServices.slice(0, 10).map((s: any) => ({
                     label: s.categoryName.length > 15 ? s.categoryName.substring(0, 15) + '...' : s.categoryName,
                     value: s.avgServiceTime || 0,
-                    color: '#3b82f6',
                   }))}
                   height={expandedChart === 'service-time' ? 400 : 250}
+                  color="#3b82f6"
                 />
               </ChartWrapper>
             </motion.div>
@@ -581,7 +582,7 @@ export default function ServiceAnalytics() {
                   </div>
                   <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.statusDistribution')}</h2>
                 </div>
-                <PieChart
+                <StatusDistributionChart
                   data={[
                     {
                       label: 'Pending',
@@ -601,10 +602,9 @@ export default function ServiceAnalytics() {
                     {
                       label: 'Completed',
                       value: filteredServices.reduce((sum, s) => sum + (s.completedTickets || 0), 0),
-                      color: 'var(--chart-3)',
+                      color: '#3b82f6',
                     },
                   ]}
-                  title=""
                   size={expandedChart === 'status-distribution' ? 400 : 250}
                 />
               </ChartWrapper>
@@ -843,43 +843,43 @@ export default function ServiceAnalytics() {
         <AnimatePresence>
           {expandedChart === 'tickets-by-service' && (
             <ExpandedChartModal id="tickets-by-service" title="Tickets by Service">
-              <BarChart
+              <ServicePerformanceChart
                 data={filteredServices.map((s: any) => ({
                   label: s.categoryName,
                   value: s.totalTickets,
-                  color: 'var(--chart-2)',
                 }))}
                 height={400}
+                color="#f59e0b"
               />
             </ExpandedChartModal>
           )}
           {expandedChart === 'completion-rate' && (
             <ExpandedChartModal id="completion-rate" title="Completion Rate by Service">
-              <BarChart
+              <HourlyDistributionChart
                 data={filteredServices.map((s: any) => ({
                   label: s.categoryName,
                   value: s.completionRate || 0,
-                  color: 'var(--chart-3)',
                 }))}
                 height={400}
+                color="#8b5cf6"
               />
             </ExpandedChartModal>
           )}
           {expandedChart === 'service-time' && (
             <ExpandedChartModal id="service-time" title="Average Service Time by Service">
-              <BarChart
+              <DailyTrendsChart
                 data={filteredServices.map((s: any) => ({
                   label: s.categoryName,
                   value: s.avgServiceTime || 0,
-                  color: '#3b82f6',
                 }))}
                 height={400}
+                color="#3b82f6"
               />
             </ExpandedChartModal>
           )}
           {expandedChart === 'status-distribution' && (
             <ExpandedChartModal id="status-distribution" title="Status Distribution">
-              <PieChart
+              <StatusDistributionChart
                 data={[
                   {
                     label: 'Pending',
@@ -899,10 +899,9 @@ export default function ServiceAnalytics() {
                   {
                     label: 'Completed',
                     value: filteredServices.reduce((sum, s) => sum + (s.completedTickets || 0), 0),
-                    color: 'var(--chart-3)',
+                    color: '#3b82f6',
                   },
                 ]}
-                title=""
                 size={400}
               />
             </ExpandedChartModal>
