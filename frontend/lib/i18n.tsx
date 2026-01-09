@@ -66,7 +66,6 @@ const translations: Translations = {
   'customer.checkInAgain': { en: 'Check In Again', ar: 'تسجيل وصول مرة أخرى' },
   'customer.viewQueueStatus': { en: 'View Queue Status', ar: 'عرض حالة الطابور' },
   'customer.backToHome': { en: 'Back to Home', ar: 'العودة إلى الصفحة الرئيسية' },
-  'customer.redirecting': { en: 'Redirecting to check-in page in a few seconds...', ar: 'سيتم إعادة التوجيه إلى صفحة التسجيل خلال ثوانٍ قليلة...' },
   'customer.selectedService': { en: 'Selected Service', ar: 'الخدمة المحددة' },
   'customer.change': { en: 'Change', ar: 'تغيير' },
   'customer.enterFullName': { en: 'Enter your full name', ar: 'أدخل اسمك الكامل' },
@@ -316,14 +315,6 @@ const translations: Translations = {
   'admin.visitors.currentVisit': { en: 'Current Visit', ar: 'الزيارة الحالية' },
   'admin.visitors.date': { en: 'Date', ar: 'التاريخ' },
   'admin.visitors.notes': { en: 'Notes', ar: 'ملاحظات' },
-  'admin.visitors.totalTickets': { en: 'Total Tickets', ar: 'إجمالي التذاكر' },
-  'admin.visitors.services': { en: 'Services', ar: 'الخدمات' },
-  'admin.visitors.lastVisit': { en: 'Last Visit', ar: 'آخر زيارة' },
-  'admin.visitors.totalTime': { en: 'Total Time', ar: 'الوقت الإجمالي' },
-  'admin.visitors.completed': { en: 'completed', ar: 'مكتمل' },
-  'admin.visitors.firstVisit': { en: 'First', ar: 'أول' },
-  'admin.visitors.total': { en: 'total', ar: 'إجمالي' },
-  'admin.visitors.viewMore': { en: 'View More', ar: 'عرض المزيد' },
 
   // Admin Analytics
   'admin.analytics.title': { en: 'Analytics Dashboard', ar: 'لوحة تحكم التحليلات' },
@@ -567,8 +558,6 @@ const translations: Translations = {
   'common.putOnHold': { en: 'Put on Hold', ar: 'وضع في الانتظار' },
   'common.pleaseProvideReason': { en: 'Please provide a reason for putting this ticket on hold. This is required.', ar: 'يرجى تقديم سبب لوضع هذه التذكرة في الانتظار. هذا مطلوب.' },
   'common.enterReason': { en: 'Enter the reason for putting this ticket on hold...', ar: 'أدخل سبب وضع هذه التذكرة في الانتظار...' },
-  'common.gridView': { en: 'Grid View', ar: 'عرض الشبكة' },
-  'common.tableView': { en: 'Table View', ar: 'عرض الجدول' },
   'common.delete': { en: 'Delete', ar: 'حذف' },
   'common.reassign': { en: 'Reassign', ar: 'إعادة تعيين' },
   'common.complete': { en: 'Complete', ar: 'إكمال' },
@@ -612,7 +601,7 @@ const translations: Translations = {
 interface I18nContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   dir: 'ltr' | 'rtl';
 }
 
@@ -647,13 +636,23 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
   }, [language, mounted]);
 
-  const t = (key: string): string => {
+  const t = (key: string, params?: Record<string, string | number>): string => {
     const translation = translations[key];
     if (!translation) {
       console.warn(`Translation missing for key: ${key}`);
       return key;
     }
-    return translation[language] || translation.en;
+    let text = translation[language] || translation.en;
+    
+    // Replace placeholders with actual values if params are provided
+    if (params) {
+      Object.keys(params).forEach((paramKey) => {
+        const value = params[paramKey];
+        text = text.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(value));
+      });
+    }
+    
+    return text;
   };
 
   const dir = language === 'ar' ? 'rtl' : 'ltr';

@@ -40,17 +40,6 @@ export default function TokenPage() {
     };
   }, [tokenNumber]);
 
-  // Auto-redirect to check-in page after 5 seconds
-  useEffect(() => {
-    if (!loading && ticket) {
-      const timer = setTimeout(() => {
-        router.push('/customer/check-in');
-      }, 5000); // 5 seconds
-
-      return () => clearTimeout(timer);
-    }
-  }, [loading, ticket, router]);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -123,9 +112,18 @@ export default function TokenPage() {
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground mt-2">
-            {t('customer.redirecting')}
-          </p>
+          <button
+            onClick={() => router.push('/status')}
+            className="w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold hover:bg-primary/90 transition-colors shadow-xs"
+          >
+            {t('customer.viewStatusPage')}
+          </button>
+          <button
+            onClick={() => router.push('/customer/check-in')}
+            className="w-full bg-secondary text-secondary-foreground py-2 rounded-md font-semibold hover:bg-secondary/80 transition-colors border"
+          >
+            {t('customer.checkInAgain')}
+          </button>
         </div>
       </div>
     </div>

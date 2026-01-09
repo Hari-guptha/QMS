@@ -63,9 +63,7 @@ export class QueueService {
    * Core Logic: Create ticket and route to least busy agent
    */
   async createTicket(createTicketDto: CreateTicketDto) {
-    // Increase transaction timeout to 15 seconds to handle token generation and avoid timeouts
-    return this.prisma.$transaction(
-      async (tx: any) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const category = await tx.category.findUnique({
         where: { id: createTicketDto.categoryId },
       });
@@ -110,11 +108,7 @@ export class QueueService {
       });
 
       return ticket;
-      },
-      {
-        timeout: 15000, // 15 seconds timeout
-      }
-    ).then(async (savedTicket) => {
+    }).then(async (savedTicket) => {
       const decrypted = this.decryptTicket(savedTicket);
 
       // Send notifications (using decrypted data)
@@ -181,72 +175,40 @@ export class QueueService {
 
   /**
    * Internal token generation with serializable-like behavior in MSSQL
-   * Optimized to avoid fetching all tickets - only gets the last ticket
    */
   private async generateTokenNumberInternal(tx: any, category: any): Promise<string> {
-    const categoryCode = category.name.substring(0, 3).toUpperCase().replace(/\s/g, '');
+    const categoryCode = category.name.substring(0, 3).toUpperCase();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(today);
-    todayEnd.setHours(23, 59, 59, 999);
 
-    // Optimized: Only get the last ticket ordered by tokenNumber (much faster)
-    // This assumes token numbers are sequential, which they should be
     const lastTicket = await tx.ticket.findFirst({
       where: {
         tokenNumber: { startsWith: `${categoryCode}-` },
-        createdAt: { gte: today, lte: todayEnd },
+        createdAt: { gte: today },
       },
-      select: { tokenNumber: true },
-      orderBy: { tokenNumber: 'desc' }, // Order by tokenNumber instead of createdAt for better performance
+      orderBy: { createdAt: 'desc' },
     });
 
     let nextNumber = 1;
     if (lastTicket) {
       const parts = lastTicket.tokenNumber.split('-');
-      if (parts.length > 1) {
-        const lastNum = parseInt(parts[parts.length - 1] || '0', 10);
-        if (!isNaN(lastNum)) {
-          nextNumber = lastNum + 1;
-        }
-      }
+      const lastNum = parseInt(parts[1] || '0');
+      nextNumber = lastNum + 1;
     }
 
-    // Try to find a unique token number with retry logic
-    const maxAttempts = 50; // Reduced from 100 since we're starting from a better position
+    let tokenNumber = `${categoryCode}-${nextNumber.toString().padStart(3, '0')}`;
     let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      const tokenNumber = `${categoryCode}-${nextNumber.toString().padStart(3, '0')}`;
-      
-      // Check if this token number already exists
+    while (attempts < 10) {
       const existing = await tx.ticket.findUnique({
         where: { tokenNumber },
       });
-      
-      if (!existing) {
-        return tokenNumber;
-      }
+      if (!existing) return tokenNumber;
 
-      // If it exists, try the next number
       nextNumber++;
+      tokenNumber = `${categoryCode}-${nextNumber.toString().padStart(3, '0')}`;
       attempts++;
     }
-
-    // If we've exhausted all attempts, try with timestamp as fallback
-    const timestamp = Date.now().toString().slice(-6);
-    const fallbackToken = `${categoryCode}-${timestamp}`;
-    const fallbackExists = await tx.ticket.findUnique({
-      where: { tokenNumber: fallbackToken },
-    });
-
-    if (!fallbackExists) {
-      return fallbackToken;
-    }
-
-    // Last resort: use UUID-like suffix
-    const uuidSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `${categoryCode}-${uuidSuffix}`;
+    throw new Error('Failed to generate unique token number');
   }
 
   private async getNextPositionInQueueInternal(tx: any, agentId: string): Promise<number> {
