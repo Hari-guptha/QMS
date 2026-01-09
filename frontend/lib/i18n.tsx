@@ -66,6 +66,7 @@ const translations: Translations = {
   'customer.checkInAgain': { en: 'Check In Again', ar: 'تسجيل وصول مرة أخرى' },
   'customer.viewQueueStatus': { en: 'View Queue Status', ar: 'عرض حالة الطابور' },
   'customer.backToHome': { en: 'Back to Home', ar: 'العودة إلى الصفحة الرئيسية' },
+  'customer.redirecting': { en: 'Redirecting to check-in page in a few seconds...', ar: 'سيتم إعادة التوجيه إلى صفحة التسجيل خلال ثوانٍ قليلة...' },
   'customer.selectedService': { en: 'Selected Service', ar: 'الخدمة المحددة' },
   'customer.change': { en: 'Change', ar: 'تغيير' },
   'customer.enterFullName': { en: 'Enter your full name', ar: 'أدخل اسمك الكامل' },
@@ -315,6 +316,14 @@ const translations: Translations = {
   'admin.visitors.currentVisit': { en: 'Current Visit', ar: 'الزيارة الحالية' },
   'admin.visitors.date': { en: 'Date', ar: 'التاريخ' },
   'admin.visitors.notes': { en: 'Notes', ar: 'ملاحظات' },
+  'admin.visitors.totalTickets': { en: 'Total Tickets', ar: 'إجمالي التذاكر' },
+  'admin.visitors.services': { en: 'Services', ar: 'الخدمات' },
+  'admin.visitors.lastVisit': { en: 'Last Visit', ar: 'آخر زيارة' },
+  'admin.visitors.totalTime': { en: 'Total Time', ar: 'الوقت الإجمالي' },
+  'admin.visitors.completed': { en: 'completed', ar: 'مكتمل' },
+  'admin.visitors.firstVisit': { en: 'First', ar: 'أول' },
+  'admin.visitors.total': { en: 'total', ar: 'إجمالي' },
+  'admin.visitors.viewMore': { en: 'View More', ar: 'عرض المزيد' },
 
   // Admin Analytics
   'admin.analytics.title': { en: 'Analytics Dashboard', ar: 'لوحة تحكم التحليلات' },

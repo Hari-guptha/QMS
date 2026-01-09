@@ -24,6 +24,8 @@ import {
   Mail,
   Eye,
   ChevronRight,
+  FolderOpen,
+  Users,
 } from 'lucide-react';
 import {
   format,
@@ -104,10 +106,79 @@ export default function VisitorsPage() {
     }
   };
 
-  const filteredVisitors = useMemo(() => {
-    let filtered = visitors;
+  // Group visitors by phone number and name
+  const groupedVisitors = useMemo(() => {
+    const groups = new Map<string, any[]>();
 
-    // Filter by date range
+    visitors.forEach((ticket) => {
+      // Create a key based on phone number and name
+      const phone = ticket.customerPhone?.trim() || '';
+      const name = ticket.customerName?.trim() || '';
+      
+      // If phone exists, use phone+name as key, otherwise use ticket ID (unique visitor)
+      const key = phone 
+        ? `${phone}|${name}` 
+        : ticket.id; // For tickets without phone, treat each as unique
+
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(ticket);
+    });
+
+    // Convert groups to visitor objects with aggregated data
+    return Array.from(groups.entries()).map(([key, tickets]) => {
+      // Sort tickets by date (most recent first)
+      const sortedTickets = tickets.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      const firstTicket = sortedTickets[0];
+      const phone = firstTicket.customerPhone?.trim() || '';
+      const name = firstTicket.customerName?.trim() || '';
+
+      // Calculate aggregated stats
+      const totalTickets = tickets.length;
+      const completedTickets = tickets.filter(t => t.status === 'completed').length;
+      const uniqueServices = new Set(tickets.map(t => t.category?.name).filter(Boolean));
+      
+      // Calculate total visit time (sum of all completed visits)
+      const totalVisitTime = tickets.reduce((sum, ticket) => {
+        if (ticket.calledAt && ticket.completedAt) {
+          const start = new Date(ticket.calledAt);
+          const end = new Date(ticket.completedAt);
+          return sum + Math.floor((end.getTime() - start.getTime()) / 1000 / 60);
+        }
+        return sum;
+      }, 0);
+
+      // Get first and last visit dates
+      const visitDates = tickets.map(t => new Date(t.createdAt)).sort((a, b) => a.getTime() - b.getTime());
+      const firstVisit = visitDates[0];
+      const lastVisit = visitDates[visitDates.length - 1];
+
+      return {
+        id: firstTicket.id, // Use first ticket ID for routing
+        key, // Unique key for this visitor group
+        customerName: name || t('admin.visitors.anonymous') || 'Anonymous',
+        customerPhone: phone,
+        customerEmail: firstTicket.customerEmail,
+        totalTickets,
+        completedTickets,
+        uniqueServices: Array.from(uniqueServices),
+        totalVisitTime, // in minutes
+        firstVisit,
+        lastVisit,
+        latestTicket: firstTicket, // Most recent ticket
+        allTickets: sortedTickets, // All tickets for this visitor
+      };
+    });
+  }, [visitors, t]);
+
+  const filteredVisitors = useMemo(() => {
+    let filtered = groupedVisitors;
+
+    // Filter by date range (check if any ticket in the group falls within range)
     if (startDate && endDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
@@ -115,8 +186,11 @@ export default function VisitorsPage() {
       end.setHours(23, 59, 59, 999);
 
       filtered = filtered.filter((visitor) => {
-        const visitDate = new Date(visitor.createdAt);
-        return isWithinInterval(visitDate, { start, end });
+        // Check if any ticket in this group falls within the date range
+        return visitor.allTickets.some((ticket: any) => {
+          const visitDate = new Date(ticket.createdAt);
+          return isWithinInterval(visitDate, { start, end });
+        });
       });
     }
 
@@ -126,17 +200,19 @@ export default function VisitorsPage() {
       filtered = filtered.filter((visitor) => {
         return (
           visitor.customerName?.toLowerCase().includes(query) ||
-          visitor.tokenNumber?.toLowerCase().includes(query) ||
           visitor.customerPhone?.toLowerCase().includes(query) ||
-          visitor.customerEmail?.toLowerCase().includes(query)
+          visitor.customerEmail?.toLowerCase().includes(query) ||
+          visitor.allTickets.some((t: any) => 
+            t.tokenNumber?.toLowerCase().includes(query)
+          )
         );
       });
     }
 
     return filtered.sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return b.lastVisit.getTime() - a.lastVisit.getTime();
     });
-  }, [visitors, startDate, endDate, searchQuery]);
+  }, [groupedVisitors, startDate, endDate, searchQuery]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -383,16 +459,16 @@ export default function VisitorsPage() {
                           {t('admin.visitors.visitor') || 'Visitor'}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          {t('admin.visitors.ticketNumber') || 'Ticket'}
+                          {t('admin.visitors.totalTickets') || 'Total Tickets'}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          {t('admin.visitors.service') || 'Service'}
+                          {t('admin.visitors.services') || 'Services'}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          {t('admin.visitors.checkInTime') || 'Check-in Time'}
+                          {t('admin.visitors.lastVisit') || 'Last Visit'}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          {t('admin.visitors.status') || 'Status'}
+                          {t('admin.visitors.totalTime') || 'Total Time'}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                           {t('admin.visitors.actions') || 'Actions'}
@@ -401,24 +477,29 @@ export default function VisitorsPage() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {filteredVisitors.map((visitor) => {
-                        const duration = calculateVisitDuration(visitor);
                         return (
                           <motion.tr
-                            key={visitor.id}
+                            key={visitor.key}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             whileHover={{ backgroundColor: 'var(--muted)' }}
                             className="transition-colors"
                           >
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 py-4">
                               <div className="flex flex-col">
                                 <div className="text-sm font-medium text-foreground">
-                                  {visitor.customerName || t('admin.visitors.anonymous') || 'Anonymous'}
+                                  {visitor.customerName}
                                 </div>
                                 {visitor.customerPhone && (
-                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                                     <Phone className="w-3 h-3" />
                                     {visitor.customerPhone}
+                                  </div>
+                                )}
+                                {visitor.customerEmail && (
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                    <Mail className="w-3 h-3" />
+                                    <span className="truncate max-w-[200px]">{visitor.customerEmail}</span>
                                   </div>
                                 )}
                               </div>
@@ -426,40 +507,66 @@ export default function VisitorsPage() {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-2">
                                 <Ticket className="w-4 h-4 text-primary" />
-                                <span className="text-sm font-medium text-foreground">
-                                  {visitor.tokenNumber}
-                                </span>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-foreground">
+                                    {visitor.totalTickets}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {visitor.completedTickets} {t('admin.visitors.completed') || 'completed'}
+                                  </span>
+                                </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-foreground">
-                                {visitor.category?.name || '-'}
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col gap-1">
+                                {visitor.uniqueServices.length > 0 ? (
+                                  visitor.uniqueServices.slice(0, 2).map((service: string, idx: number) => (
+                                    <div key={idx} className="text-sm text-foreground flex items-center gap-1">
+                                      <FolderOpen className="w-3 h-3 text-muted-foreground" />
+                                      {service}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
+                                {visitor.uniqueServices.length > 2 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    +{visitor.uniqueServices.length - 2} more
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex flex-col">
                                 <div className="text-sm text-foreground">
-                                  {format(new Date(visitor.createdAt), 'MMM dd, yyyy')}
+                                  {format(visitor.lastVisit, 'MMM dd, yyyy')}
                                 </div>
                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
-                                  {format(new Date(visitor.createdAt), 'HH:mm')}
+                                  {format(visitor.lastVisit, 'HH:mm')}
                                 </div>
-                                {duration !== null && (
+                                {visitor.totalTickets > 1 && (
                                   <div className="text-xs text-muted-foreground mt-1">
-                                    {t('admin.visitors.duration', { minutes: duration }) || `${duration} min`}
+                                    {t('admin.visitors.firstVisit') || 'First'}: {format(visitor.firstVisit, 'MMM dd, yyyy')}
                                   </div>
                                 )}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                  visitor.status
-                                )}`}
-                              >
-                                {getStatusLabel(visitor.status)}
-                              </span>
+                              <div className="flex flex-col">
+                                {visitor.totalVisitTime > 0 ? (
+                                  <>
+                                    <div className="text-sm font-medium text-foreground">
+                                      {visitor.totalVisitTime} min
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {t('admin.visitors.total') || 'total'}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <Link
@@ -467,7 +574,7 @@ export default function VisitorsPage() {
                                 className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
                               >
                                 <Eye className="w-4 h-4" />
-                                {t('admin.visitors.view') || 'View'}
+                                {t('admin.visitors.viewMore') || 'View More'}
                               </Link>
                             </td>
                           </motion.tr>
@@ -485,10 +592,9 @@ export default function VisitorsPage() {
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
               >
                 {filteredVisitors.map((visitor) => {
-                  const duration = calculateVisitDuration(visitor);
                   return (
                     <motion.div
-                      key={visitor.id}
+                      key={visitor.key}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       whileHover={{ y: -4, scale: 1.02 }}
@@ -498,33 +604,49 @@ export default function VisitorsPage() {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <h3 className="text-lg font-semibold text-foreground mb-1">
-                              {visitor.customerName || t('admin.visitors.anonymous') || 'Anonymous'}
+                              {visitor.customerName}
                             </h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                              <Ticket className="w-4 h-4" />
-                              <span className="font-medium">{visitor.tokenNumber}</span>
-                            </div>
+                            {visitor.customerPhone && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                <Phone className="w-4 h-4" />
+                                <span>{visitor.customerPhone}</span>
+                              </div>
+                            )}
                           </div>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                              visitor.status
-                            )}`}
-                          >
-                            {getStatusLabel(visitor.status)}
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="flex items-center gap-1 text-sm font-medium text-primary">
+                              <Users className="w-4 h-4" />
+                              <span>{visitor.totalTickets}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {visitor.completedTickets} {t('admin.visitors.completed') || 'completed'}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="space-y-2 mb-4">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <FolderOpen className="w-4 h-4" />
-                            <span>{visitor.category?.name || '-'}</span>
+                            <Ticket className="w-4 h-4" />
+                            <span>{t('admin.visitors.totalTickets') || 'Total Tickets'}: {visitor.totalTickets}</span>
                           </div>
-                          {visitor.customerPhone && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Phone className="w-4 h-4" />
-                              <span>{visitor.customerPhone}</span>
+                          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                            <FolderOpen className="w-4 h-4 mt-0.5" />
+                            <div className="flex-1">
+                              <span className="block mb-1">{t('admin.visitors.services') || 'Services'}:</span>
+                              <div className="flex flex-wrap gap-1">
+                                {visitor.uniqueServices.slice(0, 3).map((service: string, idx: number) => (
+                                  <span key={idx} className="text-xs bg-muted px-2 py-0.5 rounded">
+                                    {service}
+                                  </span>
+                                ))}
+                                {visitor.uniqueServices.length > 3 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    +{visitor.uniqueServices.length - 3}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          )}
+                          </div>
                           {visitor.customerEmail && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Mail className="w-4 h-4" />
@@ -534,19 +656,19 @@ export default function VisitorsPage() {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="w-4 h-4" />
                             <span>
-                              {format(new Date(visitor.createdAt), 'MMM dd, yyyy HH:mm')}
+                              {t('admin.visitors.lastVisit') || 'Last Visit'}: {format(visitor.lastVisit, 'MMM dd, yyyy HH:mm')}
                             </span>
                           </div>
-                          {duration !== null && (
+                          {visitor.totalVisitTime > 0 && (
                             <div className="text-sm text-muted-foreground">
-                              {t('admin.visitors.duration', { minutes: duration }) || `Duration: ${duration} min`}
+                              {t('admin.visitors.totalTime') || 'Total Time'}: {visitor.totalVisitTime} min
                             </div>
                           )}
                         </div>
 
                         <div className="flex items-center justify-end pt-4 border-t border-border">
                           <span className="text-sm text-primary font-medium flex items-center gap-1">
-                            {t('admin.visitors.viewDetails') || 'View Details'}
+                            {t('admin.visitors.viewMore') || 'View More'}
                             <ChevronRight className="w-4 h-4" />
                           </span>
                         </div>

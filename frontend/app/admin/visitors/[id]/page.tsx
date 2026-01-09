@@ -58,19 +58,46 @@ export default function VisitorDetailPage() {
       if (currentTicket) {
         setVisitor(currentTicket);
         
-        // Find all visits by the same customer (by phone or email)
-        const customerIdentifier = currentTicket.customerPhone || currentTicket.customerEmail;
-        if (customerIdentifier) {
-          const visits = allTickets.filter((t: any) => 
-            (t.customerPhone && t.customerPhone === customerIdentifier) ||
-            (t.customerEmail && t.customerEmail === customerIdentifier)
-          );
-          setAllVisits(visits.sort((a: any, b: any) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          ));
+        // Find all visits by the same customer
+        // Group by phone number and name (same logic as visitors page)
+        const phone = currentTicket.customerPhone?.trim() || '';
+        const name = currentTicket.customerName?.trim() || '';
+        const email = currentTicket.customerEmail?.trim() || '';
+        
+        let visits: any[] = [];
+        
+        if (phone) {
+          // If phone exists, match by phone AND name (if name exists)
+          // This ensures we only show tickets for the same person
+          visits = allTickets.filter((t: any) => {
+            const tPhone = t.customerPhone?.trim() || '';
+            const tName = t.customerName?.trim() || '';
+            
+            // Match by phone number
+            if (tPhone === phone) {
+              // If both have names, they must match
+              if (name && tName) {
+                return name === tName;
+              }
+              // If one has name and other doesn't, still match (name might be added later)
+              return true;
+            }
+            return false;
+          });
+        } else if (email) {
+          // Fallback to email if no phone
+          visits = allTickets.filter((t: any) => {
+            const tEmail = t.customerEmail?.trim() || '';
+            return tEmail === email;
+          });
         } else {
-          setAllVisits([currentTicket]);
+          // No phone or email, just show this one ticket
+          visits = [currentTicket];
         }
+        
+        setAllVisits(visits.sort((a: any, b: any) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ));
       }
     } catch (error) {
       console.error('Failed to load visitor data:', error);
