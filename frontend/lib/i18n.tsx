@@ -347,6 +347,14 @@ const translations: Translations = {
   'admin.visitors.export.searchVisitor': { en: 'Search visitors by name, phone, or email...', ar: 'ابحث عن الزوار بالاسم أو الهاتف أو البريد الإلكتروني...' },
   'admin.visitors.export.noVisitorsFound': { en: 'No visitors found', ar: 'لم يتم العثور على زوار' },
   'admin.visitors.export.visitors': { en: 'visitors', ar: 'زوار' },
+  'admin.visitors.export.csv.visitorName': { en: 'Visitor Name', ar: 'اسم الزائر' },
+  'admin.visitors.export.csv.calledAt': { en: 'Called At', ar: 'تم الاستدعاء في' },
+  'admin.visitors.export.csv.servingStartedAt': { en: 'Serving Started At', ar: 'بدء الخدمة في' },
+  'admin.visitors.export.csv.completedAt': { en: 'Completed At', ar: 'اكتمل في' },
+  'admin.visitors.export.csv.totalServiceTime': { en: 'Total Service Time (minutes)', ar: 'إجمالي وقت الخدمة (دقائق)' },
+  'admin.visitors.export.csv.completedVisits': { en: 'Completed Visits', ar: 'الزيارات المكتملة' },
+  'admin.visitors.export.csv.firstVisit': { en: 'First Visit', ar: 'أول زيارة' },
+  'admin.visitors.export.csv.lastVisit': { en: 'Last Visit', ar: 'آخر زيارة' },
 
   // Admin Analytics
   'admin.analytics.title': { en: 'Analytics Dashboard', ar: 'لوحة تحكم التحليلات' },

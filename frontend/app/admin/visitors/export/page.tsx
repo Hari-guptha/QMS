@@ -379,22 +379,22 @@ export default function ExportVisitorsPage() {
     if (exportType === 'full') {
       // Full export with ticket details and visitor history
       const headers = [
-        'Visitor Name',
-        'Phone',
-        'Email',
-        'Ticket Number',
-        'Service',
-        'Agent',
-        'Status',
-        'Check-in Time',
-        'Called At',
-        'Serving Started At',
-        'Completed At',
-        'Wait Time (minutes)',
-        'Service Time (minutes)',
-        'Total Visits',
-        'Total Service Time (minutes)',
-        'Notes',
+        t('admin.visitors.export.csv.visitorName') || 'Visitor Name',
+        t('customer.phone') || 'Phone',
+        t('customer.email') || 'Email',
+        t('admin.visitors.ticketNumber') || 'Ticket Number',
+        t('admin.visitors.service') || 'Service',
+        t('admin.visitors.agent') || 'Agent',
+        t('admin.visitors.status') || 'Status',
+        t('admin.visitors.checkInTime') || 'Check-in Time',
+        t('admin.visitors.export.csv.calledAt') || 'Called At',
+        t('admin.visitors.export.csv.servingStartedAt') || 'Serving Started At',
+        t('admin.visitors.export.csv.completedAt') || 'Completed At',
+        t('admin.visitors.waitTime') || 'Wait Time (minutes)',
+        t('admin.visitors.serviceTime') || 'Service Time (minutes)',
+        t('admin.visitors.totalVisits') || 'Total Visits',
+        t('admin.visitors.export.csv.totalServiceTime') || 'Total Service Time (minutes)',
+        t('admin.visitors.notes') || 'Notes',
       ];
       rows.push(headers.map((h) => `"${h}"`).join(','));
 
@@ -455,14 +455,14 @@ export default function ExportVisitorsPage() {
       });
 
       const headers = [
-        'Visitor Name',
-        'Phone',
-        'Email',
-        'Total Visits',
-        'Completed Visits',
-        'Total Service Time (minutes)',
-        'First Visit',
-        'Last Visit',
+        t('admin.visitors.export.csv.visitorName') || 'Visitor Name',
+        t('customer.phone') || 'Phone',
+        t('customer.email') || 'Email',
+        t('admin.visitors.totalVisits') || 'Total Visits',
+        t('admin.visitors.export.csv.completedVisits') || 'Completed Visits',
+        t('admin.visitors.export.csv.totalServiceTime') || 'Total Service Time (minutes)',
+        t('admin.visitors.export.csv.firstVisit') || 'First Visit',
+        t('admin.visitors.export.csv.lastVisit') || 'Last Visit',
       ];
       rows.push(headers.map((h) => `"${h}"`).join(','));
 
@@ -544,7 +544,7 @@ export default function ExportVisitorsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">{t('admin.analytics.period') || 'Period'}</span>
+              <span className="text-sm font-medium text-foreground">{t('admin.analytics.period') || 'Period:'}</span>
               <div className="flex items-center gap-2 border border-border rounded-lg p-1">
                 <button
                   onClick={() => setDateFilter('day')}
@@ -660,7 +660,13 @@ export default function ExportVisitorsPage() {
                   <Square className="w-5 h-5 text-muted-foreground" />
                 )}
                 <div className="flex-1">
-                  <span className="text-sm font-medium text-foreground">{status.label}</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {status.id === 'pending' ? t('common.pending') || 'Pending' :
+                     status.id === 'serving' ? t('common.serving') || 'Serving' :
+                     status.id === 'completed' ? t('admin.analytics.completed') || 'Completed' :
+                     status.id === 'hold' ? t('common.hold') || 'Hold' :
+                     status.label}
+                  </span>
                 </div>
               </button>
             ))}
