@@ -353,7 +353,7 @@ export default function StatusPage() {
                 </div>
 
                 {/* Agents and Tickets */}
-                <div className="p-6 space-y-6">
+                <div className="p-6 ">
                   {Object.entries(agents).map(([agentName, tickets]: [string, any], agentIdx) => {
                     const agentTickets = Array.isArray(tickets) ? tickets : [];
                     const pendingCount = agentTickets.filter((t: any) => t.status === 'pending').length;

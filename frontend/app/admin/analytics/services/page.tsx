@@ -161,8 +161,9 @@ export default function ServiceAnalytics() {
       <div className="relative">
         <button
           onClick={() => setExpandedChart(id)}
-          className="absolute top-2 right-2 z-10 p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors"
+          className="absolute top-2 right-2 z-50 p-2 bg-background/90 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors shadow-md"
           title="Expand chart"
+          type="button"
         >
           <Maximize2 className="w-4 h-4 text-foreground" />
         </button>
@@ -177,12 +178,12 @@ export default function ServiceAnalytics() {
     
     return (
       <>
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setExpandedChart(null)} />
+        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm z-[9999] m-0" onClick={() => setExpandedChart(null)} />
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="fixed inset-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto"
+          className="fixed top-4 left-4 right-4 bottom-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto m-0"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-foreground">{title}</h2>
@@ -213,7 +214,7 @@ export default function ServiceAnalytics() {
             className="flex flex-col items-center gap-4"
           >
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <div className="text-lg text-muted-foreground">Loading service analytics...</div>
+            <div className="text-lg text-muted-foreground">{t('admin.analytics.loading')}</div>
           </motion.div>
         </div>
       </DashboardLayout>
@@ -222,7 +223,7 @@ export default function ServiceAnalytics() {
 
   return (
     <DashboardLayout navItems={adminNavItems} role="admin">
-      <div className="p-6 space-y-6">
+      <div className="p-6 ">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -460,7 +461,7 @@ export default function ServiceAnalytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle2 className="w-5 h-5 text-chart-3" />
-              <span className="text-sm font-medium text-muted-foreground">Completed</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.analytics.completed')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {filteredServices.reduce((sum, s) => sum + (s.completedTickets || 0), 0)}
@@ -469,7 +470,7 @@ export default function ServiceAnalytics() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <Timer className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-medium text-muted-foreground">Avg Service Time</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('admin.avgServiceTime')}</span>
             </div>
             <p className="text-3xl font-bold text-foreground">
               {filteredServices.length > 0
@@ -494,12 +495,12 @@ export default function ServiceAnalytics() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
-              <ChartWrapper id="tickets-by-service" title="Tickets by Service">
+              <ChartWrapper id="tickets-by-service" title={t('admin.analytics.ticketsByService')}>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-chart-2/10 rounded-lg">
                     <BarChart3 className="w-6 h-6 text-chart-2" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Tickets by Service</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.ticketsByService')}</h2>
                 </div>
                 <ServicePerformanceChart
                   data={filteredServices.slice(0, 10).map((s: any) => ({
@@ -507,7 +508,7 @@ export default function ServiceAnalytics() {
                     value: s.totalTickets,
                   }))}
                   height={expandedChart === 'tickets-by-service' ? 400 : 250}
-                  color="#f59e0b"
+                  color="#1e40af"
                 />
               </ChartWrapper>
             </motion.div>
@@ -521,7 +522,7 @@ export default function ServiceAnalytics() {
               transition={{ duration: 0.6, delay: 0.5 }}
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
-              <ChartWrapper id="completion-rate" title="Completion Rate by Service">
+              <ChartWrapper id="completion-rate" title={t('admin.analytics.completionRateByService')}>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-chart-3/10 rounded-lg">
                     <Target className="w-6 h-6 text-chart-3" />
@@ -534,7 +535,7 @@ export default function ServiceAnalytics() {
                     value: s.completionRate || 0,
                   }))}
                   height={expandedChart === 'completion-rate' ? 400 : 250}
-                  color="#8b5cf6"
+                  color="#1e40af"
                 />
               </ChartWrapper>
             </motion.div>
@@ -548,12 +549,12 @@ export default function ServiceAnalytics() {
               transition={{ duration: 0.6, delay: 0.6 }}
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
-              <ChartWrapper id="service-time" title="Average Service Time by Service">
-                <div className="flex items-center gap-3 mb-6">
+              <ChartWrapper id="service-time" title={t('admin.analytics.avgServiceTimeByService')}>
+                <div className="flex items-center gap-3 mb-20">
                   <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
                     <Timer className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Avg Service Time</h2>
+                  <h2 className="text-xl font-bold text-foreground">{t('admin.avgServiceTime')}</h2>
                 </div>
                 <DailyTrendsChart
                   data={filteredServices.slice(0, 10).map((s: any) => ({
@@ -561,7 +562,7 @@ export default function ServiceAnalytics() {
                     value: s.avgServiceTime || 0,
                   }))}
                   height={expandedChart === 'service-time' ? 400 : 250}
-                  color="#3b82f6"
+                  color="#1e40af"
                 />
               </ChartWrapper>
             </motion.div>
@@ -575,7 +576,7 @@ export default function ServiceAnalytics() {
               transition={{ duration: 0.6, delay: 0.7 }}
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
-              <ChartWrapper id="status-distribution" title="Status Distribution">
+              <ChartWrapper id="status-distribution" title={t('admin.analytics.statusDistribution')}>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <Activity className="w-6 h-6 text-primary" />
@@ -585,24 +586,20 @@ export default function ServiceAnalytics() {
                 <StatusDistributionChart
                   data={[
                     {
-                      label: 'Pending',
+                      label: t('common.pending'),
                       value: filteredServices.reduce((sum, s) => sum + (s.pendingTickets || 0), 0),
-                      color: '#f59e0b',
                     },
                     {
-                      label: 'Serving',
+                      label: t('common.serving'),
                       value: filteredServices.reduce((sum, s) => sum + (s.servingTickets || 0), 0),
-                      color: '#10b981',
                     },
                     {
-                      label: 'Hold',
+                      label: t('common.hold'),
                       value: filteredServices.reduce((sum, s) => sum + (s.holdTickets || 0), 0),
-                      color: '#ef4444',
                     },
                     {
-                      label: 'Completed',
+                      label: t('admin.analytics.completed'),
                       value: filteredServices.reduce((sum, s) => sum + (s.completedTickets || 0), 0),
-                      color: '#3b82f6',
                     },
                   ]}
                   size={expandedChart === 'status-distribution' ? 400 : 250}
@@ -635,7 +632,7 @@ export default function ServiceAnalytics() {
                 <p className="text-2xl font-bold text-foreground">{selectedService.totalTickets || 0}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Completed</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.analytics.completed')}</p>
                 <p className="text-2xl font-bold text-foreground">{selectedService.completedTickets || 0}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
@@ -645,57 +642,57 @@ export default function ServiceAnalytics() {
                 </p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Avg Service Time</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('admin.avgServiceTime')}</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {selectedService.avgServiceTime || 0} <span className="text-sm">min</span>
+                  {selectedService.avgServiceTime || 0} <span className="text-sm">{t('customer.minutes')}</span>
                 </p>
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-muted/30 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-2">Status Breakdown</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('admin.analytics.statusBreakdown')}</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-foreground flex items-center gap-2">
                       <Clock className="w-4 h-4 text-yellow-600" />
-                      Pending
+                      {t('common.pending')}
                     </span>
                     <span className="font-semibold">{selectedService.pendingTickets || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-foreground flex items-center gap-2">
                       <Activity className="w-4 h-4 text-green-600" />
-                      Serving
+                      {t('common.serving')}
                     </span>
                     <span className="font-semibold">{selectedService.servingTickets || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-foreground flex items-center gap-2">
                       <Pause className="w-4 h-4 text-red-600" />
-                      Hold
+                      {t('common.hold')}
                     </span>
                     <span className="font-semibold">{selectedService.holdTickets || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-foreground flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-chart-3" />
-                      Completed
+                      {t('admin.analytics.completed')}
                     </span>
                     <span className="font-semibold">{selectedService.completedTickets || 0}</span>
                   </div>
                 </div>
               </div>
               <div className="bg-muted/30 rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-2">Time Metrics</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('admin.analytics.timeMetrics')}</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground">Avg Total Time</span>
-                    <span className="font-semibold">{selectedService.avgTotalTime || 0} min</span>
+                    <span className="text-sm text-foreground">{t('admin.analytics.avgTotalTime')}</span>
+                    <span className="font-semibold">{selectedService.avgTotalTime || 0} {t('customer.minutes')}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground">Avg Service Time</span>
-                    <span className="font-semibold">{selectedService.avgServiceTime || 0} min</span>
+                    <span className="text-sm text-foreground">{t('admin.avgServiceTime')}</span>
+                    <span className="font-semibold">{selectedService.avgServiceTime || 0} {t('customer.minutes')}</span>
                   </div>
                 </div>
               </div>
@@ -713,7 +710,7 @@ export default function ServiceAnalytics() {
           <div className="p-6 border-b border-border">
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-chart-2" />
-              Service Performance Details
+              {t('admin.analytics.servicePerformanceDetails')}
             </h2>
           </div>
           <div className="overflow-x-auto">
@@ -721,19 +718,19 @@ export default function ServiceAnalytics() {
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Service
+                    {t('admin.analytics.service') || 'Service'}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {t('admin.analytics.totalTickets')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Status Breakdown
+                    {t('admin.analytics.statusBreakdown')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Time Metrics
+                    {t('admin.analytics.timeMetrics')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Performance
+                    {t('admin.analytics.table.performance') || 'Performance'}
                   </th>
                 </tr>
               </thead>
@@ -780,19 +777,19 @@ export default function ServiceAnalytics() {
                         <div className="flex items-center gap-2">
                           <Clock className="w-3 h-3 text-yellow-600" />
                           <span className="text-foreground">
-                            Pending: {service.pendingTickets || 0}
+                            {t('common.pending')}: {service.pendingTickets || 0}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Activity className="w-3 h-3 text-green-600" />
                           <span className="text-foreground">
-                            Serving: {service.servingTickets || 0}
+                            {t('common.serving')}: {service.servingTickets || 0}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Pause className="w-3 h-3 text-red-600" />
                           <span className="text-foreground">
-                            Hold: {service.holdTickets || 0}
+                            {t('common.hold')}: {service.holdTickets || 0}
                           </span>
                         </div>
                       </div>
@@ -802,13 +799,13 @@ export default function ServiceAnalytics() {
                         <div className="flex items-center gap-2">
                           <Timer className="w-3 h-3 text-blue-600" />
                           <span className="text-foreground">
-                            Service: {service.avgServiceTime || 0} min
+                            {t('admin.analytics.service')}: {service.avgServiceTime || 0} {t('customer.minutes')}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-3 h-3 text-purple-600" />
                           <span className="text-foreground">
-                            Total: {service.avgTotalTime || 0} min
+                            {t('admin.analytics.total')}: {service.avgTotalTime || 0} {t('customer.minutes')}
                           </span>
                         </div>
                       </div>
@@ -829,8 +826,8 @@ export default function ServiceAnalytics() {
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
                       {searchQuery
-                        ? 'No services found'
-                        : 'No data available'}
+                        ? t('admin.analytics.noServicesFound')
+                        : t('admin.analytics.noDataAvailable')}
                     </td>
                   </tr>
                 )}
@@ -842,64 +839,60 @@ export default function ServiceAnalytics() {
         {/* Expanded Chart Modals */}
         <AnimatePresence>
           {expandedChart === 'tickets-by-service' && (
-            <ExpandedChartModal id="tickets-by-service" title="Tickets by Service">
+            <ExpandedChartModal id="tickets-by-service" title={t('admin.analytics.ticketsByService')}>
               <ServicePerformanceChart
                 data={filteredServices.map((s: any) => ({
                   label: s.categoryName,
                   value: s.totalTickets,
                 }))}
                 height={400}
-                color="#f59e0b"
+                color="#1e40af"
               />
             </ExpandedChartModal>
           )}
           {expandedChart === 'completion-rate' && (
-            <ExpandedChartModal id="completion-rate" title="Completion Rate by Service">
+            <ExpandedChartModal id="completion-rate" title={t('admin.analytics.completionRateByService')}>
               <HourlyDistributionChart
                 data={filteredServices.map((s: any) => ({
                   label: s.categoryName,
                   value: s.completionRate || 0,
                 }))}
                 height={400}
-                color="#8b5cf6"
+                color="#1e40af"
               />
             </ExpandedChartModal>
           )}
           {expandedChart === 'service-time' && (
-            <ExpandedChartModal id="service-time" title="Average Service Time by Service">
+            <ExpandedChartModal id="service-time" title={t('admin.analytics.avgServiceTimeByService')}>
               <DailyTrendsChart
                 data={filteredServices.map((s: any) => ({
                   label: s.categoryName,
                   value: s.avgServiceTime || 0,
                 }))}
                 height={400}
-                color="#3b82f6"
+                color="#1e40af"
               />
             </ExpandedChartModal>
           )}
           {expandedChart === 'status-distribution' && (
-            <ExpandedChartModal id="status-distribution" title="Status Distribution">
+            <ExpandedChartModal id="status-distribution" title={t('admin.analytics.statusDistribution')}>
               <StatusDistributionChart
                 data={[
                   {
-                    label: 'Pending',
+                    label: t('common.pending'),
                     value: filteredServices.reduce((sum, s) => sum + (s.pendingTickets || 0), 0),
-                    color: '#f59e0b',
                   },
                   {
-                    label: 'Serving',
+                    label: t('common.serving'),
                     value: filteredServices.reduce((sum, s) => sum + (s.servingTickets || 0), 0),
-                    color: '#10b981',
                   },
                   {
-                    label: 'Hold',
+                    label: t('common.hold'),
                     value: filteredServices.reduce((sum, s) => sum + (s.holdTickets || 0), 0),
-                    color: '#ef4444',
                   },
                   {
-                    label: 'Completed',
+                    label: t('admin.analytics.completed'),
                     value: filteredServices.reduce((sum, s) => sum + (s.completedTickets || 0), 0),
-                    color: '#3b82f6',
                   },
                 ]}
                 size={400}

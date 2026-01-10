@@ -18,6 +18,7 @@ const translations: Translations = {
   'common.success': { en: 'Success', ar: 'نجح' },
   'common.save': { en: 'Save', ar: 'حفظ' },
   'common.cancel': { en: 'Cancel', ar: 'إلغاء' },
+  'common.confirm': { en: 'Confirm', ar: 'تأكيد' },
   'common.updating': { en: 'Updating...', ar: 'جاري التحديث...' },
   'common.submit': { en: 'Submit', ar: 'إرسال' },
   'common.back': { en: 'Back', ar: 'رجوع' },

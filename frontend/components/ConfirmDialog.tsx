@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface ConfirmOptions {
   requireText?: string;
@@ -29,6 +30,7 @@ interface ConfirmDialogProviderProps {
 }
 
 export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) {
+  const { t, language } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [options, setOptions] = useState<ConfirmOptions>({});
@@ -108,7 +110,7 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
                     <div className="p-2 bg-destructive/10 rounded-lg">
                       <AlertTriangle className="w-6 h-6 text-destructive" />
                     </div>
-                    <h2 className="text-xl font-bold text-foreground">{options.title || 'Confirm Action'}</h2>
+                    <h2 className="text-xl font-bold text-foreground">{options.title || (language === 'ar' ? 'تأكيد الإجراء' : 'Confirm Action')}</h2>
                   </div>
                   {!isProcessing && (
                     <button
@@ -132,7 +134,9 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
                   {options.requireText && (
                     <div className="mt-4">
                       <p className="text-sm text-muted-foreground mb-2">
-                        Please type <span className="font-bold text-foreground">"{options.requireText}"</span> to confirm.
+                        {language === 'ar' 
+                          ? <>يرجى كتابة <span className="font-bold text-foreground">"{options.requireText}"</span> للتأكيد.</>
+                          : <>Please type <span className="font-bold text-foreground">"{options.requireText}"</span> to confirm.</>}
                       </p>
                       <input
                         type="text"
@@ -158,7 +162,7 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
                       onClick={handleCancel}
                       className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                   )}
                   <button
@@ -170,10 +174,10 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
                     {isProcessing ? (
                       <>
                         <div className="w-4 h-4 border-2 border-destructive-foreground/30 border-t-destructive-foreground rounded-full animate-spin" />
-                        Processing...
+                        {t('customer.processing')}
                       </>
                     ) : (
-                      'Confirm'
+                      t('common.confirm')
                     )}
                   </button>
                 </div>

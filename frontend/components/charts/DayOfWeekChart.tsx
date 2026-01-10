@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import React from 'react';
+import { useI18n } from '@/lib/i18n';
 
 interface DayOfWeekChartProps {
   data: { label: string; value: number }[];
@@ -10,10 +11,11 @@ interface DayOfWeekChartProps {
 }
 
 const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-// Use blue theme matching Daily Ticket Trends (#3b82f6)
-const BASE_COLOR = '#3b82f6';
+// Use dark blue theme matching other charts (#1e40af)
+const BASE_COLOR = '#1e40af';
 
-export const DayOfWeekChart = React.memo(function DayOfWeekChart({ data, height = 200, color = '#3b82f6' }: DayOfWeekChartProps) {
+export const DayOfWeekChart = React.memo(function DayOfWeekChart({ data, height = 200, color = '#1e40af' }: DayOfWeekChartProps) {
+  const { t, language } = useI18n();
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     
@@ -66,20 +68,16 @@ export const DayOfWeekChart = React.memo(function DayOfWeekChart({ data, height 
 
   return (
     <div className="w-full">
-      {/* Peak Day Card - Blue theme matching Daily Trends */}
-      <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/20 via-cyan-500/20 to-blue-500/20 border border-blue-500/30 backdrop-blur-sm">
+      {/* Peak Day Card - Matching Peak Hour card style */}
+      <div className="mb-4 p-3 rounded-xl bg-muted/50 border border-border backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground font-medium">Busiest Day</p>
-            <p className="text-lg font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-              {peakDay.day}
-            </p>
+            <p className="text-xs text-muted-foreground font-medium">{language === 'ar' ? 'أكثر الأيام ازدحاماً' : 'Busiest Day'}</p>
+            <p className="text-lg font-bold text-foreground">{peakDay.day}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground font-medium">Tickets</p>
-            <p className="text-xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-              {peakDay.count}
-            </p>
+            <p className="text-xs text-muted-foreground font-medium">{t('admin.analytics.tickets')}</p>
+            <p className="text-xl font-bold text-foreground">{peakDay.count}</p>
           </div>
         </div>
       </div>
@@ -104,8 +102,8 @@ export const DayOfWeekChart = React.memo(function DayOfWeekChart({ data, height 
             const intensity = item.count / maxValue;
             const barLength = innerRadius + (outerRadius - innerRadius) * intensity;
             const isPeak = item.day === peakDay.day;
-            // Use blue gradient based on intensity - matching Daily Trends theme
-            const opacity = 0.3 + (intensity * 0.7);
+            // Use dark blue gradient based on intensity - matching dark theme
+            const opacity = 0.4 + (intensity * 0.6);
             const dayColor = BASE_COLOR;
 
             // Calculate positions
@@ -215,7 +213,7 @@ export const DayOfWeekChart = React.memo(function DayOfWeekChart({ data, height 
             fontSize="10"
             fill="var(--muted-foreground)"
           >
-            Total
+            {t('admin.analytics.total')}
           </text>
         </svg>
       </div>
@@ -225,17 +223,17 @@ export const DayOfWeekChart = React.memo(function DayOfWeekChart({ data, height 
         <div className="grid grid-cols-3 gap-2">
           <div className="text-center p-2 rounded-lg bg-muted/30">
             <p className="text-base font-bold text-foreground">{total}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{t('admin.analytics.total')}</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-muted/30">
             <p className="text-base font-bold text-foreground">{Math.round(total / 7)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Avg/Day</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{language === 'ar' ? 'المتوسط/يوم' : 'Avg/Day'}</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-muted/30">
-            <p className="text-base font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+            <p className="text-base font-bold text-blue-400">
               {Math.round((peakDay.count / total) * 100)}%
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Peak</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{language === 'ar' ? 'الذروة' : 'Peak'}</p>
           </div>
         </div>
       </div>

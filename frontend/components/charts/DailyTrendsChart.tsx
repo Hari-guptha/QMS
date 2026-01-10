@@ -3,6 +3,7 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useMemo, useId } from 'react';
 import React from 'react';
+import { useI18n } from '@/lib/i18n';
 
 interface DailyTrendsChartProps {
   data: { label: string; value: number }[];
@@ -10,7 +11,8 @@ interface DailyTrendsChartProps {
   color?: string;
 }
 
-export const DailyTrendsChart = React.memo(function DailyTrendsChart({ data, height = 250, color = '#3b82f6' }: DailyTrendsChartProps) {
+export const DailyTrendsChart = React.memo(function DailyTrendsChart({ data, height = 250, color = '#1e40af' }: DailyTrendsChartProps) {
+  const { t } = useI18n();
   const gradientId = useId().replace(/:/g, '-');
   
   const chartData = useMemo(() => {
@@ -63,7 +65,7 @@ export const DailyTrendsChart = React.memo(function DailyTrendsChart({ data, hei
                   <div className="bg-card border border-border rounded-lg shadow-lg p-3">
                     <p className="font-semibold text-foreground">{data.payload.date}</p>
                     <p className="text-sm text-muted-foreground">
-                      Total: <span className="font-bold text-foreground">{data.value}</span>
+                      {t('admin.analytics.total')}: <span className="font-bold text-foreground">{data.value}</span>
                     </p>
                   </div>
                 );

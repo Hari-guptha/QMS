@@ -10,19 +10,19 @@ interface ServicePerformanceChartProps {
   color?: string;
 }
 
-// Vibrant color palette for service categories
+// Dark color palette matching Status Distribution - solid colors in same dark tone
 const CATEGORY_COLORS = [
-  '#3b82f6', // Blue
-  '#10b981', // Green
-  '#f59e0b', // Amber
-  '#ef4444', // Red
-  '#8b5cf6', // Purple
-  '#06b6d4', // Cyan
-  '#ec4899', // Pink
-  '#6366f1', // Indigo
+  '#3b82f6', // Lighter Dark Blue
+  '#4f46e5', // Lighter Dark Indigo
+  '#475569', // Lighter Dark Slate
+  '#2563eb', // Lighter Blue
+  '#6366f1', // Lighter Dark Purple
+  '#334155', // Lighter Dark Slate
+  '#4338ca', // Lighter Dark Navy
+  '#1e40af', // Dark Blue
 ];
 
-export const ServicePerformanceChart = React.memo(function ServicePerformanceChart({ data, height = 200, color = '#3b82f6' }: ServicePerformanceChartProps) {
+export const ServicePerformanceChart = React.memo(function ServicePerformanceChart({ data, height = 200, color = '#1e40af' }: ServicePerformanceChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     return data.map((item, index) => ({
@@ -91,14 +91,6 @@ export const ServicePerformanceChart = React.memo(function ServicePerformanceCha
     <div className="w-full h-full flex items-center justify-center">
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
-          <defs>
-            {chartData.map((entry, index) => (
-              <linearGradient key={`gradient-${index}`} id={`gradient-${index}`} x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor={entry.color} stopOpacity={1} />
-                <stop offset="100%" stopColor={entry.color} stopOpacity={0.7} />
-              </linearGradient>
-            ))}
-          </defs>
           <Pie
             data={chartData}
             cx="50%"
@@ -114,7 +106,7 @@ export const ServicePerformanceChart = React.memo(function ServicePerformanceCha
             {chartData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill={`url(#gradient-${index})`}
+                fill={entry.color}
                 stroke={entry.color}
                 strokeWidth={2}
                 style={{

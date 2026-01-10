@@ -3,6 +3,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Dot } from 'recharts';
 import { useMemo, useId } from 'react';
 import React from 'react';
+import { useI18n } from '@/lib/i18n';
 
 interface HourlyDistributionChartProps {
   data: { label: string; value: number }[];
@@ -10,7 +11,8 @@ interface HourlyDistributionChartProps {
   color?: string;
 }
 
-export const HourlyDistributionChart = React.memo(function HourlyDistributionChart({ data, height = 200, color = '#3b82f6' }: HourlyDistributionChartProps) {
+export const HourlyDistributionChart = React.memo(function HourlyDistributionChart({ data, height = 200, color = '#1e40af' }: HourlyDistributionChartProps) {
+  const { t, language } = useI18n();
   const gradientId = useId().replace(/:/g, '-');
   
   const chartData = useMemo(() => {
@@ -25,7 +27,7 @@ export const HourlyDistributionChart = React.memo(function HourlyDistributionCha
     return (
       <div className="w-full flex items-center justify-center" style={{ height: `${height}px` }}>
         <div className="text-center text-muted-foreground">
-          <p className="text-sm">No data available</p>
+          <p className="text-sm">{t('admin.analytics.noDataAvailable')}</p>
         </div>
       </div>
     );
@@ -66,7 +68,7 @@ export const HourlyDistributionChart = React.memo(function HourlyDistributionCha
                   <div className="bg-card border border-border rounded-lg shadow-lg p-3">
                     <p className="font-semibold text-foreground">{data.payload.hour}</p>
                     <p className="text-sm text-muted-foreground">
-                      Count: <span className="font-bold text-foreground">{data.value}</span>
+                      {language === 'ar' ? 'العدد' : 'Count'}: <span className="font-bold text-foreground">{data.value}</span>
                     </p>
                   </div>
                 );

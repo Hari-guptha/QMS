@@ -648,7 +648,7 @@ export default function AllQueues() {
 
   return (
     <DashboardLayout navItems={adminNavItems} role="admin">
-      <div className="p-6 space-y-6">
+      <div className="p-6 ">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -1392,7 +1392,7 @@ export default function AllQueues() {
                               className="bg-chart-1 text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
                             >
                               <Users className="w-4 h-4" />
-                              Reassign
+                              {t('common.reassign')}
                             </motion.button>
                           </div>
                         </motion.div>

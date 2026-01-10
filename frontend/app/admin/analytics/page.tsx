@@ -493,8 +493,9 @@ export default function Analytics() {
       <div className="relative">
         <button
           onClick={() => setExpandedChart(id)}
-          className="absolute top-2 right-2 z-10 p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors"
+          className="absolute top-2 right-2 z-50 p-2 bg-background/90 backdrop-blur-sm border border-border rounded-lg hover:bg-muted transition-colors shadow-md"
           title="Expand chart"
+          type="button"
         >
           <Maximize2 className="w-4 h-4 text-foreground" />
         </button>
@@ -509,11 +510,11 @@ export default function Analytics() {
     
     return (
       <>
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setExpandedChart(null)} />
+        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm z-[9999] m-0" onClick={() => setExpandedChart(null)} />
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="fixed inset-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto"
+          className="fixed top-4 left-4 right-4 bottom-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto m-0"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-foreground">{title}</h2>
@@ -553,7 +554,7 @@ export default function Analytics() {
 
   return (
     <DashboardLayout navItems={adminNavItems} role="admin">
-      <div className="p-6 space-y-6">
+      <div className="p-6 ">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -931,19 +932,42 @@ export default function Analytics() {
                      <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.statusDistribution')}</h2>
                    </div>
                    <div>
-                     <StatusDistributionChart
-                       data={stats.statusDistribution.map((s: any) => ({
-                         label: s.label,
-                         value: s.value,
-                         // Use blue theme matching Daily Trends - no custom colors
-                       }))}
-                       size={expandedChart === 'status-distribution' ? 600 : 400}
-                     />
+                    <StatusDistributionChart
+                      data={stats.statusDistribution
+                        .filter((s: any) => s.label?.toLowerCase() !== 'no show')
+                        .map((s: any) => {
+                          // Map English labels to translation keys (case-insensitive)
+                          const label = s.label || '';
+                          const labelLower = label.toLowerCase();
+                          let translatedLabel = label;
+                          
+                          if (labelLower === 'pending') {
+                            translatedLabel = t('common.pending');
+                          } else if (labelLower === 'serving') {
+                            translatedLabel = t('common.serving');
+                          } else if (labelLower === 'hold') {
+                            translatedLabel = t('common.hold');
+                          } else if (labelLower === 'completed') {
+                            translatedLabel = t('admin.analytics.completed');
+                          } else if (labelLower === 'no show' || labelLower === 'no-show') {
+                            translatedLabel = t('admin.analytics.noShow') || 'No Show';
+                          } else if (labelLower === 'cancelled' || labelLower === 'canceled') {
+                            translatedLabel = t('admin.analytics.cancelled') || 'Cancelled';
+                          }
+                          
+                          return {
+                            label: translatedLabel,
+                            value: s.value,
+                            // Use blue theme matching Daily Trends - no custom colors
+                          };
+                        })}
+                      size={expandedChart === 'status-distribution' ? 600 : 400}
+                    />
                    </div>
                  </ChartWrapper>
                ) : (
                  <div className="flex items-center justify-center h-64 text-muted-foreground">
-                   <p>No status distribution data available</p>
+                   <p>{t('admin.analytics.noDataAvailable')}</p>
                  </div>
                )}
              </motion.div>
@@ -964,20 +988,20 @@ export default function Analytics() {
                      </div>
                      <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.peakHours')}</h2>
                    </div>
-                   <div className="relative z-10">
+                   <div className="relative">
                      <PeakHoursHeatmapChart
                        data={stats.peakHours.map((h: any) => ({
                          label: `${h.hour}:00`,
                          value: h.count || 0,
                        }))}
                        height={expandedChart === 'peak-hours' ? 400 : 250}
-                       color="#3b82f6"
+                       color="#1e40af"
                      />
                    </div>
                  </ChartWrapper>
                ) : (
                  <div className="flex items-center justify-center h-64 text-muted-foreground">
-                   <p>No peak hours data available</p>
+                   <p>{t('admin.analytics.noDataAvailable')}</p>
                  </div>
                )}
              </motion.div>
@@ -993,21 +1017,21 @@ export default function Analytics() {
            >
              {stats.dailyTrends && stats.dailyTrends.length > 0 ? (
                <ChartWrapper id="daily-trends" title={t('admin.analytics.dailyTrends')}>
-                 <div className="flex items-center gap-3 mb-6 relative z-10">
+                 <div className="flex items-center gap-3 mb-6">
                    <div className="p-2 bg-chart-2/20 rounded-lg border border-chart-2/30">
                      <Calendar className="w-6 h-6 text-chart-2" />
                    </div>
                    <h2 className="text-2xl font-bold text-foreground">{t('admin.analytics.dailyTrends')}</h2>
                  </div>
-                 <div className="relative z-10">
-                   <DailyTrendsChart
-                     data={stats.dailyTrends.map((d: any) => ({
-                       label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                       value: d.total,
-                     }))}
-                     height={expandedChart === 'daily-trends' ? 400 : 250}
-                     color="#10b981"
-                   />
+                 <div className="relative">
+                  <DailyTrendsChart
+                    data={stats.dailyTrends.map((d: any) => ({
+                      label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                      value: d.total,
+                    }))}
+                    height={expandedChart === 'daily-trends' ? 400 : 250}
+                    color="#1e40af"
+                  />
                    <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                      <div className="flex items-center gap-2">
                        <div className="w-3 h-3 rounded bg-chart-2"></div>
@@ -1022,7 +1046,7 @@ export default function Analytics() {
                </ChartWrapper>
              ) : (
                <div className="flex items-center justify-center h-64 text-muted-foreground">
-                 <p>No daily trends data available</p>
+                 <p>{t('admin.analytics.noDataAvailable')}</p>
                </div>
              )}
            </motion.div>
@@ -1039,26 +1063,26 @@ export default function Analytics() {
              >
                {stats.hourlyDistribution && stats.hourlyDistribution.length > 0 ? (
                  <ChartWrapper id="hourly-distribution" title={t('admin.analytics.hourlyDistribution')}>
-                   <div className="flex items-center gap-3 mb-6 relative z-10">
+                   <div className="flex items-center gap-3 mb-6">
                      <div className="p-2 bg-chart-1/20 rounded-lg border border-chart-1/30">
                        <Clock className="w-6 h-6 text-chart-1" />
                      </div>
                      <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.hourlyDistribution')}</h2>
                    </div>
-                   <div className="relative z-10 flex items-center mt-[10%] justify-center min-h-[250px]">
+                   <div className="relative flex items-center mt-[10%] justify-center min-h-[250px]">
                      <HourlyDistributionChart
                        data={stats.hourlyDistribution.map((h: any) => ({
                          label: `${h.hour}:00`,
                          value: h.count || 0,
                        }))}
                        height={expandedChart === 'hourly-distribution' ? 400 : 200}
-                       color="#3b82f6"
+                       color="#1e40af"
                      />
                    </div>
                  </ChartWrapper>
                ) : (
                  <div className="flex items-center justify-center h-64 text-muted-foreground">
-                   <p>No hourly distribution data available</p>
+                   <p>{t('admin.analytics.noDataAvailable')}</p>
                  </div>
                )}
              </motion.div>
@@ -1072,20 +1096,20 @@ export default function Analytics() {
               className="bg-card border border-border rounded-2xl shadow-lg p-6"
             >
               <ChartWrapper id="day-of-week" title={t('admin.analytics.dayOfWeekDistribution')}>
-                <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-chart-4/20 rounded-lg border border-chart-4/30">
                     <Calendar className="w-6 h-6 text-chart-4" />
                   </div>
                   <h2 className="text-xl font-bold text-foreground">{t('admin.analytics.dayOfWeekDistribution')}</h2>
                 </div>
-                <div className="relative z-10">
+                <div className="relative">
                   <DayOfWeekChart
                     data={(stats.dayOfWeekDistribution || []).map((d: any) => ({
                       label: d.day || '',
                       value: d.count || 0,
                     }))}
                     height={expandedChart === 'day-of-week' ? 400 : 200}
-                    color="#3b82f6"
+                    color="#1e40af"
                   />
                 </div>
               </ChartWrapper>
@@ -1102,11 +1126,33 @@ export default function Analytics() {
               {expandedChart === 'status-distribution' && (
                 <ExpandedChartModal id="status-distribution" title={t('admin.analytics.statusDistribution')}>
                   <StatusDistributionChart
-                    data={stats.statusDistribution?.map((s: any) => ({
-                      label: s.label,
-                      value: s.value,
-                      // Use blue theme matching Daily Trends - no custom colors
-                    })) || []}
+                    data={stats.statusDistribution
+                      ?.filter((s: any) => s.label?.toLowerCase() !== 'no show')
+                      .map((s: any) => {
+                        // Map English labels to translation keys (case-insensitive)
+                        const label = s.label || '';
+                        const labelLower = label.toLowerCase();
+                        let translatedLabel = label;
+                        
+                        if (labelLower === 'pending') {
+                          translatedLabel = t('common.pending');
+                        } else if (labelLower === 'serving') {
+                          translatedLabel = t('common.serving');
+                        } else if (labelLower === 'hold') {
+                          translatedLabel = t('common.hold');
+                        } else if (labelLower === 'completed') {
+                          translatedLabel = t('admin.analytics.completed');
+                        } else if (labelLower === 'no show' || labelLower === 'no-show') {
+                          translatedLabel = t('admin.analytics.noShow') || 'No Show';
+                        } else if (labelLower === 'cancelled' || labelLower === 'canceled') {
+                          translatedLabel = t('admin.analytics.cancelled') || 'Cancelled';
+                        }
+                        
+                        return {
+                          label: translatedLabel,
+                          value: s.value,
+                        };
+                      }) || []}
                     size={500}
                   />
                 </ExpandedChartModal>
@@ -1119,7 +1165,7 @@ export default function Analytics() {
                       value: d.total,
                     })) || []}
                     height={400}
-                    color="#10b981"
+                    color="#1e40af"
                   />
                 </ExpandedChartModal>
               )}
@@ -1131,7 +1177,7 @@ export default function Analytics() {
                       value: h.count,
                     })) || []}
                     height={400}
-                    color="#3b82f6"
+                    color="#1e40af"
                   />
                 </ExpandedChartModal>
               )}
@@ -1143,7 +1189,7 @@ export default function Analytics() {
                       value: d.count,
                     })) || []}
                     height={400}
-                    color="#3b82f6"
+                    color="#1e40af"
                   />
                 </ExpandedChartModal>
               )}
@@ -1155,7 +1201,7 @@ export default function Analytics() {
                       value: h.count,
                     }))}
                     height={400}
-                    color="#3b82f6"
+                    color="#1e40af"
                   />
                 </ExpandedChartModal>
               )}

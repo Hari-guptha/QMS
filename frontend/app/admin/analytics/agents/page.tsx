@@ -40,7 +40,7 @@ import { AnimatePresence } from 'framer-motion';
 
 export default function AgentAnalytics() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [agentPerformance, setAgentPerformance] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,7 +180,7 @@ export default function AgentAnalytics() {
 
   return (
     <DashboardLayout navItems={adminNavItems} role="admin">
-      <div className="p-6 space-y-6">
+      <div className="p-6 ">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -369,7 +369,7 @@ export default function AgentAnalytics() {
                 />
               ) : (
                 <div className="flex items-center justify-center h-64 text-muted-foreground">
-                  <p>No data available</p>
+                  <p>{t('admin.analytics.noDataAvailable')}</p>
                 </div>
               )}
             </motion.div>
@@ -424,7 +424,7 @@ export default function AgentAnalytics() {
                 />
               ) : (
                 <div className="flex items-center justify-center h-64 text-muted-foreground">
-                  <p>No data available</p>
+                  <p>{t('admin.analytics.noDataAvailable')}</p>
                 </div>
               )}
             </motion.div>
@@ -444,7 +444,9 @@ export default function AgentAnalytics() {
                   <div className="p-2 bg-chart-3/20 rounded-lg border border-chart-3/30">
                     <TrendingUp className="w-6 h-6 text-chart-3" />
                   </div>
-                  <h2 className="text-2xl font-bold text-foreground">Completion Rate Trend</h2>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {language === 'ar' ? 'اتجاه معدل الإكمال' : 'Completion Rate Trend'}
+                  </h2>
                 </div>
                 <button
                   onClick={() => setExpandedChart(expandedChart === 'completion-trend' ? null : 'completion-trend')}
@@ -468,11 +470,11 @@ export default function AgentAnalytics() {
                       value: a.completionRate || 0,
                     }))}
                   height={expandedChart === 'completion-trend' ? 500 : 300}
-                  color="#10b981"
+                  color="#1e40af"
                 />
               ) : (
                 <div className="flex items-center justify-center h-64 text-muted-foreground">
-                  <p>No data available</p>
+                  <p>{t('admin.analytics.noDataAvailable')}</p>
                 </div>
               )}
             </motion.div>
@@ -489,7 +491,9 @@ export default function AgentAnalytics() {
                   <div className="p-2 bg-chart-1/20 rounded-lg border border-chart-1/30">
                     <Clock className="w-6 h-6 text-chart-1" />
                   </div>
-                  <h2 className="text-2xl font-bold text-foreground">Service Time Distribution</h2>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {language === 'ar' ? 'توزيع وقت الخدمة' : 'Service Time Distribution'}
+                  </h2>
                 </div>
                 <button
                   onClick={() => setExpandedChart(expandedChart === 'service-time' ? null : 'service-time')}
@@ -514,12 +518,12 @@ export default function AgentAnalytics() {
                         value: Math.round(a.avgServiceTime || 0),
                       }))}
                     height={expandedChart === 'service-time' ? 400 : 250}
-                    color="#3b82f6"
+                    color="#1e40af"
                   />
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-64 text-muted-foreground">
-                  <p>No data available</p>
+                  <p>{t('admin.analytics.noDataAvailable')}</p>
                 </div>
               )}
             </motion.div>
@@ -530,19 +534,19 @@ export default function AgentAnalytics() {
         <AnimatePresence>
           {expandedChart && (
             <>
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" onClick={() => setExpandedChart(null)} />
+              <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm z-[9999] m-0" onClick={() => setExpandedChart(null)} />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="fixed inset-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto"
+                className="fixed top-4 left-4 right-4 bottom-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto m-0"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-foreground">
                     {expandedChart === 'agent-performance' && t('admin.analytics.agentPerformance')}
                     {expandedChart === 'status-distribution' && t('admin.analytics.statusDistribution')}
-                    {expandedChart === 'completion-trend' && 'Completion Rate Trend'}
-                    {expandedChart === 'service-time' && 'Service Time Distribution'}
+                    {expandedChart === 'completion-trend' && (language === 'ar' ? 'اتجاه معدل الإكمال' : 'Completion Rate Trend')}
+                    {expandedChart === 'service-time' && (language === 'ar' ? 'توزيع وقت الخدمة' : 'Service Time Distribution')}
                   </h2>
                   <button
                     onClick={() => setExpandedChart(null)}
@@ -597,7 +601,7 @@ export default function AgentAnalytics() {
                           value: a.completionRate || 0,
                         }))}
                       height={500}
-                      color="#10b981"
+                      color="#1e40af"
                     />
                   )}
                   {expandedChart === 'service-time' && agentPerformance.length > 0 && (
@@ -611,7 +615,7 @@ export default function AgentAnalytics() {
                             value: Math.round(a.avgServiceTime || 0),
                           }))}
                         height={400}
-                        color="#3b82f6"
+                        color="#1e40af"
                       />
                     </div>
                   )}

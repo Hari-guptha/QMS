@@ -247,7 +247,7 @@ export default function UsersManagement() {
 
   return (
     <DashboardLayout navItems={adminNavItems} role="admin">
-      <div className="p-6 space-y-6">
+      <div className="p-6 ">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
