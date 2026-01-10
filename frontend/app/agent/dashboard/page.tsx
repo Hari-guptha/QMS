@@ -137,7 +137,7 @@ export default function AgentDashboard() {
     socket.on('ticket:called', handleTicketStatusChange);
     socket.on('ticket:serving', handleTicketStatusChange);
     socket.on('ticket:completed', handleTicketStatusChange);
-    socket.on('ticket:no-show', handleTicketStatusChange);
+    socket.on('ticket:hold', handleTicketStatusChange);
     socket.on('ticket:transferred', handleTicketStatusChange);
 
     return () => {
@@ -148,7 +148,7 @@ export default function AgentDashboard() {
       socket.off('ticket:called', handleTicketStatusChange);
       socket.off('ticket:serving', handleTicketStatusChange);
       socket.off('ticket:completed', handleTicketStatusChange);
-      socket.off('ticket:no-show', handleTicketStatusChange);
+      socket.off('ticket:hold', handleTicketStatusChange);
       socket.off('ticket:transferred', handleTicketStatusChange);
     };
   }, [router]);
@@ -232,7 +232,7 @@ export default function AgentDashboard() {
       if (currentTicket && currentTicket.id === ticketToHold) {
         setCurrentTicket(null);
       }
-      setNoteText(''); // Clear note after marking no-show
+      setNoteText(''); // Clear note after marking hold
       setHoldReason(''); // Clear hold reason
       setShowHoldDialog(false);
       setTicketToHold(null);
@@ -326,7 +326,7 @@ export default function AgentDashboard() {
 
   const pendingTickets = todayTickets.filter((t: any) => t.status === 'pending');
   const holdTickets = todayTickets.filter((t: any) => t.status === 'hold');
-  const completedTickets = todayTickets.filter((t: any) => t.status === 'completed' || t.status === 'no_show');
+  const completedTickets = todayTickets.filter((t: any) => t.status === 'completed' || t.status === 'hold');
   // Filter out hold tickets from completed (they should be in hold section)
   const actualCompletedTickets = completedTickets.filter((t: any) => t.status !== 'hold');
   
@@ -994,7 +994,7 @@ export default function AgentDashboard() {
                               <X className="w-4 h-4 text-destructive" />
                             </div>
                             <div className="flex-1">
-                              <p className="text-xs text-muted-foreground">Hold/No Show At</p>
+                              <p className="text-xs text-muted-foreground">{t('common.holdAt') || 'Hold At'}</p>
                               <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.noShowAt), 'MMM dd, yyyy HH:mm')}</p>
                             </div>
                           </div>

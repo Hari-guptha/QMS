@@ -53,8 +53,8 @@ export class RealtimeService {
     this.emitPublicStatusUpdate();
   }
 
-  emitTicketNoShow(ticket: Ticket) {
-    this.gateway.server.emit('ticket:no-show', ticket);
+  emitTicketHold(ticket: Ticket) {
+    this.gateway.server.emit('ticket:hold', ticket);
     if (ticket.agentId) {
       this.gateway.server.to(`agent:${ticket.agentId}`).emit('queue:updated', {
         agentId: ticket.agentId,

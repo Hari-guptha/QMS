@@ -468,16 +468,6 @@ export default function CustomerCheckIn() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Footer Links */}
-        <div className="mt-8 text-center space-y-4">
-          <a
-            href="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← {t('customer.backToHome')}
-          </a>
-        </div>
       </div>
     </div>
   );

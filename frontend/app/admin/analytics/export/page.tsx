@@ -22,20 +22,29 @@ import {
   X,
   Users,
   FolderOpen,
+  Activity,
+  Ticket,
 } from 'lucide-react';
 import React from 'react';
 
 const WIDGETS = [
   { id: 'summary', label: 'Summary Metrics', default: true },
-  { id: 'ticket-counts', label: 'Ticket Counts', default: true },
-  { id: 'service-performance', label: 'Service Performance', default: true },
-  { id: 'agent-performance', label: 'Agent Performance', default: true },
+  { id: 'status-distribution', label: 'Status Distribution', default: true },
+  { id: 'peak-hours', label: 'Peak Hours', default: true },
   { id: 'daily-trends', label: 'Daily Trends', default: true },
-  { id: 'hourly-distribution', label: 'Hourly Distribution', default: false },
-  { id: 'day-of-week', label: 'Day of Week Distribution', default: false },
-  { id: 'status-distribution', label: 'Status Distribution', default: false },
-  { id: 'peak-hours', label: 'Peak Hours', default: false },
+  { id: 'hourly-distribution', label: 'Hourly Distribution', default: true },
+  { id: 'day-of-week', label: 'Day of Week Distribution', default: true },
+  { id: 'service-performance', label: 'Service Performance', default: false },
+  { id: 'agent-performance', label: 'Agent Performance', default: false },
+  { id: 'ticket-counts', label: 'Ticket Counts', default: false },
   { id: 'category-stats', label: 'Category Stats', default: false },
+];
+
+const STATUSES = [
+  { id: 'pending', label: 'Pending' },
+  { id: 'serving', label: 'Serving' },
+  { id: 'hold', label: 'Hold' },
+  { id: 'completed', label: 'Completed' },
 ];
 
 export default function ExportAnalytics() {
@@ -70,6 +79,7 @@ export default function ExportAnalytics() {
   const [agents, setAgents] = useState<any[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -136,6 +146,24 @@ export default function ExportAnalytics() {
 
   const deselectAllAgents = () => {
     setSelectedAgents(new Set());
+  };
+
+  const toggleStatus = (statusId: string) => {
+    const newSet = new Set(selectedStatuses);
+    if (newSet.has(statusId)) {
+      newSet.delete(statusId);
+    } else {
+      newSet.add(statusId);
+    }
+    setSelectedStatuses(newSet);
+  };
+
+  const selectAllStatuses = () => {
+    setSelectedStatuses(new Set(STATUSES.map(s => s.id)));
+  };
+
+  const deselectAllStatuses = () => {
+    setSelectedStatuses(new Set());
   };
 
   const updateDateRange = () => {
@@ -247,6 +275,57 @@ export default function ExportAnalytics() {
           d.agentPerformance = d.agentPerformance.filter((a: any) => 
             agentIds.includes(a.agentId)
           );
+        }
+      }
+
+      // Filter data based on selected statuses
+      if (selectedStatuses.size > 0) {
+        const statusList = Array.from(selectedStatuses);
+        const normalizeStatus = (status: string) => status.toLowerCase().replace(/[_\s-]/g, '');
+        
+        // Filter ticket counts
+        if (d.ticketCounts) {
+          const filteredCounts: any = {};
+          Object.entries(d.ticketCounts).forEach(([key, value]) => {
+            const normalizedKey = normalizeStatus(key);
+            if (statusList.some(s => normalizeStatus(s) === normalizedKey)) {
+              filteredCounts[key] = value;
+            }
+          });
+          d.ticketCounts = filteredCounts;
+        }
+
+        // Filter status distribution
+        if (d.statusDistribution) {
+          d.statusDistribution = d.statusDistribution.filter((s: any) => {
+            const label = s.label || s.status || '';
+            const normalizedLabel = normalizeStatus(label);
+            return statusList.some(status => normalizeStatus(status) === normalizedLabel);
+          });
+        }
+
+        // Filter service performance by status counts
+        if (d.servicePerformance) {
+          d.servicePerformance = d.servicePerformance.map((s: any) => {
+            const filtered: any = { ...s };
+            if (statusList.includes('pending')) filtered.pendingTickets = s.pendingTickets || 0;
+            if (statusList.includes('serving')) filtered.servingTickets = s.servingTickets || 0;
+            if (statusList.includes('hold')) filtered.holdTickets = s.holdTickets || 0;
+            if (statusList.includes('completed')) filtered.completedTickets = s.completedTickets || 0;
+            return filtered;
+          });
+        }
+
+        // Filter agent performance by status counts
+        if (d.agentPerformance) {
+          d.agentPerformance = d.agentPerformance.map((a: any) => {
+            const filtered: any = { ...a };
+            if (statusList.includes('pending')) filtered.pendingTickets = a.pendingTickets || 0;
+            if (statusList.includes('serving')) filtered.servingTickets = a.servingTickets || 0;
+            if (statusList.includes('hold')) filtered.holdTickets = a.holdTickets || 0;
+            if (statusList.includes('completed')) filtered.completedTickets = a.completedTickets || 0;
+            return filtered;
+          });
         }
       }
 
@@ -411,6 +490,9 @@ export default function ExportAnalytics() {
         if (selectedAgents.size > 0) {
           fileNameSuffix += `_${selectedAgents.size}agents`;
         }
+        if (selectedStatuses.size > 0) {
+          fileNameSuffix += `_${selectedStatuses.size}statuses`;
+        }
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -442,6 +524,7 @@ export default function ExportAnalytics() {
               <p><strong>${t('admin.analytics.period')}</strong> ${startDate} ${t('admin.analytics.to')} ${endDate}</p>
               ${selectedCategories.size > 0 ? `<p><strong>${t('admin.analytics.servicesLabel')}:</strong> ${categories.filter((c: any) => selectedCategories.has(c.id)).map((c: any) => c.name).join(', ')}</p>` : ''}
               ${selectedAgents.size > 0 ? `<p><strong>${t('admin.analytics.agentsLabel')}:</strong> ${agents.filter((a: any) => selectedAgents.has(a.id)).map((a: any) => a.name || a.email || t('admin.analytics.unknown')).join(', ')}</p>` : ''}
+              ${selectedStatuses.size > 0 ? `<p><strong>${t('admin.analytics.statusFilter') || 'Status Filter'}:</strong> ${STATUSES.filter((s: any) => selectedStatuses.has(s.id)).map((s: any) => t(`common.${s.id}`) || s.label).join(', ')}</p>` : ''}
         `;
 
         if (selectedWidgets.has('summary')) {
@@ -780,6 +863,70 @@ export default function ExportAnalytics() {
                 </button>
               ))
             )}
+          </div>
+        </motion.div>
+
+        {/* Status Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-card border border-border rounded-xl p-6 mb-6"
+        >
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            {t('admin.analytics.filterByStatus') || 'Filter by Status (Optional)'}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            {t('admin.analytics.selectStatusesDesc') || 'Select specific ticket statuses to include in the report. Leave empty to include all statuses.'}
+          </p>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-muted-foreground">
+              {t('admin.analytics.selected')}: {selectedStatuses.size} {t('admin.analytics.of')} {STATUSES.length} {t('admin.analytics.statuses') || 'statuses'}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={selectAllStatuses}
+                className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                {t('admin.analytics.selectAll')}
+              </button>
+              <button
+                onClick={deselectAllStatuses}
+                className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                {t('admin.analytics.clear')}
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {STATUSES.map((status) => (
+              <button
+                key={status.id}
+                onClick={() => toggleStatus(status.id)}
+                className={`flex items-center gap-3 p-3 border rounded-lg transition-colors text-left ${
+                  selectedStatuses.has(status.id)
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:bg-muted/50'
+                }`}
+              >
+                {selectedStatuses.has(status.id) ? (
+                  <CheckSquare className="w-5 h-5 text-primary" />
+                ) : (
+                  <Square className="w-5 h-5 text-muted-foreground" />
+                )}
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {status.id === 'pending' ? t('common.pending') :
+                     status.id === 'serving' ? t('common.serving') :
+                     status.id === 'hold' ? t('common.hold') :
+                     status.id === 'completed' ? t('admin.analytics.completed') :
+                     status.id === 'cancelled' ? t('admin.analytics.cancelled') :
+                     status.label}
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </motion.div>
 

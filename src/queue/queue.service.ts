@@ -497,7 +497,7 @@ export class QueueService {
     });
 
     const decrypted = this.decryptTicket(updated);
-    this.realtimeService.emitTicketNoShow(decrypted);
+    this.realtimeService.emitTicketHold(decrypted);
     this.realtimeService.emitQueueUpdate(agentId, ticket.categoryId);
     return decrypted;
   }
@@ -785,8 +785,8 @@ export class QueueService {
   async reopenTicket(ticketId: string, agentId: string) {
     const ticket = await this.getTicketById(ticketId);
     if (ticket.agentId !== agentId) throw new BadRequestException('You can only reopen your own tickets');
-    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.NO_SHOW && ticket.status !== TicketStatus.HOLD) {
-      throw new BadRequestException('Can only reopen completed, no-show, or hold tickets');
+    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.HOLD) {
+      throw new BadRequestException('Can only reopen completed or hold tickets');
     }
 
     const updated = await this.prisma.$transaction(async (tx: any) => {
@@ -811,8 +811,8 @@ export class QueueService {
 
   async adminReopenTicket(ticketId: string) {
     const ticket = await this.getTicketById(ticketId);
-    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.NO_SHOW && ticket.status !== TicketStatus.HOLD) {
-      throw new BadRequestException('Can only reopen completed, no-show, or hold tickets');
+    if (ticket.status !== TicketStatus.COMPLETED && ticket.status !== TicketStatus.HOLD) {
+      throw new BadRequestException('Can only reopen completed or hold tickets');
     }
     const updated = await this.prisma.$transaction(async (tx: any) => {
       const positionInQueue = await this.getNextPositionInQueueInternal(tx, ticket.agentId);

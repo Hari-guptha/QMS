@@ -25,6 +25,7 @@ import {
   Eye,
   ChevronRight,
   FolderOpen,
+  Download,
 } from 'lucide-react';
 import {
   format,
@@ -149,8 +150,6 @@ export default function VisitorsPage() {
         return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
       case 'hold':
         return 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400';
-      case 'no-show':
-        return 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400';
       default:
         return 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400';
     }
@@ -188,6 +187,13 @@ export default function VisitorsPage() {
               {t('admin.visitors') || 'Visitors'}
             </h1>
           </div>
+          <Link
+            href="/admin/visitors/export"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            <Download className="w-4 h-4" />
+            {t('admin.visitors.export') || 'Export'}
+          </Link>
         </motion.div>
 
         {/* Filters */}

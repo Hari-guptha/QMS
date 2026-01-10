@@ -116,8 +116,8 @@ export class AnalyticsService {
 
     if (allTickets.length === 0) return 0;
 
-    const noShowTickets = allTickets.filter((t) => t.status === TicketStatus.NO_SHOW);
-    return (noShowTickets.length / allTickets.length) * 100;
+    const holdTickets = allTickets.filter((t) => t.status === TicketStatus.HOLD);
+    return (holdTickets.length / allTickets.length) * 100;
   }
 
   async getAgentPerformance(startDate?: Date, endDate?: Date): Promise<any[]> {
@@ -208,7 +208,6 @@ export class AnalyticsService {
       serving: 0,
       hold: 0,
       completed: 0,
-      noShow: 0,
       cancelled: 0,
     };
 
@@ -219,7 +218,6 @@ export class AnalyticsService {
       if (c.status === TicketStatus.SERVING) result.serving = count;
       if (c.status === TicketStatus.HOLD) result.hold = count;
       if (c.status === TicketStatus.COMPLETED) result.completed = count;
-      if (c.status === TicketStatus.NO_SHOW) result.noShow = count;
       if (c.status === TicketStatus.CANCELLED) result.cancelled = count;
     });
 
@@ -464,7 +462,6 @@ export class AnalyticsService {
       [TicketStatus.SERVING]: 0,
       [TicketStatus.COMPLETED]: 0,
       [TicketStatus.HOLD]: 0,
-      [TicketStatus.NO_SHOW]: 0,
       [TicketStatus.CANCELLED]: 0,
     };
 

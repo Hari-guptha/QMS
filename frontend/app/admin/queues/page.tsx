@@ -1062,7 +1062,7 @@ export default function AllQueues() {
                               <span className={`px-2 py-1 rounded-full ${
                                 hoveredTicket.status === 'completed'
                                   ? 'bg-chart-2/20 text-chart-2'
-                                  : hoveredTicket.status === 'no_show' || hoveredTicket.status === 'hold'
+                                  : hoveredTicket.status === 'hold'
                                   ? 'bg-destructive/20 text-destructive'
                                   : 'bg-muted text-muted-foreground'
                               }`}>
@@ -1177,7 +1177,7 @@ export default function AllQueues() {
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                     ticket.status === 'completed'
                                       ? 'bg-chart-2/20 text-chart-2'
-                                      : ticket.status === 'no_show' || ticket.status === 'hold'
+                                      : ticket.status === 'hold'
                                       ? 'bg-destructive/20 text-destructive'
                                       : 'bg-muted text-muted-foreground'
                                   }`}>
@@ -1334,7 +1334,7 @@ export default function AllQueues() {
                               <Eye className="w-4 h-4" />
                               {t('common.viewDetails')}
                             </motion.button>
-                            {(ticket.status === 'completed' || ticket.status === 'no_show' || ticket.status === 'hold') && (
+                            {(ticket.status === 'completed' || ticket.status === 'hold') && (
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -1345,7 +1345,7 @@ export default function AllQueues() {
                                 {t('admin.queues.reopen')}
                               </motion.button>
                             )}
-                            {ticket.status !== 'completed' && ticket.status !== 'no_show' && ticket.status !== 'hold' && (
+                            {ticket.status !== 'completed' && ticket.status !== 'hold' && (
                               <>
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
@@ -1854,7 +1854,7 @@ export default function AllQueues() {
                                 <X className="w-4 h-4 text-destructive" />
                               </div>
                               <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Hold/No Show At</p>
+                                <p className="text-xs text-muted-foreground">{t('common.holdAt') || 'Hold At'}</p>
                                 <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.noShowAt), 'MMM dd, yyyy HH:mm')}</p>
                               </div>
                             </div>

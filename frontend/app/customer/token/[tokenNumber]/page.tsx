@@ -15,6 +15,7 @@ export default function TokenPage() {
   const tokenNumber = params.tokenNumber as string;
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
     publicApi
@@ -39,6 +40,24 @@ export default function TokenPage() {
       socket.off('ticket:called');
     };
   }, [tokenNumber]);
+
+  // Auto-redirect after 10 seconds
+  useEffect(() => {
+    if (!loading && ticket) {
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            router.push('/customer/check-in');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [loading, ticket, router]);
 
   if (loading) {
     return (
@@ -112,15 +131,12 @@ export default function TokenPage() {
         </div>
 
         <div className="space-y-2">
-          <button
-            onClick={() => router.push('/status')}
-            className="w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold hover:bg-primary/90 transition-colors shadow-xs"
-          >
-            {t('customer.viewStatusPage')}
-          </button>
+          <p className="text-sm text-muted-foreground mb-2">
+            {t('customer.redirectingIn')} {countdown} {t('customer.seconds')}...
+          </p>
           <button
             onClick={() => router.push('/customer/check-in')}
-            className="w-full bg-secondary text-secondary-foreground py-2 rounded-md font-semibold hover:bg-secondary/80 transition-colors border"
+            className="w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold hover:bg-primary/90 transition-colors shadow-xs"
           >
             {t('customer.checkInAgain')}
           </button>

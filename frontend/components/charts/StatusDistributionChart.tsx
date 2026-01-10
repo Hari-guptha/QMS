@@ -103,7 +103,7 @@ export const StatusDistributionChart = React.memo(function StatusDistributionCha
                       {entry.value > 0 && (
                         <div
                           className="absolute top-1/2 -translate-y-1/2 text-sm font-bold text-white whitespace-nowrap px-2 drop-shadow-md z-10"
-                          style={{ 
+                          style={{
                             textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
                             left: barWidth > 20 ? '8px' : '4px'
                           }}

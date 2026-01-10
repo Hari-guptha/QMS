@@ -847,7 +847,7 @@ export default function AgentCalendar() {
                         <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
                           selectedTicketDetails.status === 'completed'
                             ? 'bg-chart-2/20 text-chart-2 border border-chart-2/30'
-                            : selectedTicketDetails.status === 'hold' || selectedTicketDetails.status === 'no_show'
+                            : selectedTicketDetails.status === 'hold'
                             ? 'bg-destructive/20 text-destructive border border-destructive/30'
                             : 'bg-muted text-muted-foreground border border-border'
                         }`}>
@@ -940,7 +940,7 @@ export default function AgentCalendar() {
                                 <X className="w-4 h-4 text-destructive" />
                               </div>
                               <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">{t('agent.calendar.holdNoShowAt')}</p>
+                                <p className="text-xs text-muted-foreground">{t('agent.calendar.holdAt')}</p>
                                 <p className="text-foreground font-medium">{format(parseISO(selectedTicketDetails.noShowAt), 'MMM dd, yyyy HH:mm')}</p>
                               </div>
                             </div>

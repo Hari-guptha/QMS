@@ -234,14 +234,13 @@ async function createSimulatorData() {
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - 30);
     
-    // Status distribution: 40% completed, 20% pending, 15% serving, 10% called, 10% no_show, 5% hold
+    // Status distribution: 40% completed, 20% pending, 15% serving, 10% called, 15% hold
     const statusWeights = [
       { status: 'completed', weight: 40 },
       { status: 'pending', weight: 20 },
       { status: 'serving', weight: 15 },
       { status: 'called', weight: 10 },
-      { status: 'no_show', weight: 10 },
-      { status: 'hold', weight: 5 },
+      { status: 'hold', weight: 15 },
     ];
 
     // Track token numbers per category per day
@@ -373,10 +372,6 @@ async function createSimulatorData() {
         calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
         servingStartedAt = new Date(calledAt.getTime() + getRandomInt(1, 5) * 60000);
         completedAt = new Date(servingStartedAt.getTime() + getRandomInt(5, 45) * 60000); // 5-45 min service time
-      } else if (selectedStatus === 'no_show') {
-        positionInQueue = 0;
-        calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
-        noShowAt = new Date(calledAt.getTime() + getRandomInt(10, 20) * 60000); // 10-20 min after called
       } else if (selectedStatus === 'hold') {
         positionInQueue = 0;
         calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
@@ -390,12 +385,12 @@ async function createSimulatorData() {
         notes: `Customer inquiry about ${category.name.toLowerCase()}`,
       }) : null;
 
-      // Generate note for completed/no_show tickets
+      // Generate note for completed/hold tickets
       let note: string | null = null;
       if (selectedStatus === 'completed' && Math.random() > 0.3) {
         note = `Successfully resolved customer inquiry. Service time: ${Math.round((completedAt!.getTime() - servingStartedAt!.getTime()) / 60000)} minutes.`;
-      } else if (selectedStatus === 'no_show' && Math.random() > 0.5) {
-        note = 'Customer did not respond to call. Marked as no-show.';
+      } else if (selectedStatus === 'hold' && Math.random() > 0.5) {
+        note = 'Customer did not respond to call. Marked as hold.';
       }
 
       try {

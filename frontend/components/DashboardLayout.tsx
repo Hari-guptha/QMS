@@ -25,7 +25,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, navItems, role }: DashboardLayoutProps) {
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
@@ -460,7 +460,7 @@ export function DashboardLayout({ children, navItems, role }: DashboardLayoutPro
 
         {/* Scrollable Content Area */}
         <div
-          dir="ltr"
+          dir={dir}
           data-slot="scroll-area"
           className="relative h-[calc(100vh-4rem)]"
           style={{ position: 'relative' }}

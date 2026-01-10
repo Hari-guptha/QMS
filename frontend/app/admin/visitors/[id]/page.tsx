@@ -143,8 +143,6 @@ export default function VisitorDetailPage() {
         return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
       case 'hold':
         return 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400';
-      case 'no-show':
-        return 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400';
       default:
         return 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400';
     }
@@ -160,8 +158,6 @@ export default function VisitorDetailPage() {
         return Clock;
       case 'hold':
         return Pause;
-      case 'no-show':
-        return XCircle;
       default:
         return Clock;
     }

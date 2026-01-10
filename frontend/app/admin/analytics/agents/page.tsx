@@ -40,7 +40,7 @@ import { AnimatePresence } from 'framer-motion';
 
 export default function AgentAnalytics() {
   const router = useRouter();
-  const { t, language } = useI18n();
+  const { t, language, dir } = useI18n();
   const [agentPerformance, setAgentPerformance] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -534,14 +534,14 @@ export default function AgentAnalytics() {
         <AnimatePresence>
           {expandedChart && (
             <>
-              <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm z-[9999] m-0" onClick={() => setExpandedChart(null)} />
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] m-0" onClick={() => setExpandedChart(null)} />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="fixed top-4 left-4 right-4 bottom-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto m-0"
+                className={`fixed top-4 bottom-4 z-[10000] bg-card border border-border rounded-2xl shadow-xl p-6 overflow-auto m-0 ${dir === 'rtl' ? 'right-4 left-4' : 'left-4 right-4'}`}
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className={`flex items-center mb-6 ${dir === 'rtl' ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
                   <h2 className="text-2xl font-bold text-foreground">
                     {expandedChart === 'agent-performance' && t('admin.analytics.agentPerformance')}
                     {expandedChart === 'status-distribution' && t('admin.analytics.statusDistribution')}
