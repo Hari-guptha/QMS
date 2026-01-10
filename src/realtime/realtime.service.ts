@@ -64,6 +64,17 @@ export class RealtimeService {
     this.emitPublicStatusUpdate();
   }
 
+  emitTicketNoShow(ticket: Ticket) {
+    this.gateway.server.emit('ticket:no-show', ticket);
+    if (ticket.agentId) {
+      this.gateway.server.to(`agent:${ticket.agentId}`).emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
+    }
+    this.emitPublicStatusUpdate();
+  }
+
   emitTicketTransferred(ticket: Ticket) {
     this.gateway.server.emit('ticket:transferred', ticket);
     if (ticket.agentId) {
