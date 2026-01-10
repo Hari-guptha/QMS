@@ -472,14 +472,6 @@ export default function CustomerCheckIn() {
         {/* Footer Links */}
         <div className="mt-8 text-center space-y-4">
           <a
-            href="/status"
-            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-          >
-            <Ticket className="w-4 h-4" />
-            {t('customer.viewQueueStatus')}
-          </a>
-          <span className="text-muted-foreground mx-4">•</span>
-          <a
             href="/"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >

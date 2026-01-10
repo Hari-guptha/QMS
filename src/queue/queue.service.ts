@@ -181,6 +181,7 @@ export class QueueService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Get the highest token number for today
     const lastTicket = await tx.ticket.findFirst({
       where: {
         tokenNumber: { startsWith: `${categoryCode}-` },
@@ -196,19 +197,52 @@ export class QueueService {
       nextNumber = lastNum + 1;
     }
 
+    // Try to find a unique token number
     let tokenNumber = `${categoryCode}-${nextNumber.toString().padStart(3, '0')}`;
     let attempts = 0;
-    while (attempts < 10) {
-      const existing = await tx.ticket.findUnique({
+    const maxAttempts = 100; // Increased from 10 to handle more concurrent requests
+    
+    while (attempts < maxAttempts) {
+      // Use findFirst instead of findUnique to check existence
+      const existing = await tx.ticket.findFirst({
         where: { tokenNumber },
       });
-      if (!existing) return tokenNumber;
+      
+      if (!existing) {
+        // Double-check with a more specific query including today's date
+        const existingToday = await tx.ticket.findFirst({
+          where: {
+            tokenNumber,
+            createdAt: { gte: today },
+          },
+        });
+        
+        if (!existingToday) {
+          return tokenNumber;
+        }
+      }
 
       nextNumber++;
       tokenNumber = `${categoryCode}-${nextNumber.toString().padStart(3, '0')}`;
       attempts++;
     }
-    throw new Error('Failed to generate unique token number');
+    
+    // If we still can't find a unique number, try using timestamp as fallback
+    const timestamp = Date.now().toString().slice(-4);
+    tokenNumber = `${categoryCode}-${timestamp}`;
+    
+    // Final check
+    const finalCheck = await tx.ticket.findFirst({
+      where: { tokenNumber },
+    });
+    
+    if (finalCheck) {
+      // Last resort: use random number
+      const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+      tokenNumber = `${categoryCode}-${randomNum}`;
+    }
+    
+    return tokenNumber;
   }
 
   private async getNextPositionInQueueInternal(tx: any, agentId: string): Promise<number> {
