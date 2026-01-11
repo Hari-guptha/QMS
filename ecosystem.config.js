@@ -7,7 +7,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 9001,
       },
       error_file: './logs/qms-backend-error.log',
       out_file: './logs/qms-backend-out.log',
@@ -27,7 +27,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 9001,
+        PORT: 9000,
       },
       error_file: './logs/qms-fe-error.log',
       out_file: './logs/qms-fe-out.log',

@@ -7,7 +7,7 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
   createServer((req, res) => {
     handle(req, res);
-  }).listen(9001, () => {
-    console.log("Next.js running on port 9001");
+  }).listen(9000, () => {
+    console.log("Next.js running on port 9000");
   });
 });
