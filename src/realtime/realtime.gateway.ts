@@ -47,5 +47,11 @@ export class RealtimeGateway
     client.join('public');
     this.logger.log(`Client ${client.id} joined public room`);
   }
+
+  @SubscribeMessage('join-admin-room')
+  handleJoinAdminRoom(client: Socket, adminId: string) {
+    client.join('admin');
+    this.logger.log(`Client ${client.id} joined admin room: ${adminId}`);
+  }
 }
 

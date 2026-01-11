@@ -13,6 +13,11 @@ export class RealtimeService {
         agentId: ticket.agentId,
         ticket,
       });
+      // Also emit to admin room
+      this.gateway.server.to('admin').emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
     }
     this.gateway.server
       .to(`category:${ticket.categoryId}`)
@@ -27,6 +32,11 @@ export class RealtimeService {
         agentId: ticket.agentId,
         ticket,
       });
+      // Also emit to admin room
+      this.gateway.server.to('admin').emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
     }
     this.emitPublicStatusUpdate();
   }
@@ -35,6 +45,11 @@ export class RealtimeService {
     this.gateway.server.emit('ticket:serving', ticket);
     if (ticket.agentId) {
       this.gateway.server.to(`agent:${ticket.agentId}`).emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
+      // Also emit to admin room
+      this.gateway.server.to('admin').emit('queue:updated', {
         agentId: ticket.agentId,
         ticket,
       });
@@ -49,6 +64,11 @@ export class RealtimeService {
         agentId: ticket.agentId,
         ticket,
       });
+      // Also emit to admin room
+      this.gateway.server.to('admin').emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
     }
     this.emitPublicStatusUpdate();
   }
@@ -57,6 +77,11 @@ export class RealtimeService {
     this.gateway.server.emit('ticket:hold', ticket);
     if (ticket.agentId) {
       this.gateway.server.to(`agent:${ticket.agentId}`).emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
+      // Also emit to admin room
+      this.gateway.server.to('admin').emit('queue:updated', {
         agentId: ticket.agentId,
         ticket,
       });
@@ -71,6 +96,11 @@ export class RealtimeService {
         agentId: ticket.agentId,
         ticket,
       });
+      // Also emit to admin room
+      this.gateway.server.to('admin').emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
     }
     this.emitPublicStatusUpdate();
   }
@@ -82,6 +112,11 @@ export class RealtimeService {
         agentId: ticket.agentId,
         ticket,
       });
+      // Also emit to admin room
+      this.gateway.server.to('admin').emit('queue:updated', {
+        agentId: ticket.agentId,
+        ticket,
+      });
     }
     this.emitPublicStatusUpdate();
   }
@@ -89,6 +124,10 @@ export class RealtimeService {
   emitQueueUpdate(agentId?: string, categoryId?: string) {
     if (agentId) {
       this.gateway.server.to(`agent:${agentId}`).emit('queue:updated', {
+        agentId,
+      });
+      // Also emit to admin room so admins see updates
+      this.gateway.server.to('admin').emit('queue:updated', {
         agentId,
       });
     }

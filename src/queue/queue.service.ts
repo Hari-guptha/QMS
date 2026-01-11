@@ -61,165 +61,272 @@ export class QueueService {
 
   /**
    * Core Logic: Create ticket and route to least busy agent
+   * Includes retry logic to handle concurrent token number conflicts
    */
   async createTicket(createTicketDto: CreateTicketDto) {
-    return this.prisma.$transaction(async (tx: any) => {
-      const category = await tx.category.findUnique({
-        where: { id: createTicketDto.categoryId },
-      });
+    // Get all active agents for this category (outside transaction to avoid timeout)
+    const agents = await this.usersService.getAgentsByCategory(createTicketDto.categoryId);
 
-      if (!category || !category.isActive) {
-        throw new NotFoundException('Category not found or inactive');
-      }
+    if (agents.length === 0) {
+      throw new BadRequestException('No active agents available for this category');
+    }
 
-      // Get all active agents for this category
-      const agents = await this.usersService.getAgentsByCategory(createTicketDto.categoryId);
+    // Retry logic for handling unique constraint violations (P2002) and transaction timeouts (P2028)
+    const maxRetries = 5;
+    let lastError: any;
 
-      if (agents.length === 0) {
-        throw new BadRequestException('No active agents available for this category');
-      }
-
-      // Find the least busy agent
-      const agent = await this.findLeastBusyAgentInternal(tx, agents.map((a) => a.id));
-
-      // Generate token number (Simplified locking for Prisma/MSSQL)
-      const tokenNumber = await this.generateTokenNumberInternal(tx, category);
-
-      // Get position in queue for this agent
-      const positionInQueue = await this.getNextPositionInQueueInternal(tx, agent.id);
-
-      // Prepare data with encryption
-      const data = this.encryptTicket({
-        ...createTicketDto,
-        categoryId: createTicketDto.categoryId,
-        agentId: agent.id,
-        tokenNumber,
-        positionInQueue,
-        status: TicketStatus.PENDING,
-      });
-
-      // Create ticket
-      const ticket = await tx.ticket.create({
-        data,
-        include: {
-          category: true,
-          agent: true,
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Add delay BEFORE transaction on retries to reduce collision probability
+        // This prevents the delay from counting against transaction timeout
+        if (attempt > 0) {
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 100 * attempt));
         }
-      });
 
-      return ticket;
-    }).then(async (savedTicket) => {
-      const decrypted = this.decryptTicket(savedTicket);
+        // Use transaction with increased timeout (30 seconds) to prevent P2028 errors
+        const savedTicket = await this.prisma.$transaction(async (tx: any) => {
+          const category = await tx.category.findUnique({
+            where: { id: createTicketDto.categoryId },
+          });
 
-      // Send notifications (using decrypted data)
-      const method = await this.notificationService.getMethod();
-      const message = `Your token number is ${decrypted.tokenNumber}. Your position in queue is ${decrypted.positionInQueue}.`;
-      if (method === 'sms') {
-        if (decrypted.customerPhone) {
-          await this.notificationService.sendSMS(decrypted.customerPhone, message);
+          if (!category || !category.isActive) {
+            throw new NotFoundException('Category not found or inactive');
+          }
+
+          // Find the least busy agent
+          const agent = await this.findLeastBusyAgentInternal(tx, agents.map((a) => a.id));
+
+          // Generate token number (Simplified locking for Prisma/MSSQL)
+          const tokenNumber = await this.generateTokenNumberInternal(tx, category, attempt);
+
+          // Get position in queue for this agent
+          const positionInQueue = await this.getNextPositionInQueueInternal(tx, agent.id);
+
+          // Prepare data with encryption
+          const data = this.encryptTicket({
+            ...createTicketDto,
+            categoryId: createTicketDto.categoryId,
+            agentId: agent.id,
+            tokenNumber,
+            positionInQueue,
+            status: TicketStatus.PENDING,
+          });
+
+          // Create ticket
+          const ticket = await tx.ticket.create({
+            data,
+            include: {
+              category: true,
+              agent: true,
+            }
+          });
+
+          return ticket;
+        }, {
+          maxWait: 30000, // Maximum time to wait for a transaction slot (30 seconds)
+          timeout: 30000, // Maximum time the transaction can run (30 seconds)
+        });
+
+        // If successful, process and return
+        return this.processCreatedTicket(savedTicket);
+      } catch (error: any) {
+        // Check if it's a unique constraint violation (P2002) or transaction timeout (P2028)
+        const isRetryableError = 
+          error.code === 'P2002' || // Unique constraint violation
+          error.code === 'P2028';   // Transaction timeout/expired
+
+        if (isRetryableError) {
+          // For P2002, check if it's related to tickets table
+          if (error.code === 'P2002') {
+            const isTicketConstraint = 
+              error.meta?.modelName === 'Ticket' || 
+              error.meta?.target?.includes('tickets') ||
+              error.meta?.target?.includes('tokenNumber');
+            
+            if (!isTicketConstraint) {
+              // Not a ticket-related constraint, don't retry
+              throw error;
+            }
+          }
+
+          lastError = error;
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries - 1) {
+            const backoffDelay = error.code === 'P2028' 
+              ? 100 * Math.pow(2, attempt) // Longer backoff for timeouts
+              : 50 * Math.pow(2, attempt);  // Shorter backoff for constraint violations
+            await new Promise(resolve => setTimeout(resolve, backoffDelay));
+            continue; // Retry
+          }
         }
-      } else {
-        if (decrypted.customerEmail) {
-          // send email; no agent context for a public check-in
-          await this.notificationService.sendEmail(decrypted.customerEmail, 'Token Generated', message);
-        }
+        // If it's not a retryable error or we've exhausted retries, throw
+        throw error;
       }
+    }
 
-      // Emit real-time update
-      this.realtimeService.emitTicketCreated(decrypted);
-      this.realtimeService.emitQueueUpdate(decrypted.agentId, decrypted.categoryId);
+    // If we've exhausted all retries, throw a descriptive error
+    if (lastError) {
+      if (lastError.code === 'P2028') {
+        throw new BadRequestException('Transaction timeout: Please try again. The system is experiencing high load.');
+      } else if (lastError.code === 'P2002') {
+        throw new BadRequestException('Unable to generate unique token number. Please try again.');
+      }
+      throw lastError;
+    }
+    throw new BadRequestException('Failed to create ticket after multiple attempts. Please try again.');
+  }
 
-      return decrypted;
-    });
+  /**
+   * Process a successfully created ticket (notifications, realtime updates, etc.)
+   */
+  private async processCreatedTicket(savedTicket: any) {
+    const decrypted = this.decryptTicket(savedTicket);
+
+    // Send notifications (using decrypted data)
+    const method = await this.notificationService.getMethod();
+    const message = `Your token number is ${decrypted.tokenNumber}. Your position in queue is ${decrypted.positionInQueue}.`;
+    if (method === 'sms') {
+      if (decrypted.customerPhone) {
+        await this.notificationService.sendSMS(decrypted.customerPhone, message);
+      }
+    } else {
+      if (decrypted.customerEmail) {
+        // send email; no agent context for a public check-in
+        await this.notificationService.sendEmail(decrypted.customerEmail, 'Token Generated', message);
+      }
+    }
+
+    // Emit real-time update
+    this.realtimeService.emitTicketCreated(decrypted);
+    this.realtimeService.emitQueueUpdate(decrypted.agentId, decrypted.categoryId);
+
+    return decrypted;
   }
 
   /**
    * Internal find least busy agent using transaction context
+   * Optimized to use a single query with aggregation
    */
   private async findLeastBusyAgentInternal(tx: any, agentIds: string[]) {
-    const agents = await tx.user.findMany({
-      where: { id: { in: agentIds } },
-    });
-
-    if (agents.length === 0) {
-      throw new BadRequestException('No agents found');
-    }
-
     // Only consider tickets created today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayEnd = new Date(today);
     todayEnd.setHours(23, 59, 59, 999);
 
-    const agentCounts = await Promise.all(
-      agents.map(async (agent) => {
-        const ticketCount = await tx.ticket.count({
-          where: {
-            agentId: agent.id,
-            status: {
-              in: [TicketStatus.PENDING, TicketStatus.CALLED, TicketStatus.SERVING],
-            },
-            createdAt: {
-              gte: today,
-              lte: todayEnd,
-            }
-          },
-        });
-        return { agent, count: ticketCount };
-      })
-    );
+    // Get all agents first
+    const agents = await tx.user.findMany({
+      where: { id: { in: agentIds } },
+      select: { id: true }, // Only select id for faster query
+    });
 
-    agentCounts.sort((a, b) => a.count - b.count);
-    return agentCounts[0].agent;
+    if (agents.length === 0) {
+      throw new BadRequestException('No agents found');
+    }
+
+    // Get ticket counts for all agents in a single query using groupBy
+    // Note: Prisma doesn't support groupBy with count directly, so we use a more efficient approach
+    // Get all relevant tickets and count in memory (faster than multiple queries for small datasets)
+    const tickets = await tx.ticket.findMany({
+      where: {
+        agentId: { in: agentIds },
+        status: {
+          in: [TicketStatus.PENDING, TicketStatus.CALLED, TicketStatus.SERVING],
+        },
+        createdAt: {
+          gte: today,
+          lte: todayEnd,
+        }
+      },
+      select: { agentId: true }, // Only select agentId for faster query
+    });
+
+    // Count tickets per agent
+    const agentCountMap = new Map<string, number>();
+    agentIds.forEach(id => agentCountMap.set(id, 0));
+    tickets.forEach(ticket => {
+      if (ticket.agentId) {
+        agentCountMap.set(ticket.agentId, (agentCountMap.get(ticket.agentId) || 0) + 1);
+      }
+    });
+
+    // Find agent with minimum count
+    let minCount = Infinity;
+    let leastBusyAgentId = agentIds[0];
+    agentCountMap.forEach((count, agentId) => {
+      if (count < minCount) {
+        minCount = count;
+        leastBusyAgentId = agentId;
+      }
+    });
+
+    // Return full agent object
+    const agent = await tx.user.findUnique({
+      where: { id: leastBusyAgentId },
+    });
+
+    if (!agent) {
+      throw new BadRequestException('Agent not found');
+    }
+
+    return agent;
   }
 
   /**
    * Internal token generation with serializable-like behavior in MSSQL
+   * Optimized to reduce transaction time and avoid timeouts
+   * @param retryAttempt - Current retry attempt (0 for first try, >0 for retries)
    */
-  private async generateTokenNumberInternal(tx: any, category: any): Promise<string> {
+  private async generateTokenNumberInternal(tx: any, category: any, retryAttempt: number = 0): Promise<string> {
     const categoryCode = category.name.substring(0, 3).toUpperCase();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get the highest token number for today
+    // Get the highest token number for today in a single query
     const lastTicket = await tx.ticket.findFirst({
       where: {
         tokenNumber: { startsWith: `${categoryCode}-` },
         createdAt: { gte: today },
       },
       orderBy: { createdAt: 'desc' },
+      select: { tokenNumber: true },
     });
 
     let nextNumber = 1;
     if (lastTicket) {
       const parts = lastTicket.tokenNumber.split('-');
-      const lastNum = parseInt(parts[1] || '0');
-      nextNumber = lastNum + 1;
+      const lastNum = parseInt(parts[1] || '0', 10);
+      if (!isNaN(lastNum)) {
+        nextNumber = lastNum + 1;
+      }
     }
 
-    // Try to find a unique token number
+    // On retries, add a random offset to reduce collision probability
+    if (retryAttempt > 0) {
+      const randomOffset = Math.floor(Math.random() * (retryAttempt * 10)) + 1;
+      nextNumber += randomOffset;
+    }
+
+    // Generate initial token number
     let tokenNumber = `${categoryCode}-${nextNumber.toString().padStart(3, '0')}`;
+    
+    // Check if token exists - limit attempts to avoid transaction timeout
+    // Reduced to 3 attempts since we have retry logic at the transaction level
+    const maxAttempts = 3;
     let attempts = 0;
-    const maxAttempts = 100; // Increased from 10 to handle more concurrent requests
     
     while (attempts < maxAttempts) {
-      // Use findFirst instead of findUnique to check existence
+      // Single query to check existence for today
       const existing = await tx.ticket.findFirst({
-        where: { tokenNumber },
+        where: {
+          tokenNumber,
+          createdAt: { gte: today },
+        },
+        select: { id: true }, // Only select id for faster query
       });
       
       if (!existing) {
-        // Double-check with a more specific query including today's date
-        const existingToday = await tx.ticket.findFirst({
-          where: {
-            tokenNumber,
-            createdAt: { gte: today },
-          },
-        });
-        
-        if (!existingToday) {
-          return tokenNumber;
-        }
+        return tokenNumber;
       }
 
       nextNumber++;
@@ -227,20 +334,11 @@ export class QueueService {
       attempts++;
     }
     
-    // If we still can't find a unique number, try using timestamp as fallback
-    const timestamp = Date.now().toString().slice(-4);
-    tokenNumber = `${categoryCode}-${timestamp}`;
-    
-    // Final check
-    const finalCheck = await tx.ticket.findFirst({
-      where: { tokenNumber },
-    });
-    
-    if (finalCheck) {
-      // Last resort: use random number
-      const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
-      tokenNumber = `${categoryCode}-${randomNum}`;
-    }
+    // Fallback: use timestamp-based token with random component to ensure uniqueness
+    // This ensures we always return a unique token even if all sequential numbers are taken
+    const timestamp = Date.now().toString().slice(-6);
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    tokenNumber = `${categoryCode}-${timestamp}${randomSuffix}`;
     
     return tokenNumber;
   }

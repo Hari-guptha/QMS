@@ -68,6 +68,7 @@ import {
 } from 'date-fns';
 import { Select } from '@/components/ui/Select';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { getSocket } from '@/lib/socket';
 
 export default function AllQueues() {
   const router = useRouter();
@@ -104,6 +105,18 @@ export default function AllQueues() {
   const [historyEndDate, setHistoryEndDate] = useState(() => {
     return format(new Date(), 'yyyy-MM-dd');
   });
+  const [queueDateFilter, setQueueDateFilter] = useState<'day' | 'week' | 'month'>('day');
+  const [queueStartDate, setQueueStartDate] = useState<string>(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return format(today, 'yyyy-MM-dd');
+  });
+  const [queueEndDate, setQueueEndDate] = useState<string>(() => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return format(today, 'yyyy-MM-dd');
+  });
+  const [queueSearchQuery, setQueueSearchQuery] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
@@ -113,6 +126,86 @@ export default function AllQueues() {
     loadAgents();
     loadCategories();
   }, [router]);
+
+  // Set up socket connection for real-time updates
+  useEffect(() => {
+    if (!auth.isAuthenticated() || auth.getUser()?.role !== 'admin') {
+      return;
+    }
+
+    const user = auth.getUser();
+    if (!user) {
+      return;
+    }
+
+    const socket = getSocket();
+
+    // Join admin room for queue updates
+    const handleConnect = () => {
+      socket.emit('join-admin-room', user.id);
+      console.log('Socket connected, joined admin room:', user.id);
+    };
+
+    const handleDisconnect = () => {
+      console.log('Socket disconnected');
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.on('connect', handleConnect);
+    }
+
+    socket.on('disconnect', handleDisconnect);
+
+    // Listen for queue update events
+    const handleQueueUpdate = (data?: any) => {
+      console.log('Queue updated event received:', data);
+      // Reload queue if we have a selected agent and are viewing queue
+      if (selectedAgentId && viewType === 'queue') {
+        // Check if the update is for the selected agent
+        if (!data?.agentId || data.agentId === selectedAgentId) {
+          loadAgentQueue(selectedAgentId);
+        }
+      }
+    };
+
+    // Listen for ticket events
+    const handleTicketCreated = (ticket: any) => {
+      console.log('New ticket created:', ticket);
+      if (selectedAgentId && viewType === 'queue' && ticket.agentId === selectedAgentId) {
+        loadAgentQueue(selectedAgentId);
+      }
+    };
+
+    const handleTicketStatusChange = (ticket: any) => {
+      console.log('Ticket status changed:', ticket);
+      if (selectedAgentId && viewType === 'queue' && ticket.agentId === selectedAgentId) {
+        loadAgentQueue(selectedAgentId);
+      }
+    };
+
+    socket.on('queue:updated', handleQueueUpdate);
+    socket.on('ticket:created', handleTicketCreated);
+    socket.on('ticket:called', handleTicketStatusChange);
+    socket.on('ticket:serving', handleTicketStatusChange);
+    socket.on('ticket:completed', handleTicketStatusChange);
+    socket.on('ticket:hold', handleTicketStatusChange);
+    socket.on('ticket:transferred', handleTicketStatusChange);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('queue:updated', handleQueueUpdate);
+      socket.off('ticket:created', handleTicketCreated);
+      socket.off('ticket:called', handleTicketStatusChange);
+      socket.off('ticket:serving', handleTicketStatusChange);
+      socket.off('ticket:completed', handleTicketStatusChange);
+      socket.off('ticket:hold', handleTicketStatusChange);
+      socket.off('ticket:transferred', handleTicketStatusChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAgentId, viewType]);
 
   useEffect(() => {
     if (selectedAgentId) {
@@ -130,6 +223,37 @@ export default function AllQueues() {
       setHistoryTickets([]);
     }
   }, [selectedAgentId, viewType, currentDate, viewMode, historyViewType, historyStartDate, historyEndDate]);
+
+  // Update queue date range based on filter
+  useEffect(() => {
+    const today = new Date();
+    let start: Date;
+    let end: Date = new Date(today);
+    end.setHours(23, 59, 59, 999);
+
+    switch (queueDateFilter) {
+      case 'day':
+        start = new Date(today);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        const dayOfWeek = today.getDay();
+        start = new Date(today);
+        start.setDate(today.getDate() - dayOfWeek);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        start.setHours(0, 0, 0, 0);
+        break;
+      default:
+        start = new Date(today);
+        start.setHours(0, 0, 0, 0);
+    }
+
+    setQueueStartDate(format(start, 'yyyy-MM-dd'));
+    setQueueEndDate(format(end, 'yyyy-MM-dd'));
+  }, [queueDateFilter]);
 
   const loadAgents = async () => {
     try {
@@ -388,9 +512,37 @@ export default function AllQueues() {
     })
   );
 
-  const pendingTickets = queue.filter((t: any) => t.status === 'pending');
-  const holdTickets = queue.filter((t: any) => t.status === 'hold');
-  const otherTickets = queue.filter((t: any) => t.status !== 'pending' && t.status !== 'hold');
+  // Filter queue tickets by date and search query
+  const filteredQueue = useMemo(() => {
+    let filtered = queue;
+    
+    // Filter by date range
+    if (queueStartDate && queueEndDate) {
+      const start = startOfDay(parseISO(queueStartDate));
+      const end = endOfDay(parseISO(queueEndDate));
+      filtered = filtered.filter((ticket: any) => {
+        const ticketDate = parseISO(ticket.createdAt);
+        return ticketDate >= start && ticketDate <= end;
+      });
+    }
+    
+    // Filter by search query (ticket ID or customer name)
+    if (queueSearchQuery.trim()) {
+      const query = queueSearchQuery.toLowerCase().trim();
+      filtered = filtered.filter((ticket: any) => {
+        return (
+          ticket.tokenNumber?.toLowerCase().includes(query) ||
+          ticket.customerName?.toLowerCase().includes(query)
+        );
+      });
+    }
+    
+    return filtered;
+  }, [queue, queueStartDate, queueEndDate, queueSearchQuery]);
+
+  const pendingTickets = filteredQueue.filter((t: any) => t.status === 'pending');
+  const holdTickets = filteredQueue.filter((t: any) => t.status === 'hold');
+  const otherTickets = filteredQueue.filter((t: any) => t.status !== 'pending' && t.status !== 'hold');
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
@@ -862,6 +1014,77 @@ export default function AllQueues() {
               </div>
             </div>
 
+            {viewType === 'queue' ? (
+              <>
+                {/* Date Filter and Search for Queue View */}
+                <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 bg-muted/30 border rounded-xl">
+                  <div className="flex flex-wrap items-center gap-4 flex-1">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground">{t('admin.analytics.period') || 'Period'}:</span>
+                      <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+                        <button
+                          onClick={() => setQueueDateFilter('day')}
+                          className={`px-3 py-1 text-sm rounded transition-colors ${
+                            queueDateFilter === 'day'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {t('admin.analytics.today') || 'Today'}
+                        </button>
+                        <button
+                          onClick={() => setQueueDateFilter('week')}
+                          className={`px-3 py-1 text-sm rounded transition-colors ${
+                            queueDateFilter === 'week'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {t('admin.analytics.thisWeek') || 'This Week'}
+                        </button>
+                        <button
+                          onClick={() => setQueueDateFilter('month')}
+                          className={`px-3 py-1 text-sm rounded transition-colors ${
+                            queueDateFilter === 'month'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {t('admin.analytics.thisMonth') || 'This Month'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex-1 flex items-center gap-2 bg-card/80 border border-border rounded-xl px-3 py-2 min-w-[200px]">
+                      <Search className="w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder={t('admin.queues.searchTickets') || 'Search by ticket ID or name...'}
+                        value={queueSearchQuery}
+                        onChange={(e) => setQueueSearchQuery(e.target.value)}
+                        className="flex-1 outline-none border-0 bg-transparent text-foreground placeholder:text-muted-foreground"
+                      />
+                      {(queueSearchQuery || queueDateFilter !== 'day') && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => {
+                            setQueueSearchQuery('');
+                            setQueueDateFilter('day');
+                          }}
+                          className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                          title={t('common.clearFilter') || 'Clear filter'}
+                        >
+                          <X className="w-4 h-4" />
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
             {viewType === 'history' ? (
               <>
                 {/* Filters and View Toggle */}
@@ -1213,12 +1436,30 @@ export default function AllQueues() {
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
-                ) : queue.length === 0 ? (
+                ) : filteredQueue.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    {t('admin.queues.noTickets')}
+                    {queue.length === 0 ? (
+                      t('admin.queues.noTickets')
+                    ) : (
+                      t('admin.queues.noTicketsFound') || 'No tickets found matching the selected filters.'
+                    )}
                   </div>
                 ) : (
                   <>
+                {/* Queue Summary */}
+                <div className="mb-6 p-4 bg-muted/30 border rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      {t('admin.queues.showingTickets') || 'Showing'} {filteredQueue.length} {t('admin.queues.of') || 'of'} {queue.length} {t('admin.queues.tickets') || 'tickets'}
+                    </div>
+                    {(queueSearchQuery || queueDateFilter !== 'day') && (
+                      <div className="text-xs text-muted-foreground">
+                        {t('admin.queues.filtered') || 'Filtered'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Hold Tickets */}
                 {holdTickets.length > 0 && (
                   <div className="mb-6">
