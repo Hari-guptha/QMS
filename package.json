@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "create-admin": "ts-node -r dotenv/config scripts/create-admin.ts",
+    "remove-admin": "ts-node -r dotenv/config scripts/remove-admin.ts",
     "add-simulator-data": "ts-node -r dotenv/config mastertester/add-simulator-data.ts",
     "remove-simulator-data": "ts-node -r dotenv/config mastertester/remove-simulator-data.ts",
     "check-ticket-statuses": "ts-node -r dotenv/config check-ticket-statuses.ts"

@@ -226,13 +226,8 @@ async function createSimulatorData() {
     console.log(`  ✓ Assigned agents to services (${createdData.agentCategoryIds.length} assignments)`);
     console.log(`    - Agents handle 1-${Math.max(...Array.from(agentAssignments.values()))} categories each`);
 
-    // Step 4: Create 100 Tickets across multiple dates
-    console.log('\n🎫 Creating 100 tickets across multiple dates...');
-    
-    // Create tickets over the last 30 days
+    // Step 4: Create Tickets
     const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 30);
     
     // Status distribution: 40% completed, 20% pending, 15% serving, 10% called, 15% hold
     const statusWeights = [
@@ -309,124 +304,153 @@ async function createSimulatorData() {
       throw new Error(`Failed to generate unique token number for ${category.name} on ${ticketDateStr}`);
     }
 
-    for (let i = 0; i < 100; i++) {
-      // Random date within the last 30 days
-      const ticketDate = getRandomDate(startDate, today);
-      const ticketDateStr = ticketDate.toISOString().split('T')[0];
-      
-      // Select random category
-      const categoryId = getRandomElement(createdData.categoryIds);
-      const category = await prisma.category.findUnique({ where: { id: categoryId } });
-      if (!category) continue;
+    // Helper function to create tickets
+    async function createTickets(
+      count: number,
+      startDate: Date,
+      endDate: Date,
+      description: string
+    ): Promise<number> {
+      console.log(`\n🎫 Creating ${count} tickets ${description}...`);
+      let createdCount = 0;
 
-      // Get agents for this category
-      const agentCategories = await prisma.agentCategory.findMany({
-        where: { categoryId, isActive: true },
-      });
-      if (agentCategories.length === 0) continue;
-
-      const agentCategory = getRandomElement(agentCategories);
-      const agentId = agentCategory.agentId;
-
-      // Generate unique token number
-      const tokenNumber = await generateUniqueTokenNumber(category, ticketDate);
-
-      // Select status based on weights
-      const random = Math.random() * 100;
-      let cumulative = 0;
-      let selectedStatus = 'pending';
-      for (const sw of statusWeights) {
-        cumulative += sw.weight;
-        if (random <= cumulative) {
-          selectedStatus = sw.status;
-          break;
-        }
-      }
-
-      // Generate customer data
-      const customerFirstName = getRandomElement(customerNames);
-      const customerLastName = getRandomElement(customerLastNames);
-      const customerName = `${customerFirstName} ${customerLastName}`;
-      const customerPhone = generatePhoneNumber();
-      const customerEmail = generateEmail(customerFirstName, customerLastName);
-
-      // Create realistic timestamps based on status
-      const createdAt = getRandomTimeInDay(ticketDate, 9, 17);
-      let calledAt: Date | null = null;
-      let servingStartedAt: Date | null = null;
-      let completedAt: Date | null = null;
-      let noShowAt: Date | null = null;
-      let positionInQueue = 0;
-
-      if (selectedStatus === 'pending') {
-        positionInQueue = getRandomInt(1, 10);
-      } else if (selectedStatus === 'called') {
-        positionInQueue = 1;
-        calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000); // 5-30 min after creation
-      } else if (selectedStatus === 'serving') {
-        positionInQueue = 0;
-        calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
-        servingStartedAt = new Date(calledAt.getTime() + getRandomInt(1, 5) * 60000); // 1-5 min after called
-      } else if (selectedStatus === 'completed') {
-        positionInQueue = 0;
-        calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
-        servingStartedAt = new Date(calledAt.getTime() + getRandomInt(1, 5) * 60000);
-        completedAt = new Date(servingStartedAt.getTime() + getRandomInt(5, 45) * 60000); // 5-45 min service time
-      } else if (selectedStatus === 'hold') {
-        positionInQueue = 0;
-        calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
-        noShowAt = new Date(calledAt.getTime() + getRandomInt(10, 20) * 60000);
-      }
-
-      // Generate form data (optional)
-      const formData = Math.random() > 0.5 ? encryptionService.encryptObject({
-        priority: getRandomElement(['low', 'medium', 'high']),
-        source: getRandomElement(['walk-in', 'phone', 'online', 'appointment']),
-        notes: `Customer inquiry about ${category.name.toLowerCase()}`,
-      }) : null;
-
-      // Generate note for completed/hold tickets
-      let note: string | null = null;
-      if (selectedStatus === 'completed' && Math.random() > 0.3) {
-        note = `Successfully resolved customer inquiry. Service time: ${Math.round((completedAt!.getTime() - servingStartedAt!.getTime()) / 60000)} minutes.`;
-      } else if (selectedStatus === 'hold' && Math.random() > 0.5) {
-        note = 'Customer did not respond to call. Marked as hold.';
-      }
-
-      try {
-        const ticket = await prisma.ticket.create({
-          data: {
-            tokenNumber,
-            categoryId,
-            agentId,
-            status: selectedStatus,
-            customerName: encryptionService.encrypt(customerName),
-            customerPhone: encryptionService.encrypt(customerPhone),
-            customerEmail: encryptionService.encrypt(customerEmail),
-            formData,
-            note,
-            calledAt,
-            servingStartedAt,
-            completedAt,
-            noShowAt,
-            positionInQueue,
-            createdAt,
-            updatedAt: completedAt || noShowAt || servingStartedAt || calledAt || createdAt,
-          } as any,
-        });
-
-        createdData.ticketIds.push(ticket.id);
+      for (let i = 0; i < count; i++) {
+        // Random date within the specified range
+        const ticketDate = getRandomDate(startDate, endDate);
+        const ticketDateStr = ticketDate.toISOString().split('T')[0];
         
-        if ((i + 1) % 10 === 0) {
-          console.log(`  ✓ Created ${i + 1}/100 tickets...`);
+        // Select random category
+        const categoryId = getRandomElement(createdData.categoryIds);
+        const category = await prisma.category.findUnique({ where: { id: categoryId } });
+        if (!category) continue;
+
+        // Get agents for this category
+        const agentCategories = await prisma.agentCategory.findMany({
+          where: { categoryId, isActive: true },
+        });
+        if (agentCategories.length === 0) continue;
+
+        const agentCategory = getRandomElement(agentCategories);
+        const agentId = agentCategory.agentId;
+
+        // Generate unique token number
+        const tokenNumber = await generateUniqueTokenNumber(category, ticketDate);
+
+        // Select status based on weights
+        const random = Math.random() * 100;
+        let cumulative = 0;
+        let selectedStatus = 'pending';
+        for (const sw of statusWeights) {
+          cumulative += sw.weight;
+          if (random <= cumulative) {
+            selectedStatus = sw.status;
+            break;
+          }
         }
-      } catch (error: any) {
-        console.error(`  ✗ Failed to create ticket ${i + 1}: ${error.message}`);
-        // Continue with next ticket
+
+        // Generate customer data
+        const customerFirstName = getRandomElement(customerNames);
+        const customerLastName = getRandomElement(customerLastNames);
+        const customerName = `${customerFirstName} ${customerLastName}`;
+        const customerPhone = generatePhoneNumber();
+        const customerEmail = generateEmail(customerFirstName, customerLastName);
+
+        // Create realistic timestamps based on status
+        const createdAt = getRandomTimeInDay(ticketDate, 9, 17);
+        let calledAt: Date | null = null;
+        let servingStartedAt: Date | null = null;
+        let completedAt: Date | null = null;
+        let noShowAt: Date | null = null;
+        let positionInQueue = 0;
+
+        if (selectedStatus === 'pending') {
+          positionInQueue = getRandomInt(1, 10);
+        } else if (selectedStatus === 'called') {
+          positionInQueue = 1;
+          calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000); // 5-30 min after creation
+        } else if (selectedStatus === 'serving') {
+          positionInQueue = 0;
+          calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
+          servingStartedAt = new Date(calledAt.getTime() + getRandomInt(1, 5) * 60000); // 1-5 min after called
+        } else if (selectedStatus === 'completed') {
+          positionInQueue = 0;
+          calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
+          servingStartedAt = new Date(calledAt.getTime() + getRandomInt(1, 5) * 60000);
+          completedAt = new Date(servingStartedAt.getTime() + getRandomInt(5, 45) * 60000); // 5-45 min service time
+        } else if (selectedStatus === 'hold') {
+          positionInQueue = 0;
+          calledAt = new Date(createdAt.getTime() + getRandomInt(5, 30) * 60000);
+          noShowAt = new Date(calledAt.getTime() + getRandomInt(10, 20) * 60000);
+        }
+
+        // Generate form data (optional)
+        const formData = Math.random() > 0.5 ? encryptionService.encryptObject({
+          priority: getRandomElement(['low', 'medium', 'high']),
+          source: getRandomElement(['walk-in', 'phone', 'online', 'appointment']),
+          notes: `Customer inquiry about ${category.name.toLowerCase()}`,
+        }) : null;
+
+        // Generate note for completed/hold tickets
+        let note: string | null = null;
+        if (selectedStatus === 'completed' && Math.random() > 0.3) {
+          note = `Successfully resolved customer inquiry. Service time: ${Math.round((completedAt!.getTime() - servingStartedAt!.getTime()) / 60000)} minutes.`;
+        } else if (selectedStatus === 'hold' && Math.random() > 0.5) {
+          note = 'Customer did not respond to call. Marked as hold.';
+        }
+
+        try {
+          const ticket = await prisma.ticket.create({
+            data: {
+              tokenNumber,
+              categoryId,
+              agentId,
+              status: selectedStatus,
+              customerName: encryptionService.encrypt(customerName),
+              customerPhone: encryptionService.encrypt(customerPhone),
+              customerEmail: encryptionService.encrypt(customerEmail),
+              formData,
+              note,
+              calledAt,
+              servingStartedAt,
+              completedAt,
+              noShowAt,
+              positionInQueue,
+              createdAt,
+              updatedAt: completedAt || noShowAt || servingStartedAt || calledAt || createdAt,
+            } as any,
+          });
+
+          createdData.ticketIds.push(ticket.id);
+          createdCount++;
+          
+          const progressInterval = count >= 500 ? 50 : 10;
+          if ((i + 1) % progressInterval === 0) {
+            console.log(`  ✓ Created ${i + 1}/${count} tickets...`);
+          }
+        } catch (error: any) {
+          console.error(`  ✗ Failed to create ticket ${i + 1}: ${error.message}`);
+          // Continue with next ticket
+        }
       }
+
+      console.log(`  ✓ Created ${createdCount}/${count} tickets ${description}`);
+      return createdCount;
     }
 
-    console.log(`  ✓ Created 100 tickets with realistic statuses and timestamps`);
+    // Create 100 tickets across last 30 days
+    const startDate30Days = new Date(today);
+    startDate30Days.setDate(startDate30Days.getDate() - 30);
+    await createTickets(100, startDate30Days, today, 'across last 30 days');
+
+    // Create 500 tickets for this week (last 7 days)
+    const weekStartDate = new Date(today);
+    weekStartDate.setDate(weekStartDate.getDate() - 7);
+    await createTickets(500, weekStartDate, today, 'for this week (last 7 days)');
+
+    // Create 500 tickets for random dates (last 90 days)
+    const randomStartDate = new Date(today);
+    randomStartDate.setDate(randomStartDate.getDate() - 90);
+    await createTickets(500, randomStartDate, today, 'across random dates (last 90 days)');
 
     // Step 5: Save metadata for cleanup
     const metadata = {
@@ -450,8 +474,11 @@ async function createSimulatorData() {
     console.log(`   - Agents: ${createdData.agentIds.length}`);
     console.log(`   - Categories: ${createdData.categoryIds.length}`);
     console.log(`   - Agent-Category Assignments: ${createdData.agentCategoryIds.length}`);
-    console.log(`   - Tickets: ${createdData.ticketIds.length}`);
-    console.log(`   - Date Range: ${startDate.toLocaleDateString()} to ${today.toLocaleDateString()}`);
+    console.log(`   - Tickets: ${createdData.ticketIds.length} total`);
+    console.log(`     • 100 tickets across last 30 days`);
+    console.log(`     • 500 tickets for this week (last 7 days)`);
+    console.log(`     • 500 tickets across random dates (last 90 days)`);
+    console.log(`   - Date Range: ${randomStartDate.toLocaleDateString()} to ${today.toLocaleDateString()}`);
     console.log('\n💾 Metadata saved to simulator-metadata.json for cleanup');
 
   } catch (error) {

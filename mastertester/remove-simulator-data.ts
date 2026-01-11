@@ -53,6 +53,26 @@ async function removeSimulatorData() {
       console.log(`   ✓ Deleted ${deletedAssignments.count} agent-category assignments`);
     }
 
+    // Step 2.5: Delete any remaining tickets and agent-category assignments that reference the categories
+    // This ensures all references to these categories are deleted before category deletion
+    if (createdData.categoryIds.length > 0) {
+      console.log('🗑️  Deleting remaining tickets referencing categories...');
+      const remainingTickets = await prisma.ticket.deleteMany({
+        where: { categoryId: { in: createdData.categoryIds } },
+      });
+      if (remainingTickets.count > 0) {
+        console.log(`   ✓ Deleted ${remainingTickets.count} additional tickets`);
+      }
+
+      console.log('🔗 Removing remaining agent-category assignments...');
+      const remainingAssignments = await prisma.agentCategory.deleteMany({
+        where: { categoryId: { in: createdData.categoryIds } },
+      });
+      if (remainingAssignments.count > 0) {
+        console.log(`   ✓ Deleted ${remainingAssignments.count} additional agent-category assignments`);
+      }
+    }
+
     // Step 3: Delete Categories
     console.log('📋 Deleting categories...');
     if (createdData.categoryIds.length > 0) {
